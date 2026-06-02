@@ -10,6 +10,48 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.2.2] – 2026-06-02
+
+### Hinzugefügt
+
+- **Vollständige Testabdeckung Backend** (`apps/api/src/**/*.spec.ts`) mit Vitest + Supertest
+  - `nvm.parser.spec.ts` – 22 Unit-Tests für `parseInstalledVersions`, `parseRemoteVersions` und `parseAliases` inkl. ANSI-Escape, Edge Cases und Sortierung
+  - `nvm.types.spec.ts` – 24 Unit-Tests für `isValidVersionInput`, `isValidAliasName`, `isValidAliasTarget` und `NvmError`; prüft Shell-Injection-Schutz und Typsicherheit
+  - `nvm.service.spec.ts` – 14 Unit-Tests für `runNvm`, `runNvmLs` und `spawnNvm` mit gemocktem `node:child_process`; verifiziert Argument-Escaping
+  - `nvm.routes.spec.ts` – 51 Integrationstests aller 10 HTTP-Endpunkte via Supertest (400/200/500-Codes, Validierung, `NvmError`-Handling, SSE-Endpunkt)
+
+- **Vollständige Testabdeckung Frontend** (`apps/web/src/app/**/*.spec.ts`) mit Vitest über `@angular/build:unit-test`
+  - `app.spec.ts` – vollständig neu geschrieben: Signal-Zustand, Laden bei `ngOnInit`, Log-Limit, Modal-Close, Fehlerbehandlung (ersetzt veralteten Scaffold-Test)
+  - `nvm-api.service.spec.ts` – 18 Tests für alle 10 HTTP-Methoden mit `HttpClientTestingModule`; prüft URL-Encoding und `handleError`-Mapping
+  - `status-card.component.spec.ts` – Ladezustand, Erfolg- und Fehlerfall
+  - `installed-versions-card.component.spec.ts` – Inputs, Outputs und Defaults
+  - `install-modal.component.spec.ts` – Auto-Close-Timer (Fake-Timer), `getErrorInstructions` für alle Fehlercodes
+  - `action-card.component.spec.ts` – `prefillVersion`-Setter, alle vier Aktionen inkl. Trim und Leerfeld-Schutz
+  - `aliases-card.component.spec.ts` – `refreshTrigger`, `startEdit`/`cancelEdit`/`saveAlias`/`createAlias`/`deleteAlias` inkl. `confirm`-Mock und Fehler-Logs
+  - `remote-versions-card.component.spec.ts` – `filteredVersions` und `availableCount` Computed Signals, Suche, Größenlimits, Fehlerbehandlung
+  - `log-card.component.spec.ts` – Platzhalter, Eintragsrendering, CSS-Klassen je Log-Typ
+  - `app-header.component.spec.ts` – Titel, Versions-Badge (mit/ohne aktive Version)
+  - `card.component.spec.ts` – ng-content Slots (`card-title`, `card-actions`, Body)
+  - `loading-state.component.spec.ts` / `spinner.component.spec.ts` – Rendering der Atom-Komponenten
+
+- **Playwright E2E-Testinfrastruktur** (`apps/e2e/`)
+  - `playwright.config.ts` – Chromium, `reuseExistingServer` für API (Port 3789) und Web (Port 4201)
+  - `tests/smoke.spec.ts` – Alle 8 Haupt-Cards sichtbar, App-Titel, Status-Card-Ladezustand
+  - `tests/install-flow.spec.ts` – Install-/Use-Modal öffnet sich, Log-Eintrag erscheint, Versions-Input akzeptiert gültige Werte
+
+- **Test-Infrastruktur Backend**
+  - `apps/api/vitest.config.ts` mit Coverage-Schwellenwerten (≥ 70 % Lines/Functions, ≥ 60 % Branches)
+  - `vitest`, `@vitest/coverage-v8`, `supertest` und `@types/supertest` als Dev-Abhängigkeiten
+
+### Geändert
+
+- `apps/api/src/server.ts` refaktoriert: `createApp()` wird jetzt separat exportiert; `listen()` wird nur außerhalb von `NODE_ENV=test` aufgerufen – ermöglicht Supertest-Tests ohne Port-Konflikte
+- `apps/api/package.json` um Skripte `test`, `test:watch` und `test:coverage` erweitert
+- `apps/e2e/package.json` erstellt mit Skripten `test`, `test:ui` und `test:headed`
+- Root `package.json` um Skripte `test:api`, `test:api:coverage`, `test:web`, `test:e2e` und `test` (API + Web kombiniert) erweitert; `install:all` schließt nun auch `apps/e2e` ein
+
+---
+
 ## [0.2.1] – 2026-06-02
 
 ### Hinzugefügt
@@ -116,7 +158,8 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mspecht-adesso/nvm-manager/releases/tag/v0.1.0
