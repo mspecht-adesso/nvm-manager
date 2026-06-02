@@ -1,20 +1,10 @@
 import express from 'express';
-import type { ErrorRequestHandler, RequestHandler } from 'express';
+import type { ErrorRequestHandler, RequestHandler, Express } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import versionsRouter from './routes/nvm.routes.js';
 import { runNvm } from './nvm/nvm.service.js';
 import { NvmError } from './nvm/nvm.types.js';
-
-const app = express();
-
-app.use(express.json());
-app.use(morgan('dev'));
-app.use(
-  cors({
-    origin: 'http://localhost:4201',
-  }),
-);
 
 const statusHandler: RequestHandler = async (_req, res, next) => {
   try {
@@ -37,9 +27,6 @@ const statusHandler: RequestHandler = async (_req, res, next) => {
   }
 };
 
-app.get('/api/status', statusHandler);
-app.use('/api/versions', versionsRouter);
-
 const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
   const isNvmError = err instanceof NvmError;
   res.status(500).json({
@@ -49,8 +36,28 @@ const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
   });
 };
 
-app.use(errorMiddleware);
+export function createApp(): Express {
+  const app = express();
 
-app.listen(3789, '127.0.0.1', () => {
-  console.log('nvm manager api läuft auf http://127.0.0.1:3789');
-});
+  app.use(express.json());
+  if (process.env['NODE_ENV'] !== 'test') {
+    app.use(morgan('dev'));
+  }
+  app.use(
+    cors({
+      origin: 'http://localhost:4201',
+    }),
+  );
+
+  app.get('/api/status', statusHandler);
+  app.use('/api/versions', versionsRouter);
+  app.use(errorMiddleware);
+
+  return app;
+}
+
+if (process.env['NODE_ENV'] !== 'test') {
+  createApp().listen(3789, '127.0.0.1', () => {
+    console.log('nvm manager api läuft auf http://127.0.0.1:3789');
+  });
+}
