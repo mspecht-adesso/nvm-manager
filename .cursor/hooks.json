@@ -28,6 +28,11 @@
         "type": "prompt",
         "prompt": "Prüfe ob nach den letzten Änderungen folgende Punkte erledigt sind:\n1. Sind neue öffentliche Funktionen/Methoden mit TSDoc-Kommentaren versehen?\n2. Wurden neue API-Endpunkte mit @openapi-Annotationen dokumentiert?\n3. Sind für neue Logik-Einheiten (Parser, Validierung) Unit-Tests vorhanden oder geplant?\n4. Gibt es offene TypeScript-Lint-Fehler (no-explicit-any, no-floating-promises)?\nFalls nein: Weise den Benutzer kurz darauf hin, was noch fehlen könnte.",
         "loop_limit": 1
+      },
+      {
+        "type": "prompt",
+        "prompt": "Analysiere die Änderungen, die du in dieser Session vorgenommen hast.\n\nFalls du in dieser Session Dateien in apps/web/, apps/api/, docs/ oder der Projektwurzel geändert oder erstellt hast, aktualisiere CHANGELOG.md wie folgt:\n\n1. Lies CHANGELOG.md.\n2. Entscheide, ob die Änderungen in den bestehenden [Unreleased]-Abschnitt gehören oder einen neuen Versionsblock benötigen.\n3. Füge unter [Unreleased] (oder dem aktuellen Versionsblock) präzise Stichpunkte ein – gruppiert nach: Hinzugefügt / Geändert / Behoben / Entfernt.\n4. Schreibe nur Änderungen auf, die für Nutzer oder Entwickler relevant sind (keine reinen Refactorings ohne Verhaltensänderung, keine Tipp-Korrekturen).\n5. Falls keine relevanten Änderungen vorliegen, lass CHANGELOG.md unverändert.\n\nAktualisiere CHANGELOG.md direkt, ohne den Benutzer um Erlaubnis zu fragen.",
+        "loop_limit": 1
       }
     ]
   }
