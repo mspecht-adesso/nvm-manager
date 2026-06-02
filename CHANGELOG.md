@@ -10,6 +10,35 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.2.0] – 2026-06-02
+
+### Hinzugefügt
+
+- **Atomic Design Komponentenstruktur** (`apps/web/src/app/components/`)
+  - *Atoms*
+    - `SpinnerComponent` – isolierter Lade-Spinner, kontextunabhängig wiederverwendbar
+    - `LoadingStateComponent` – Spinner + Textmeldung als kombinierter Ladezustand (`@Input message`)
+  - *Molecules*
+    - `CardComponent` – wiederverwendbare Card-Hülle mit benannten `ng-content`-Slots (`[card-title]`, `[card-actions]`, Body)
+  - *Organisms*
+    - `AppHeaderComponent` – Header mit aktiver-Version-Badge (`@Input activeVersion`)
+    - `StatusCardComponent` – selbst-contained, verwaltet eigenen API-/nvm-Status-Zustand
+    - `ActionCardComponent` – Versions-Eingabe und Aktions-Buttons, reine UI-Komponente mit `@Output` für install/use/setDefault/uninstall
+    - `InstalledVersionsCardComponent` – Tabelle installierter Versionen, empfängt Daten via `@Input`, emittiert useVersion/refresh
+    - `AliasesCardComponent` – selbst-contained mit vollständiger Alias-CRUD-Logik und `@Output logged`
+    - `RemoteVersionsCardComponent` – selbst-contained, lädt Remote-Versionen, filtert bereits installierte heraus
+    - `LogCardComponent` – reine Anzeige des Aktivitäts-Logs, empfängt Einträge via `@Input log`
+- `LogEvent`- und `LogEntry`-Typen in `nvm.models.ts` für typisierte Log-Kommunikation zwischen Komponenten
+
+### Geändert
+
+- `AppComponent` von ~295 auf ~140 Zeilen reduziert – verwaltet nur noch geteilten Zustand (`isLoading`, `installedVersions`, `installModal`, `log`) und komponiert die Organisms
+- `styles.scss` enthält jetzt alle globalen Utility-Klassen (`.btn`, `.badge`, `.input`, `.spinner`, `.loading-state`, `.versions-table` u. a.) statt der `app.scss`
+- `app.scss` auf reines Layout-Styling (`.main`) reduziert
+- `.spinner` erhält explizites `display: block` für kontextunabhängige Darstellung (zuvor abhängig von Blockifizierung als direktes Flex-Kind)
+
+---
+
 ## [0.1.0] – 2026-06-02
 
 ### Hinzugefügt
@@ -63,5 +92,6 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mspecht-adesso/nvm-manager/releases/tag/v0.1.0
