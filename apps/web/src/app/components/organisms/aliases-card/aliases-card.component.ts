@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, signal, inject } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
