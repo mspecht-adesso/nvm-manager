@@ -41,3 +41,9 @@ export type NvmAlias = {
 export type AliasesResponse = NvmCommandResult & {
   aliases: NvmAlias[];
 };
+
+export type InstallModalState = {
+  phase: 'installing' | 'success' | 'error';
+  version: string;
+  errorMessage?: string;
+} | null;

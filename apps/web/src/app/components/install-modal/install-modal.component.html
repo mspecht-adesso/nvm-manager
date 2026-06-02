@@ -1,0 +1,49 @@
+@if (state) {
+  <div class="backdrop" [class.backdrop--no-dismiss]="state.phase === 'installing'">
+    <div class="modal" role="dialog" aria-modal="true">
+
+      @if (state.phase === 'installing') {
+        <div class="modal__icon">
+          <span class="spinner"></span>
+        </div>
+        <h2 class="modal__title">Installation läuft</h2>
+        <p class="modal__body">
+          Node <code class="ver">v{{ state.version }}</code> wird installiert.<br>
+          Dies kann einige Minuten dauern – bitte warten.
+        </p>
+      }
+
+      @if (state.phase === 'success') {
+        <div class="modal__icon modal__icon--success">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 class="modal__title">Installation erfolgreich</h2>
+        <p class="modal__body">
+          Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich installiert.
+        </p>
+        <p class="modal__hint">Dieses Fenster schließt automatisch …</p>
+      }
+
+      @if (state.phase === 'error') {
+        <div class="modal__icon modal__icon--error">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+        <h2 class="modal__title">Installation fehlgeschlagen</h2>
+        <p class="modal__body">
+          Node <code class="ver">v{{ state.version }}</code> konnte nicht installiert werden.
+        </p>
+        <div class="modal__instructions">
+          <strong>Hinweis:</strong> {{ getErrorInstructions(state.errorMessage) }}
+        </div>
+        @if (state.errorMessage) {
+          <details class="modal__details">
+            <summary>Technische Details</summary>
+            <pre class="modal__error-pre">{{ state.errorMessage }}</pre>
+          </details>
+        }
+        <button class="modal__close-btn" (click)="close()">Schließen</button>
+      }
+
+    </div>
+  </div>
+}

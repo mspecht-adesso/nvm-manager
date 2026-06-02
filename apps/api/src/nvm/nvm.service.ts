@@ -14,6 +14,8 @@ function buildNvmCommand(args: string[]): string {
     .join(' ');
 
   return `
+    unset npm_config_prefix;
+    unset NPM_CONFIG_PREFIX;
     export NVM_DIR="${NVM_DIR}";
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh";
     nvm ${escaped}

@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { NvmApiService } from './services/nvm-api.service';
+import { InstallModalComponent } from './components/install-modal/install-modal.component';
 import type {
   NvmStatus,
   InstalledNodeVersion,
@@ -11,6 +12,7 @@ import type {
   AliasesResponse,
   RemoteNodeVersion,
   RemoteVersionsResponse,
+  InstallModalState,
 } from './models/nvm.models';
 
 type LogEntry = {
@@ -22,7 +24,7 @@ type LogEntry = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, InstallModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -42,6 +44,7 @@ export class App implements OnInit {
   readonly aliasesLoading = signal(false);
   readonly editingAlias = signal<string | null>(null);
   readonly log = signal<LogEntry[]>([]);
+  readonly installModal = signal<InstallModalState>(null);
 
   versionInput = '22';
   editAliasTarget = '';
@@ -119,37 +122,36 @@ export class App implements OnInit {
   }
 
   installRemoteVersion(version: string): void {
-    this.isLoading.set(true);
-    this.addLog(`Installiere Node ${version} ...`, 'info');
-    this.nvmApi.installVersion(version).subscribe({
-      next: (res: NvmCommandResult) => {
-        this.addLog(`Node ${version} installiert. ${res.stdout.trim()}`, 'success');
-        this.isLoading.set(false);
-        this.loadInstalledVersions();
-      },
-      error: (err: Error) => {
-        this.addLog(`Fehler bei Installation von ${version}: ${err.message}`, 'error');
-        this.isLoading.set(false);
-      },
-    });
+    this.runInstall(version);
   }
 
   install(): void {
     const version = this.versionInput.trim();
     if (!version) return;
+    this.runInstall(version);
+  }
+
+  private runInstall(version: string): void {
     this.isLoading.set(true);
+    this.installModal.set({ phase: 'installing', version });
     this.addLog(`Installiere Node ${version} ...`, 'info');
     this.nvmApi.installVersion(version).subscribe({
       next: (res: NvmCommandResult) => {
         this.addLog(`Node ${version} installiert. ${res.stdout.trim()}`, 'success');
         this.isLoading.set(false);
+        this.installModal.set({ phase: 'success', version });
         this.loadInstalledVersions();
       },
       error: (err: Error) => {
         this.addLog(`Fehler bei Installation von ${version}: ${err.message}`, 'error');
         this.isLoading.set(false);
+        this.installModal.set({ phase: 'error', version, errorMessage: err.message });
       },
     });
+  }
+
+  closeInstallModal(): void {
+    this.installModal.set(null);
   }
 
   use(): void {

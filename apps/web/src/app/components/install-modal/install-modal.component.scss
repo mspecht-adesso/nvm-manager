@@ -1,0 +1,166 @@
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Backdrop ────────────────────────────────────────────────────
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fade-in 0.18s ease;
+}
+
+// ── Modal ────────────────────────────────────────────────────────
+.modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem 2.25rem;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  animation: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+
+  // ── Icon ──────────────────────────────────────────────────────
+  &__icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+
+    &--success {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    &--error {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+  }
+
+  // ── Text ──────────────────────────────────────────────────────
+  &__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  &__body {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #475569;
+    line-height: 1.65;
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+  }
+
+  // ── Instructions box ─────────────────────────────────────────
+  &__instructions {
+    width: 100%;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.82rem;
+    color: #0c4a6e;
+    text-align: left;
+    line-height: 1.5;
+  }
+
+  // ── Error details ────────────────────────────────────────────
+  &__details {
+    width: 100%;
+    text-align: left;
+
+    summary {
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      padding: 0.1rem 0;
+      user-select: none;
+
+      &:hover { color: #64748b; }
+    }
+  }
+
+  &__error-pre {
+    margin: 0.5rem 0 0;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+    font-size: 0.7rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  // ── Close button ─────────────────────────────────────────────
+  &__close-btn {
+    margin-top: 0.25rem;
+    padding: 0.5rem 1.5rem;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: #b91c1c; }
+  }
+}
+
+// ── Version code ────────────────────────────────────────────────
+.ver {
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  font-size: 0.85rem;
+  background: #f1f5f9;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  color: #1e293b;
+}
+
+// ── Spinner ─────────────────────────────────────────────────────
+.spinner {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
