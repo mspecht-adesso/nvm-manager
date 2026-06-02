@@ -10,6 +10,30 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.2.1] – 2026-06-02
+
+### Hinzugefügt
+
+- **Modal-Feedback für „Verwenden"** – `InstallModalComponent` zeigt jetzt auch beim Versionswechsel einen geführten Fortschritts-Dialog (laufend / Erfolg / Fehler) mit action-spezifischen Texten
+- `InstallModalState` um Feld `action: 'install' | 'use'` erweitert; `phase` von `'installing'` auf `'running'` umbenannt
+- `ActionCardComponent` akzeptiert `@Input() prefillVersion`: Klick auf „Verwenden" in der Versions-Liste befüllt das Eingabefeld der Aktionskarte vor
+
+### Geändert
+
+- **`POST /api/versions/use` ist jetzt persistent** – der Endpunkt ruft intern `nvm alias default X` auf und schreibt die Wahl dauerhaft in `~/.nvm/alias/default`; ein temporäres `nvm use` (nur für die Child-Prozess-Session) hatte keine sichtbare Wirkung
+- **`GET /api/versions/installed` zeigt korrekte aktive Version** – führt `nvm use default && nvm ls` in derselben Shell aus, sodass der `->` Indikator stets mit dem `default`-Alias übereinstimmt
+- `nvm.service.ts` refaktoriert: gemeinsamer `NVM_HEADER`, neue Funktion `runNvmLs()` (mit vorgelagertem `nvm use default`), `escapeArgs()`-Hilfsfunktion extrahiert
+- `AliasesCardComponent` lädt Alias-Liste nach „Verwenden" und „Als Default setzen" automatisch neu (`@Input() refreshTrigger`)
+- `AppComponent`: `onUseFromList` und `onSetDefault` inkrementieren `aliasesRefreshTrigger` nach erfolgreichem API-Aufruf
+
+### Behoben
+
+- „Verwenden"-Button in der Versions-Liste hat nun sichtbares Feedback (Modal) und aktualisiert Header sowie installierte Versionen korrekt
+- Aktive Version im Header und in der Versions-Liste blieb nach einem Versionswechsel unverändert (root cause: Child-Prozess-Isolation von `nvm use`)
+- `AliasesCardComponent` importierte `Input` nicht aus `@angular/core` → Build-Fehler `TS2552` behoben
+
+---
+
 ## [0.2.0] – 2026-06-02
 
 ### Hinzugefügt
@@ -92,6 +116,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mspecht-adesso/nvm-manager/releases/tag/v0.1.0
