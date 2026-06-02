@@ -47,8 +47,8 @@ Falls `nvm --version` einen Fehler zeigt, folgen Sie der
 ### Erstmalige Installation
 
 ```bash
-# Im Projektordner
-npm install
+# Im Projektordner – installiert alle Abhängigkeiten (Root, API und Frontend)
+npm run install:all
 
 # Frontend und Backend gleichzeitig starten
 npm run dev
@@ -79,17 +79,19 @@ Die Oberfläche gliedert sich in folgende Bereiche:
 
 ```
 ┌─────────────────────────────────────┐
-│           nvm Manager               │  ← Header
+│   nvm Manager         Aktiv: v22.x  │  ← Header mit aktiver Versionsanzeige
 ├─────────────────────────────────────┤
-│  Status-Card                        │  ← API-Status, nvm-Version, NVM_DIR
+│  Status                             │  ← API-Status, nvm-Version, NVM_DIR
 ├─────────────────────────────────────┤
-│  Aktionen-Card                      │  ← Eingabefeld + Aktions-Buttons
+│  Aktion                             │  ← Eingabefeld + Aktions-Buttons
 ├─────────────────────────────────────┤
-│  Installierte Versionen             │  ← Tabelle + rohe Ausgabe
+│  Installierte Versionen             │  ← Tabelle mit Verwenden-Button pro Zeile
 ├─────────────────────────────────────┤
-│  Remote LTS-Versionen               │  ← Laden und anzeigen
+│  Aliases                            │  ← Aliases anzeigen, bearbeiten, anlegen
 ├─────────────────────────────────────┤
-│  Log                                │  ← Letzte Aktion, Fehlermeldungen
+│  Verfügbare Versionen               │  ← Alle Remote-Versionen mit Suchfeld
+├─────────────────────────────────────┤
+│  Log                                │  ← Letzte Aktionen und Fehlermeldungen
 └─────────────────────────────────────┘
 ```
 
@@ -105,6 +107,8 @@ Die **Status-Card** zeigt beim Start automatisch:
 - **nvm-Version**: z.B. `0.39.7`
 - **NVM_DIR**: Pfad zur nvm-Installation (z.B. `/Users/name/.nvm`)
 
+Der Header zeigt zudem die aktuell aktive Node.js-Version als Badge an (z.B. `Aktiv: v22.11.0`).
+
 Falls die API nicht erreichbar ist, stellen Sie sicher dass das Backend läuft (`npm run dev:api`).
 
 ---
@@ -115,30 +119,31 @@ Klicken Sie auf **Aktualisieren** in der Card „Installierte Versionen".
 
 Die Tabelle zeigt:
 
-| Version | Aktiv | Default |
-|---------|-------|---------|
-| 22.11.0 | ✓ | ✓ |
-| 20.5.0 | – | – |
+| Version | Status | Aktion |
+|---------|--------|--------|
+| v22.11.0 (Aktiv, Default) | In Verwendung | Verwenden |
+| v20.5.0 | Installiert | Verwenden |
 
-Darunter wird zusätzlich die rohe `nvm ls`-Ausgabe angezeigt.
+- **Aktiv**: Die aktuell in Verwendung befindliche Version
+- **Default**: Wird in neuen Terminal-Fenstern automatisch genutzt
+- **Verwenden**: Aktiviert die jeweilige Version direkt aus der Tabelle
 
----
-
-### Remote LTS-Versionen anzeigen
-
-Klicken Sie auf **Laden** in der Card „Remote LTS-Versionen".
-
-Dieser Vorgang kann einige Sekunden dauern (Netzwerkanfrage an nodejs.org).
-Die Ausgabe listet alle verfügbaren LTS-Versionen.
+Unter der Tabelle wird zusätzlich die rohe `nvm ls`-Ausgabe als aufklappbares Element angezeigt.
 
 ---
 
 ### Node-Version installieren
 
+**Über das Aktionsfeld:**
+
 1. Geben Sie die gewünschte Version in das Eingabefeld ein.
 2. Klicken Sie auf **Installieren**.
-3. Der Button wird während der Installation deaktiviert.
+3. Der Button zeigt „Bitte warten …" während der Installation.
 4. Nach Abschluss werden die installierten Versionen automatisch aktualisiert.
+
+**Über die Verfügbare-Versionen-Liste:**
+
+Klicken Sie in der Card „Verfügbare Versionen" direkt auf **Installieren** neben der gewünschten Version.
 
 **Erlaubte Versionseingaben:**
 
@@ -151,18 +156,24 @@ Die Ausgabe listet alle verfügbaren LTS-Versionen.
 | `stable` | Neueste stabile Version |
 | `lts/*` | Neueste LTS-Version |
 
-> ⚠️ Die Installation kann mehrere Minuten dauern.
+> Die Installation kann mehrere Minuten dauern (Netzwerk-Download).
 
 ---
 
 ### Version als aktiv setzen (`nvm use`)
 
+**Über das Aktionsfeld:**
+
 1. Gewünschte Version eingeben.
 2. **Verwenden** klicken.
 
-> ⚠️ **Wichtiger Hinweis:** `nvm use` gilt nur für die aktuelle Server-Session.
+**Direkt aus der Versions-Tabelle:**
+
+Klicken Sie in der Zeile der gewünschten Version auf den **Verwenden**-Button (bei der bereits aktiven Version ist der Button deaktiviert).
+
+> **Wichtiger Hinweis:** `nvm use` gilt nur für die aktuelle Server-Session.
 > Bereits geöffnete Terminal-Fenster sind **nicht** betroffen. Für neue Terminals
-> verwenden Sie stattdessen **Als Default setzen**.
+> verwenden Sie stattdessen **Als Default setzen** oder passen Sie den `default`-Alias an.
 
 ---
 
@@ -183,6 +194,63 @@ Die Default-Version wird automatisch in neuen Terminal-Fenstern verwendet.
 3. **Sicherheitsabfrage bestätigen** – ohne Bestätigung wird nichts gelöscht.
 
 > Die aktive Version kann nicht deinstalliert werden. Setzen Sie vorher eine andere Version aktiv.
+
+---
+
+### Aliases verwalten
+
+nvm unterstützt benannte Aliases für Versionen (z.B. `default`, `my-project`). Die **Aliases-Card** ermöglicht die vollständige Verwaltung dieser Aliases.
+
+#### Aliases anzeigen
+
+Die Tabelle zeigt alle vorhandenen Aliases mit:
+
+| Name | Ziel | Aufgelöst | Aktion |
+|------|------|-----------|--------|
+| `default` | `22` | `v22.11.0` | Bearbeiten |
+| `my-project` | `18.18.0` | `v18.18.0` | Bearbeiten / Löschen |
+| `node` | `stable` | `v22.11.0` | *(schreibgeschützt)* |
+
+- **Name**: Der Alias-Name
+- **Ziel**: Die hinterlegte Versionsangabe
+- **Aufgelöst**: Die konkret zugeordnete Node.js-Version
+
+#### Alias bearbeiten
+
+Klicken Sie bei einem bearbeitbaren Alias auf **Bearbeiten**, geben Sie das neue Ziel ein und bestätigen mit **Speichern** (oder `Enter`). Mit **Abbrechen** oder `Escape` verwerfen Sie die Änderung.
+
+> Der `default`-Alias kann bearbeitet, aber nicht gelöscht werden.
+> Systemaliases (`node`, `stable`, `unstable`) und LTS-Aliases (`lts/*`) sind schreibgeschützt.
+
+#### Alias löschen
+
+Klicken Sie bei einem löschbaren Alias auf **Löschen** und bestätigen Sie die Sicherheitsabfrage.
+
+#### Neuen Alias anlegen
+
+Im Bereich „Neuen Alias anlegen" am Ende der Aliases-Card:
+
+1. **Name** eingeben (z.B. `my-project`)
+2. **Ziel** eingeben (z.B. `18`, `lts/*`, `v22.11.0`)
+3. **Anlegen** klicken (oder `Enter` im Zielfeld)
+
+---
+
+### Verfügbare Versionen (Remote)
+
+Klicken Sie auf **Laden** in der Card „Verfügbare Versionen".
+
+Dieser Vorgang kann einige Sekunden dauern (Netzwerkanfrage an nodejs.org).
+
+**Funktionen der Liste:**
+
+- **Suchfeld**: Filtert nach Versionsnummer oder LTS-Name (z.B. `22`, `20`, `lts`, `iron`)
+- **Standardansicht**: Zeigt die 30 neuesten nicht-installierten Versionen
+- **Suchergebnisse**: Zeigt bis zu 100 Treffer aus allen verfügbaren Versionen
+- **Typ**: LTS-Versionen sind mit einem Badge (`LTS: Iron`) markiert, Current-Versionen mit „Current"
+- **Installieren**: Direkt-Button pro Zeile installiert die Version sofort
+
+Bereits installierte Versionen werden automatisch ausgeblendet.
 
 ---
 
@@ -235,7 +303,15 @@ export NVM_DIR="$HOME/.nvm"
 
 **Ursache:** Keine Internetverbindung oder nodejs.org nicht erreichbar.
 
-**Lösung:** Internetverbindung prüfen. Der Befehl `nvm ls-remote --lts` benötigt Netzwerkzugriff.
+**Lösung:** Internetverbindung prüfen. Der Befehl `nvm ls-remote` benötigt Netzwerkzugriff.
+
+---
+
+### „Alias ist schreibgeschützt"
+
+**Ursache:** Die Aliases `node`, `stable`, `unstable` und alle `lts/*`-Aliases werden von nvm intern verwaltet und können nicht bearbeitet oder gelöscht werden.
+
+**Lösung:** Nur benutzerdefinierte Aliases (z.B. `default`, eigene Namen) bearbeiten.
 
 ---
 
@@ -243,7 +319,8 @@ export NVM_DIR="$HOME/.nvm"
 
 - Das Backend ist **ausschließlich auf `127.0.0.1`** erreichbar – kein Zugriff von anderen Geräten im Netzwerk.
 - Es werden **nur fest definierte nvm-Befehle** ausgeführt – keine freie Shell-Ausführung.
-- Alle Versionseingaben werden streng validiert – Sonderzeichen werden abgelehnt.
+- Alle Versionseingaben und Alias-Namen werden streng validiert – Sonderzeichen werden abgelehnt.
+- Schreibgeschützte System-Aliases können nicht überschrieben oder gelöscht werden.
 - Das Tool ist **nicht für den Einsatz auf einem öffentlichen Server** gedacht.
 
 ---
@@ -255,17 +332,17 @@ export NVM_DIR="$HOME/.nvm"
 `nvm use` ändert die aktive Node-Version nur für den Backend-Prozess selbst.
 Bereits geöffnete Terminals oder andere Prozesse sind **nicht** betroffen.
 
-**Empfehlung:** Für dauerhaften Effekt **„Als Default setzen"** verwenden.
+**Empfehlung:** Für dauerhaften Effekt **„Als Default setzen"** verwenden oder den `default`-Alias bearbeiten.
 
 ### Kein automatisches Parsen aller nvm-Ausgaben
 
 Bei ungewöhnlichen nvm-Konfigurationen kann das Parsen der installierten Versionen
 unvollständig sein. Die **rohe Ausgabe** (`nvm ls`) wird immer korrekt angezeigt.
 
-### Keine `.nvmrc`-Unterstützung (MVP)
+### Keine `.nvmrc`-Unterstützung
 
 Die Verwaltung von `.nvmrc`-Dateien pro Projekt ist für eine spätere Version geplant.
 
 ---
 
-*Stand: automatisch generiert – bitte bei Änderungen am Tool aktualisieren.*
+*Stand: Juni 2026*
