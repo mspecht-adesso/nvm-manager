@@ -1,0 +1,60 @@
+---
+description: Sicherheitsregeln für nvm-Kommandoausführung – Shell-Injection-Prävention und Input-Validierung
+alwaysApply: true
+---
+
+# nvm-Sicherheitsregeln
+
+## Erlaubte nvm-Aktionen (Whitelist)
+
+Nur diese nvm-Kommandos dürfen ausgeführt werden:
+
+| Aktion | nvm-Kommando |
+|--------|-------------|
+| Status | `nvm --version` |
+| Installierte anzeigen | `nvm ls` |
+| Remote LTS anzeigen | `nvm ls-remote --lts` |
+| Installieren | `nvm install <version>` |
+| Verwenden | `nvm use <version>` |
+| Default setzen | `nvm alias default <version>` |
+| Deinstallieren | `nvm uninstall <version>` |
+
+**Kein anderes Kommando darf ausgeführt werden.**
+
+## Versions-Validierung
+
+Vor jedem Aufruf mit Version-Parameter:
+
+```typescript
+// Erlaubte Formate
+const VERSION_PATTERN = /^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/;
+
+export function isValidVersionInput(v: unknown): v is string {
+  return typeof v === 'string' && VERSION_PATTERN.test(v);
+}
+```
+
+Ablehnen mit HTTP 400 bei ungültiger Eingabe – kein Logging des Inputs (könnte Injection-Versuche beinhalten).
+
+## Shell-Injection-Prävention
+
+```typescript
+// ✅ Single-Quote-Escaping vor Shell-Übergabe
+const safe = version.replace(/'/g, "'\\''");
+const cmd = `nvm install '${safe}'`;
+
+// ❌ Direkte String-Interpolation ohne Escaping
+const cmd = `nvm install ${version}`;
+```
+
+## Netzwerk-Bindung
+
+- Backend **nur** auf `127.0.0.1` lauschen (nie `0.0.0.0`)
+- CORS **nur** `http://localhost:4200`
+- Kein externer Zugriff möglich durch diese Konfiguration
+
+## Was niemals erlaubt ist
+
+- Freie Shell-Kommandos aus dem Frontend (`/api/exec` o.ä.)
+- `eval()` oder dynamische Kommandokomposition aus User-Input
+- Weitergabe von `req.query` oder `req.body` ohne Validierung an Shell

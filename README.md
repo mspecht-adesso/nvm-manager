@@ -1,2 +1,83 @@
-# nvm-manager
-NVM-Manager in Angular
+# nvm Manager
+
+Lokales Web-Tool zum Verwalten von Node-Versionen über nvm.
+
+## Voraussetzungen
+
+- macOS oder Linux
+- [nvm](https://github.com/nvm-sh/nvm) installiert
+- Node.js ≥ 18 installiert
+- npm installiert
+
+## Installation
+
+```bash
+npm run install:all
+```
+
+Oder manuell:
+
+```bash
+npm install
+npm --prefix apps/api install
+npm --prefix apps/web install
+```
+
+## Start
+
+```bash
+npm run dev
+```
+
+Startet Frontend und Backend parallel:
+
+| App      | URL                          |
+|----------|------------------------------|
+| Frontend | http://localhost:4200        |
+| API      | http://127.0.0.1:3789        |
+
+### Einzeln starten
+
+```bash
+npm run dev:api   # nur Express API
+npm run dev:web   # nur Angular Frontend
+```
+
+## Funktionen
+
+- **Installierte Versionen** anzeigen (mit Tabelle und Rohdaten)
+- **Remote LTS-Versionen** laden und anzeigen
+- **Version installieren** – validierter POST an die API
+- **Version verwenden** – `nvm use` in der Backend-Session
+- **Default-Version setzen** – `nvm alias default`
+- **Version deinstallieren** – mit Bestätigungsdialog
+
+## Sicherheit
+
+- Das Backend bindet **ausschließlich an `127.0.0.1`** – kein externer Zugriff.
+- Es werden nur **fest definierte nvm-Kommandos** ausgeführt (keine freie Shell-Ausführung).
+- Versionseingaben werden streng per Regex validiert: `node`, `stable`, `lts/*`, oder Semver (`22`, `22.11`, `22.11.0`).
+- Ungültige Eingaben werden mit HTTP 400 abgelehnt.
+
+## Hinweis zu `nvm use`
+
+`nvm use` gilt nur für die **Shell-Session des Backend-Prozesses** und verändert nicht bereits geöffnete Terminals.  
+Für neue Terminals sollte die **Default-Version** gesetzt werden (`nvm alias default`).
+
+## Projektstruktur
+
+```
+nvm-manager/
+├── apps/
+│   ├── web/          # Angular 21 Frontend (Standalone, Signals)
+│   └── api/          # Express Backend (TypeScript, tsx)
+├── package.json      # Root Scripts (concurrently)
+└── README.md
+```
+
+## Entwicklung
+
+Das Angular-Frontend nutzt einen **Dev-Proxy** (`apps/web/proxy.conf.json`), der `/api`-Requests an `http://127.0.0.1:3789` weiterleitet.
+
+Für Live-Output bei langen Installationen ist ein SSE-Endpoint unter  
+`GET /api/versions/install/stream?version=<version>` vorbereitet.

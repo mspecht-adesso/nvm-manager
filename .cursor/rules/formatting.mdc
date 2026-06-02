@@ -1,0 +1,119 @@
+---
+description: Code-Formatierung mit Prettier und ESLint Flat Config für nvm-manager (TypeScript, Angular, SCSS)
+globs: apps/**/*.ts,apps/**/*.html,apps/**/*.scss,*.json,*.mjs
+alwaysApply: false
+---
+
+# Formatierungs-Konventionen
+
+## Prettier-Konfiguration (`.prettierrc`)
+
+Gilt für beide Apps (`apps/web/` und `apps/api/`):
+
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf"
+}
+```
+
+`.prettierignore`:
+
+```
+dist/
+node_modules/
+.angular/
+coverage/
+*.min.js
+```
+
+## ESLint Flat Config (API – `apps/api/eslint.config.mjs`)
+
+```js
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  tseslint.configs.strictTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: { project: './tsconfig.json', tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-floating-promises': 'error',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  { ignores: ['dist/**', 'node_modules/**'] }
+);
+```
+
+## ESLint Flat Config (Web – `apps/web/eslint.config.mjs`)
+
+```js
+import angular from 'angular-eslint';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  ...angular.configs.tsRecommended,
+  ...angular.configs.templateRecommended,
+  {
+    files: ['**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@angular-eslint/prefer-standalone': 'error',
+      '@angular-eslint/use-lifecycle-interface': 'warn',
+    },
+  },
+  {
+    files: ['**/*.html'],
+    rules: { '@angular-eslint/template/no-negated-async': 'warn' },
+  },
+  { ignores: ['.angular/**', 'node_modules/**'] }
+);
+```
+
+## EditorConfig (`.editorconfig` im Root)
+
+```ini
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]
+trim_trailing_whitespace = false
+```
+
+## Npm-Scripts
+
+In beiden `package.json`s ergänzen:
+
+```json
+"scripts": {
+  "lint": "eslint src/",
+  "lint:fix": "eslint src/ --fix",
+  "format": "prettier --write src/",
+  "format:check": "prettier --check src/"
+}
+```
+
+Im Root `package.json`:
+
+```json
+"lint": "npm run lint --prefix apps/api && npm run lint --prefix apps/web",
+"format": "npm run format --prefix apps/api && npm run format --prefix apps/web"
+```

@@ -1,0 +1,130 @@
+---
+description: Test-Konventionen mit Vitest (API) und Angular Testing (Web) für nvm-manager
+globs: apps/**/*.spec.ts,apps/**/*.test.ts,apps/**/*.e2e.ts
+alwaysApply: false
+---
+
+# Test-Konventionen
+
+## API-Tests (Vitest + Supertest)
+
+Testdateien neben der Quelldatei ablegen:
+
+```
+apps/api/src/nvm/
+├── nvm.parser.ts
+├── nvm.parser.spec.ts   ← Unit-Test
+├── nvm.service.ts
+└── nvm.service.spec.ts  ← Unit-Test (mit Mocks)
+apps/api/src/routes/
+└── nvm.routes.spec.ts   ← Integrations-Test mit Supertest
+```
+
+Unit-Test-Muster:
+
+```typescript
+// nvm.parser.spec.ts
+import { describe, it, expect } from 'vitest';
+import { parseInstalledVersions } from './nvm.parser.js';
+
+describe('parseInstalledVersions', () => {
+  it('erkennt die aktive Version', () => {
+    const stdout = '->     v22.11.0 (default)\n       v20.5.0';
+    const result = parseInstalledVersions(stdout);
+    expect(result).toHaveLength(2);
+    expect(result[0].active).toBe(true);
+    expect(result[0].default).toBe(true);
+    expect(result[0].version).toBe('22.11.0');
+  });
+
+  it('gibt leeres Array bei leerem Input zurück', () => {
+    expect(parseInstalledVersions('')).toEqual([]);
+  });
+});
+```
+
+Integrations-Test mit Supertest:
+
+```typescript
+// nvm.routes.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import request from 'supertest';
+import app from '../../server.js';
+import * as nvmService from '../nvm/nvm.service.js';
+
+vi.mock('../nvm/nvm.service.js');
+
+describe('POST /api/versions/install', () => {
+  it('lehnt ungültige Version mit 400 ab', async () => {
+    const res = await request(app).post('/api/versions/install').send({ version: '../etc/passwd' });
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 200 bei gültiger Version zurück', async () => {
+    vi.mocked(nvmService.install).mockResolvedValue({ stdout: 'ok', stderr: '' });
+    const res = await request(app).post('/api/versions/install').send({ version: '22' });
+    expect(res.status).toBe(200);
+  });
+});
+```
+
+## Angular-Tests (Vitest + @testing-library/angular)
+
+```typescript
+// version-card.component.spec.ts
+import { render, screen, fireEvent } from '@testing-library/angular';
+import { VersionCardComponent } from './version-card.component';
+
+describe('VersionCardComponent', () => {
+  it('deaktiviert Buttons während isLoading', async () => {
+    const { fixture } = await render(VersionCardComponent);
+    const comp = fixture.componentInstance;
+    comp.isLoading.set(true);
+    fixture.detectChanges();
+    expect(screen.getByRole('button', { name: /installieren/i })).toBeDisabled();
+  });
+});
+```
+
+## Vitest-Konfiguration (API – `vitest.config.ts`)
+
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['src/**/*.spec.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts'],
+      thresholds: { lines: 70, functions: 70 },
+    },
+  },
+});
+```
+
+## Playwright E2E (`apps/e2e/`)
+
+```typescript
+// install-flow.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('Kann eine Node-Version installieren', async ({ page }) => {
+  await page.goto('http://localhost:4200');
+  await expect(page.getByText('nvm Manager')).toBeVisible();
+  await page.getByLabel('Version').fill('22');
+  await page.getByRole('button', { name: 'Installieren' }).click();
+  await expect(page.getByText(/Installiere/)).toBeVisible();
+});
+```
+
+## Benennungsregeln
+
+- Testdateien: `*.spec.ts` (Unit/Integration), `*.e2e.ts` (Playwright)
+- `describe`-Blöcke: Klassenname oder Funktionsname
+- `it`-Texte: auf Deutsch, verhalten beschreibend ("gibt 400 zurück wenn...")
+- Mocks immer über `vi.mock()`, kein manuelles Stub-Patching

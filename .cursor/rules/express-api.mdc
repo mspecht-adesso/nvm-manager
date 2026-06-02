@@ -1,0 +1,82 @@
+---
+description: Express API-Konventionen, Fehlerbehandlung, Sicherheit und Route-Struktur für nvm-manager
+globs: apps/api/**/*.ts
+alwaysApply: false
+---
+
+# Express API-Regeln
+
+## Route-Struktur
+
+```typescript
+// ✅ Router pro Feature
+const router = Router();
+router.get('/installed', getInstalledHandler);
+router.post('/install', installHandler);
+export default router;
+
+// In server.ts
+app.use('/api/versions', versionsRouter);
+app.use('/api', statusRouter);
+```
+
+## Request-Handler-Muster
+
+Immer typisiert und mit try/catch:
+
+```typescript
+const installHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const { version } = req.body as { version: unknown };
+    if (!isValidVersionInput(version)) {
+      res.status(400).json({ error: 'Ungültige Versionseingabe' });
+      return;
+    }
+    const result = await nvmService.install(version);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+## Zentrales Error-Middleware
+
+Am Ende von `server.ts` registrieren:
+
+```typescript
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const message = err instanceof Error ? err.message : 'Interner Fehler';
+  const detail = (err as Record<string, unknown>);
+  res.status(500).json({
+    error: message,
+    stdout: detail?.stdout ?? '',
+    stderr: detail?.stderr ?? '',
+  });
+});
+```
+
+## Sicherheit
+
+- **Niemals** `req.body` direkt an Shell-Befehle weitergeben
+- Validation mit `isValidVersionInput()` vor jedem nvm-Aufruf
+- `execFile` (nicht `exec`) für Prozess-Ausführung
+- nvm-Argumente vor Shell-Injection schützen (single-quote escaping)
+
+## Antwortformat
+
+Konsistente JSON-Responses:
+
+```typescript
+// Erfolg
+res.json({ stdout, stderr, versions? });
+
+// Fehler (400)
+res.status(400).json({ error: 'Beschreibender Fehlertext' });
+
+// Fehler (500) – via Error-Middleware
+```
+
+## Logging
+
+`morgan('dev')` für Entwicklung einbinden; kein `console.log` in Produktionspfaden.

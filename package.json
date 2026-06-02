@@ -1,0 +1,14 @@
+{
+  "name": "nvm-manager",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web start",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "install:all": "npm install && npm --prefix apps/api install && npm --prefix apps/web install"
+  },
+  "devDependencies": {
+    "concurrently": "latest"
+  }
+}

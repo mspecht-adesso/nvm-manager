@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+apps/api/node_modules/
+apps/web/node_modules/
+
+# Build outputs
+apps/api/dist/
+apps/web/dist/
+apps/web/.angular/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Environment
+.env
+.env.local

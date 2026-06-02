@@ -1,0 +1,37 @@
+---
+description: Projektweite Konventionen für nvm-manager (Monorepo, TypeScript, Sicherheit)
+alwaysApply: true
+---
+
+# nvm-manager Projektkonventionen
+
+## Struktur
+
+- Monorepo: `apps/web/` (Angular) und `apps/api/` (Express)
+- Root `package.json` enthält nur Start-Scripts und `concurrently`
+- Keine gemeinsame Codebasis zwischen `web` und `api` (kein `shared/` im MVP)
+
+## TypeScript
+
+- Stricter Modus in beiden Apps: `strict: true`, `noImplicitAny: true`
+- Keine `any`-Typen – bei Unsicherheit `unknown` + Type Guard
+- Explizite Rückgabetypen bei allen Funktionen
+- `tsx` für lokales API-Development
+
+## Benennung
+
+- Dateien: `kebab-case` (z.B. `nvm.service.ts`, `nvm.routes.ts`)
+- Klassen/Interfaces/Types: `PascalCase`
+- Variablen/Funktionen: `camelCase`
+- Konstanten: `UPPER_SNAKE_CASE`
+
+## Sicherheit (kritisch)
+
+- Backend **ausschließlich** an `127.0.0.1:3789` binden
+- Keine freie Shell-Ausführung aus dem Frontend
+- Alle Versionseingaben streng validieren vor nvm-Aufruf
+- CORS nur für `http://localhost:4200` erlauben
+
+## API-Präfix
+
+Alle Backend-Endpunkte unter `/api/` (z.B. `/api/status`, `/api/versions/installed`)

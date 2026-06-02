@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/security-check.sh",
+        "failClosed": false
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/post-edit-notify.sh",
+        "matcher": "Write"
+      },
+      {
+        "command": ".cursor/hooks/lint-reminder.sh",
+        "matcher": "Write"
+      }
+    ],
+    "sessionStart": [
+      {
+        "type": "prompt",
+        "prompt": "Der Benutzer arbeitet am Projekt 'nvm-manager': ein lokales Web-Tool mit Angular Frontend (apps/web/, Port 4200) und Express Backend (apps/api/, Port 3789) zur Verwaltung von nvm Node-Versionen.\n\nVerfügbare Skills:\n- 'angular-expert': Angular 17+ Standalone, Signals, HttpClient\n- 'nodejs-express-expert': Express, Child Process, SSE, Fehlerbehandlung\n- 'formatting-linting-expert': Prettier, ESLint Flat Config, angular-eslint\n- 'testing-expert': Vitest, Supertest, @testing-library/angular, Playwright\n- 'documentation-expert': TSDoc, OpenAPI/Swagger, Benutzerhandbuch\n\nSicherheit ist kritisch: Backend nur an 127.0.0.1, ausschließlich Whitelist-nvm-Kommandos, strenge Eingabevalidierung."
+      }
+    ],
+    "stop": [
+      {
+        "type": "prompt",
+        "prompt": "Prüfe ob nach den letzten Änderungen folgende Punkte erledigt sind:\n1. Sind neue öffentliche Funktionen/Methoden mit TSDoc-Kommentaren versehen?\n2. Wurden neue API-Endpunkte mit @openapi-Annotationen dokumentiert?\n3. Sind für neue Logik-Einheiten (Parser, Validierung) Unit-Tests vorhanden oder geplant?\n4. Gibt es offene TypeScript-Lint-Fehler (no-explicit-any, no-floating-promises)?\nFalls nein: Weise den Benutzer kurz darauf hin, was noch fehlen könnte.",
+        "loop_limit": 1
+      }
+    ]
+  }
+}

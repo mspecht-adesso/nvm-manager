@@ -1,0 +1,63 @@
+---
+description: Node.js TypeScript-Standards, async/await, Fehlerbehandlung und Child-Process-Sicherheit
+globs: apps/api/**/*.ts
+alwaysApply: false
+---
+
+# Node.js TypeScript-Regeln
+
+## Async / Await
+
+```typescript
+// ✅ async/await mit explizitem Rückgabetyp
+async function runNvm(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  // ...
+}
+
+// ❌ Callback-Stil (nur in runNvm selbst für execFile akzeptabel)
+```
+
+## Child Process – nvm-Ausführung
+
+- Immer `execFile('bash', ['-lc', command])` – nicht `exec()`
+- NVM_DIR aus Umgebungsvariable lesen: `process.env.NVM_DIR ?? \`${process.env.HOME}/.nvm\``
+- Argumente per single-quote escaping schützen:
+
+```typescript
+const escaped = args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ');
+```
+
+- Timeout: `180_000` ms (nvm install kann lange dauern)
+- MaxBuffer: `10 MB` für `ls-remote`-Ausgaben
+
+## Fehler-Typen
+
+```typescript
+// Eigene Fehler-Typen für nvm-Fehler
+export class NvmError extends Error {
+  constructor(
+    message: string,
+    public readonly stdout: string,
+    public readonly stderr: string,
+  ) {
+    super(message);
+    this.name = 'NvmError';
+  }
+}
+```
+
+## Umgebungsvariablen
+
+Zugriff nur über `process.env`, nie hardcoden:
+
+```typescript
+const PORT = Number(process.env.PORT) || 3789;
+const NVM_DIR = process.env.NVM_DIR ?? `${process.env.HOME}/.nvm`;
+```
+
+## TypeScript-Konfiguration
+
+- `target: ES2022`, `module: NodeNext`, `moduleResolution: NodeNext`
+- `strict: true`, `noImplicitAny: true`, `strictNullChecks: true`
+- `outDir: ./dist`, `rootDir: ./src`
+- `tsx` für Entwicklung, kein `ts-node`

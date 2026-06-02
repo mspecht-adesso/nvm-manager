@@ -1,0 +1,76 @@
+---
+description: Angular Standalone-Architektur, Signals, HttpClient und SCSS-Konventionen für nvm-manager
+globs: apps/web/**/*.ts,apps/web/**/*.html,apps/web/**/*.scss
+alwaysApply: false
+---
+
+# Angular Standalone-Regeln
+
+## Komponenten
+
+Immer `standalone: true`, nie `NgModule`:
+
+```typescript
+// ✅ RICHTIG
+@Component({
+  selector: 'app-version-card',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './version-card.component.html',
+  styleUrl: './version-card.component.scss',
+})
+export class VersionCardComponent {}
+
+// ❌ FALSCH – kein NgModule
+@NgModule({ declarations: [VersionCardComponent] })
+```
+
+## Signals (bevorzugt ab Angular 17+)
+
+```typescript
+// Zustand als Signals
+readonly versions = signal<InstalledNodeVersion[]>([]);
+readonly isLoading = signal(false);
+readonly errorMessage = signal<string | null>(null);
+
+// Computed Values
+readonly hasVersions = computed(() => this.versions().length > 0);
+```
+
+## HttpClient
+
+Immer typisiert, `inject()` statt Konstruktor-Injection bevorzugen:
+
+```typescript
+private readonly http = inject(HttpClient);
+
+getInstalledVersions(): Observable<InstalledVersionsResponse> {
+  return this.http.get<InstalledVersionsResponse>(`${this.baseUrl}/versions/installed`);
+}
+```
+
+## Fehlerbehandlung
+
+```typescript
+// ❌ Fehler verschlucken
+catchError(() => EMPTY)
+
+// ✅ Fehler sichtbar machen
+catchError((err: HttpErrorResponse) => {
+  this.errorMessage.set(err.error?.message ?? err.message);
+  return EMPTY;
+})
+```
+
+## SCSS
+
+- Variablen in `_variables.scss`, keine Magic Numbers in Komponenten
+- BEM-Namenskonvention für Klassen (`.card__title`, `.card--active`)
+- Keine externen UI-Bibliotheken (nur eigenes SCSS)
+- Mobile-first, aber primär Desktop-Fokus für lokales Tool
+
+## Template-Regeln
+
+- `@if` / `@for` statt `*ngIf` / `*ngFor` (Angular 17+ Control Flow)
+- Kein Inline-Style in Templates
+- Buttons während laufender Aktionen per `[disabled]="isLoading()"` sperren
