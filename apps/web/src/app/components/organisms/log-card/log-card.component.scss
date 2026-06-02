@@ -1,0 +1,38 @@
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$border-radius-sm: 4px;
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+  font-size: 0.8rem;
+  line-height: 1.5;
+
+  &--success { background: #f0fdf4; color: #166534; }
+  &--error { background: #fef2f2; color: #991b1b; }
+  &--info { background: #f0f9ff; color: #0c4a6e; }
+
+  &__time {
+    flex-shrink: 0;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    padding-top: 0.05rem;
+  }
+
+  &__message {
+    word-break: break-word;
+  }
+}

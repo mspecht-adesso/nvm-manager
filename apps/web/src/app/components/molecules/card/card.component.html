@@ -1,0 +1,11 @@
+<section class="card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <ng-content select="[card-title]" />
+    </h2>
+    <ng-content select="[card-actions]" />
+  </div>
+  <div class="card__body">
+    <ng-content />
+  </div>
+</section>

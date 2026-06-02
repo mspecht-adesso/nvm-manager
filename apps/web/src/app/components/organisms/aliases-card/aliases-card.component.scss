@@ -1,0 +1,27 @@
+$color-text: #1e293b;
+$color-border: #e2e8f0;
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+
+.alias-form {
+  border-top: 1px solid $color-border;
+  padding-top: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  &__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $color-text;
+  }
+
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+}

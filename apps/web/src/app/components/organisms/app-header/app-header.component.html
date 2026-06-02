@@ -1,0 +1,10 @@
+<header class="header">
+  <div class="header__inner">
+    <h1 class="header__title">
+      <span class="header__icon">&#9881;</span> nvm Manager
+    </h1>
+    @if (activeVersion) {
+      <span class="header__active-badge">Aktiv: v{{ activeVersion.version }}</span>
+    }
+  </div>
+</header>

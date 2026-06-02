@@ -1,0 +1,56 @@
+<app-card>
+  <span card-title>Installierte Versionen</span>
+  <button card-actions class="btn btn--sm btn--ghost" (click)="refresh.emit()" [disabled]="loading">
+    @if (loading) { Lade... } @else { Aktualisieren }
+  </button>
+
+  @if (loading) {
+    <app-loading-state message="Lade installierte Versionen ..." />
+  } @else if (versions.length > 0) {
+    <table class="versions-table">
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Status</th>
+          <th>Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of versions; track v.version) {
+          <tr [class.row--active]="v.active" [class.row--default]="v.default">
+            <td>
+              <code>v{{ v.version }}</code>
+              @if (v.active) { <span class="badge badge--active">Aktiv</span> }
+              @if (v.default) { <span class="badge badge--default">Default</span> }
+            </td>
+            <td>
+              @if (v.system) { <span class="text--muted">System</span> }
+              @else if (v.active) { <span class="text--success">In Verwendung</span> }
+              @else { <span class="text--muted">Installiert</span> }
+            </td>
+            <td>
+              <button
+                class="btn btn--xs btn--secondary"
+                (click)="useVersion.emit(v.version)"
+                [disabled]="isLoading || v.active"
+              >
+                Verwenden
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (raw) {
+    <details class="raw-output">
+      <summary>Rohe Ausgabe (nvm ls)</summary>
+      <pre class="pre">{{ raw }}</pre>
+    </details>
+  }
+
+  @if (!loading && versions.length === 0 && !raw) {
+    <p class="text--muted">Keine installierten Versionen gefunden.</p>
+  }
+</app-card>

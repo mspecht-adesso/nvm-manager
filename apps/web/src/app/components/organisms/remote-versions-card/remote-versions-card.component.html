@@ -1,0 +1,67 @@
+<app-card>
+  <span card-title>Verfügbare Versionen</span>
+  <button card-actions class="btn btn--sm btn--ghost" (click)="load()" [disabled]="loading()">
+    @if (loading()) { Lade... }
+    @else if (remoteVersions().length > 0) { Aktualisieren }
+    @else { Laden }
+  </button>
+
+  @if (loading()) {
+    <app-loading-state message="Lade verfügbare Versionen – das kann etwas dauern ..." />
+  } @else if (remoteVersions().length > 0) {
+    <div class="remote-toolbar">
+      <input
+        class="input input--sm remote-search"
+        [ngModel]="remoteSearch()"
+        (ngModelChange)="remoteSearch.set($event)"
+        placeholder="Suche (z.B. 22, 20, lts)"
+      />
+      <span class="text--muted remote-count">
+        @if (remoteSearch().trim()) {
+          {{ filteredVersions().length }} Treffer
+        } @else {
+          {{ filteredVersions().length }} von {{ availableCount() }} nicht installiert
+        }
+      </span>
+    </div>
+    <table class="versions-table">
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Typ</th>
+          <th>Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of filteredVersions(); track v.version) {
+          <tr>
+            <td><code>v{{ v.version }}</code></td>
+            <td>
+              @if (v.lts) {
+                <span class="badge badge--lts">LTS: {{ v.lts }}</span>
+              } @else {
+                <span class="text--muted">Current</span>
+              }
+            </td>
+            <td>
+              <button
+                class="btn btn--xs btn--primary"
+                (click)="install.emit(v.version)"
+                [disabled]="isLoading"
+              >
+                Installieren
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!remoteSearch().trim() && availableCount() > 30) {
+      <p class="text--muted remote-hint">
+        Zeige die 30 neuesten. Suche eingeben um alle {{ availableCount() }} Versionen zu durchsuchen.
+      </p>
+    }
+  } @else {
+    <p class="text--muted">Noch nicht geladen. Klicke auf „Laden".</p>
+  }
+</app-card>

@@ -47,3 +47,12 @@ export type InstallModalState = {
   version: string;
   errorMessage?: string;
 } | null;
+
+export type LogEvent = {
+  message: string;
+  type: 'success' | 'error' | 'info';
+};
+
+export type LogEntry = LogEvent & {
+  timestamp: Date;
+};

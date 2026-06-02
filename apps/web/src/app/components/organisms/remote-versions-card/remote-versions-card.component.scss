@@ -1,0 +1,24 @@
+$spacing-md: 1rem;
+$spacing-xs: 0.25rem;
+
+.remote-toolbar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.remote-search {
+  flex: 0 1 260px;
+}
+
+.remote-count {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+
+.remote-hint {
+  font-size: 0.78rem;
+  text-align: center;
+  padding-top: $spacing-xs;
+}

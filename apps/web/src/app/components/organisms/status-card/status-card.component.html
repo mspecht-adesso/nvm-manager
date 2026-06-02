@@ -1,0 +1,39 @@
+<app-card>
+  <span card-title>Status</span>
+  <button card-actions class="btn btn--sm btn--ghost" (click)="load()" [disabled]="loading()">
+    @if (loading()) { Lade... } @else { Aktualisieren }
+  </button>
+
+  @if (loading()) {
+    <app-loading-state message="Lade Status ..." />
+  } @else if (status()) {
+    <div class="status-grid">
+      <div class="status-item">
+        <span class="status-item__label">API</span>
+        <span [class]="'status-badge status-badge--' + (status()!.ok ? 'ok' : 'error')">
+          {{ status()!.ok ? 'Erreichbar' : 'Fehler' }}
+        </span>
+      </div>
+      @if (status()!.nvmVersion) {
+        <div class="status-item">
+          <span class="status-item__label">nvm Version</span>
+          <code class="code-inline">{{ status()!.nvmVersion }}</code>
+        </div>
+      }
+      @if (status()!.nvmDir) {
+        <div class="status-item">
+          <span class="status-item__label">NVM_DIR</span>
+          <code class="code-inline">{{ status()!.nvmDir }}</code>
+        </div>
+      }
+      @if (status()!.error) {
+        <div class="status-item status-item--error">
+          <span class="status-item__label">Fehler</span>
+          <span>{{ status()!.error }}</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="text--muted">Status wird geladen ...</p>
+  }
+</app-card>
