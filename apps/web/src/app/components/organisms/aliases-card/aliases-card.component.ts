@@ -15,6 +15,10 @@ import type { NvmAlias, AliasesResponse, LogEvent } from '../../../models/nvm.mo
 export class AliasesCardComponent implements OnInit {
   private readonly nvmApi = inject(NvmApiService);
 
+  @Input() set refreshTrigger(value: number) {
+    if (value > 0) this.load();
+  }
+
   @Output() logged = new EventEmitter<LogEvent>();
 
   readonly aliases = signal<NvmAlias[]>([]);

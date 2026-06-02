@@ -43,7 +43,8 @@ export type AliasesResponse = NvmCommandResult & {
 };
 
 export type InstallModalState = {
-  phase: 'installing' | 'success' | 'error';
+  action: 'install' | 'use';
+  phase: 'running' | 'success' | 'error';
   version: string;
   errorMessage?: string;
 } | null;

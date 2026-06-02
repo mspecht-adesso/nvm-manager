@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
-import { runNvm, spawnNvm } from '../nvm/nvm.service.js';
+import { runNvm, runNvmLs, spawnNvm } from '../nvm/nvm.service.js';
 import { parseInstalledVersions, parseAliases, parseRemoteVersions } from '../nvm/nvm.parser.js';
 import { isValidVersionInput, isValidAliasName, isValidAliasTarget } from '../nvm/nvm.types.js';
 
@@ -8,7 +8,8 @@ const router = Router();
 
 const getInstalledHandler: RequestHandler = async (_req, res, next) => {
   try {
-    const { stdout, stderr } = await runNvm(['ls']);
+    // nvm use default vor nvm ls in derselben Shell: zeigt die korrekte aktive Version (->) an.
+    const { stdout, stderr } = await runNvmLs();
     const versions = parseInstalledVersions(stdout);
     res.json({ stdout, stderr, versions });
   } catch (err) {
@@ -47,7 +48,9 @@ const useHandler: RequestHandler = async (req, res, next) => {
       res.status(400).json({ error: `Ungültige Version: ${String(version)}` });
       return;
     }
-    const result = await runNvm(['use', version]);
+    // Persistenter Wechsel: nvm alias default setzt die Version dauerhaft in ~/.nvm/alias/default.
+    // Dadurch zeigt GET /installed nach dem Wechsel korrekt die neue aktive Version an.
+    const result = await runNvm(['alias', 'default', version]);
     res.json(result);
   } catch (err) {
     next(err);

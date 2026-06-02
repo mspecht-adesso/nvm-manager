@@ -12,6 +12,10 @@ import { CardComponent } from '../../molecules/card/card.component';
 export class ActionCardComponent {
   @Input() isLoading = false;
 
+  @Input() set prefillVersion(v: string) {
+    if (v) this.versionInput = v;
+  }
+
   @Output() install = new EventEmitter<string>();
   @Output() use = new EventEmitter<string>();
   @Output() setDefault = new EventEmitter<string>();

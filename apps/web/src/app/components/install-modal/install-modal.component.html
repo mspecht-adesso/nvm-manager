@@ -1,26 +1,41 @@
 @if (state) {
-  <div class="backdrop" [class.backdrop--no-dismiss]="state.phase === 'installing'">
+  <div class="backdrop" [class.backdrop--no-dismiss]="state.phase === 'running'">
     <div class="modal" role="dialog" aria-modal="true">
 
-      @if (state.phase === 'installing') {
+      @if (state.phase === 'running') {
         <div class="modal__icon">
           <span class="spinner"></span>
         </div>
-        <h2 class="modal__title">Installation läuft</h2>
-        <p class="modal__body">
-          Node <code class="ver">v{{ state.version }}</code> wird installiert.<br>
-          Dies kann einige Minuten dauern – bitte warten.
-        </p>
+        @if (state.action === 'install') {
+          <h2 class="modal__title">Installation läuft</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> wird installiert.<br>
+            Dies kann einige Minuten dauern – bitte warten.
+          </p>
+        } @else {
+          <h2 class="modal__title">Version wird aktiviert</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> wird aktiviert.<br>
+            Bitte warten …
+          </p>
+        }
       }
 
       @if (state.phase === 'success') {
         <div class="modal__icon modal__icon--success">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <h2 class="modal__title">Installation erfolgreich</h2>
-        <p class="modal__body">
-          Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich installiert.
-        </p>
+        @if (state.action === 'install') {
+          <h2 class="modal__title">Installation erfolgreich</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich installiert.
+          </p>
+        } @else {
+          <h2 class="modal__title">Version aktiviert</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> ist jetzt die aktive Version.
+          </p>
+        }
         <p class="modal__hint">Dieses Fenster schließt automatisch …</p>
       }
 
@@ -28,12 +43,19 @@
         <div class="modal__icon modal__icon--error">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </div>
-        <h2 class="modal__title">Installation fehlgeschlagen</h2>
-        <p class="modal__body">
-          Node <code class="ver">v{{ state.version }}</code> konnte nicht installiert werden.
-        </p>
+        @if (state.action === 'install') {
+          <h2 class="modal__title">Installation fehlgeschlagen</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> konnte nicht installiert werden.
+          </p>
+        } @else {
+          <h2 class="modal__title">Aktivierung fehlgeschlagen</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> konnte nicht aktiviert werden.
+          </p>
+        }
         <div class="modal__instructions">
-          <strong>Hinweis:</strong> {{ getErrorInstructions(state.errorMessage) }}
+          <strong>Hinweis:</strong> {{ getErrorInstructions(state.action, state.errorMessage) }}
         </div>
         @if (state.errorMessage) {
           <details class="modal__details">

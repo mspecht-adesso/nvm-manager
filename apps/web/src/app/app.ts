@@ -42,6 +42,8 @@ export class App implements OnInit {
   readonly installedRaw = signal('');
   readonly installedLoading = signal(false);
   readonly installModal = signal<InstallModalState>(null);
+  readonly prefillVersion = signal('');
+  readonly aliasesRefreshTrigger = signal(0);
 
   readonly activeVersion = computed(() => this.installedVersions().find((v) => v.active));
 
@@ -66,19 +68,40 @@ export class App implements OnInit {
 
   onInstall(version: string): void {
     this.isLoading.set(true);
-    this.installModal.set({ phase: 'installing', version });
+    this.installModal.set({ action: 'install', phase: 'running', version });
     this.addLog(`Installiere Node ${version} ...`, 'info');
     this.nvmApi.installVersion(version).subscribe({
       next: (res: NvmCommandResult) => {
         this.addLog(`Node ${version} installiert. ${res.stdout.trim()}`, 'success');
         this.isLoading.set(false);
-        this.installModal.set({ phase: 'success', version });
+        this.installModal.set({ action: 'install', phase: 'success', version });
         this.loadInstalledVersions();
       },
       error: (err: Error) => {
         this.addLog(`Fehler bei Installation von ${version}: ${err.message}`, 'error');
         this.isLoading.set(false);
-        this.installModal.set({ phase: 'error', version, errorMessage: err.message });
+        this.installModal.set({ action: 'install', phase: 'error', version, errorMessage: err.message });
+      },
+    });
+  }
+
+  onUseFromList(version: string): void {
+    this.prefillVersion.set(version);
+    this.isLoading.set(true);
+    this.installModal.set({ action: 'use', phase: 'running', version });
+    this.addLog(`Aktiviere Node ${version} ...`, 'info');
+    this.nvmApi.useVersion(version).subscribe({
+      next: (res: NvmCommandResult) => {
+        this.addLog(`Node ${version} aktiviert. ${res.stdout.trim()}`, 'success');
+        this.isLoading.set(false);
+        this.installModal.set({ action: 'use', phase: 'success', version });
+        this.loadInstalledVersions();
+        this.aliasesRefreshTrigger.update((n) => n + 1);
+      },
+      error: (err: Error) => {
+        this.addLog(`Fehler beim Aktivieren von ${version}: ${err.message}`, 'error');
+        this.isLoading.set(false);
+        this.installModal.set({ action: 'use', phase: 'error', version, errorMessage: err.message });
       },
     });
   }
@@ -107,6 +130,7 @@ export class App implements OnInit {
         this.addLog(`Node ${version} als Default gesetzt. ${res.stdout.trim()}`, 'success');
         this.isLoading.set(false);
         this.loadInstalledVersions();
+        this.aliasesRefreshTrigger.update((n) => n + 1);
       },
       error: (err: Error) => {
         this.addLog(`Fehler beim Setzen des Defaults für ${version}: ${err.message}`, 'error');

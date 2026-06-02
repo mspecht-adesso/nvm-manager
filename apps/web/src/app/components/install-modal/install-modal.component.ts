@@ -34,8 +34,16 @@ export class InstallModalComponent implements OnChanges, OnDestroy {
     clearTimeout(this.autoCloseTimer);
   }
 
-  getErrorInstructions(message: string | undefined): string {
+  getErrorInstructions(action: 'install' | 'use', message: string | undefined): string {
     if (!message) return 'Überprüfe den Log-Bereich für weitere Details.';
+
+    if (action === 'use') {
+      if (message.includes('not installed') || message.includes('not found')) {
+        return 'Die Version ist nicht installiert. Installiere sie zunächst über „Installieren".';
+      }
+      return 'Überprüfe den Log-Bereich für weitere Details oder versuche es erneut.';
+    }
+
     if (message.includes('npm_config_prefix')) {
       return 'Führe unset npm_config_prefix in deiner Shell aus und starte den API-Server neu.';
     }

@@ -7,6 +7,7 @@
 
   <app-action-card
     [isLoading]="isLoading()"
+    [prefillVersion]="prefillVersion()"
     (install)="onInstall($event)"
     (use)="onUse($event)"
     (setDefault)="onSetDefault($event)"
@@ -18,11 +19,14 @@
     [raw]="installedRaw()"
     [loading]="installedLoading()"
     [isLoading]="isLoading()"
-    (useVersion)="onUse($event)"
+    (useVersion)="onUseFromList($event)"
     (refresh)="loadInstalledVersions()"
   />
 
-  <app-aliases-card (logged)="onLogged($event)" />
+  <app-aliases-card
+    [refreshTrigger]="aliasesRefreshTrigger()"
+    (logged)="onLogged($event)"
+  />
 
   <app-remote-versions-card
     [installedVersions]="installedVersions()"
