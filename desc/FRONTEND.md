@@ -171,6 +171,8 @@ Mehrere Cards reagieren auf dieselben Zustandsänderungen:
 - `isLoading` blockiert gleichzeitig ActionCard-Buttons und InstalledVersionsCard-Buttons
 - Nach `onInstall()` oder `onUseFromList()` muss sowohl das Modal aktualisiert
   als auch `loadInstalledVersions()` aufgerufen werden
+- `installedVersions` wird zusätzlich als `@Input()` an die `AliasesCardComponent`
+  weitergegeben, damit deren Dropdowns alle installierten Versionen auflisten können
 
 State in der Root macht diese Abhängigkeiten explizit und verhindert Prop-Drilling
 über mehrere Ebenen sowie inkonsistente Zustände zwischen Geschwister-Komponenten.
@@ -200,6 +202,23 @@ this.aliasesRefreshTrigger.update((n) => n + 1);
 ```
 
 Der Setter ruft `load()` auf, sobald sich der Wert ändert.
+
+### `aliasChanged` – Rückmeldung nach Alias-Mutationen
+
+Umgekehrt gibt die `AliasesCardComponent` per `@Output() aliasChanged` Bescheid,
+wenn der Benutzer einen Alias geändert hat. Das Template verbindet:
+
+```html
+<app-aliases-card
+  [refreshTrigger]="aliasesRefreshTrigger()"
+  [installedVersions]="installedVersions()"
+  (logged)="onLogged($event)"
+  (aliasChanged)="loadInstalledVersions()"
+/>
+```
+
+`loadInstalledVersions()` lädt die Versions-Liste neu – dadurch stimmen Default-Badge
+und die Dropdown-Inhalte wieder mit dem aktuellen Zustand überein.
 
 ---
 
@@ -242,10 +261,13 @@ Alle Methoden geben `Observable<T>` zurück:
 | `installVersion(version)` | POST | `/api/versions/install` |
 | `useVersion(version)` | POST | `/api/versions/use` |
 | `setDefaultVersion(version)` | POST | `/api/versions/default` |
+| `setStableVersion(version)` | POST | `/api/versions/stable` |
 | `uninstallVersion(version)` | POST | `/api/versions/uninstall` |
 | `getAliases()` | GET | `/api/versions/aliases` |
 | `setAlias(name, target)` | POST | `/api/versions/aliases` |
+| `setLtsAlias(codename, version)` | POST | `/api/versions/aliases/lts` |
 | `deleteAlias(name)` | DELETE | `/api/versions/aliases/:name` |
+| `deleteLtsAlias(codename)` | DELETE | `/api/versions/aliases/lts/:codename` |
 
 **Error-Handling:**
 ```typescript
@@ -381,23 +403,52 @@ Zeigt optional die rohe `nvm ls`-Ausgabe in einem `<details>`-Element.
 ### `AliasesCardComponent` – Alias-Verwaltung
 
 **Selector:** `app-aliases-card`
-**Input:** `set refreshTrigger(value: number)`
-**Output:** `logged: EventEmitter<LogEvent>`
-**Eigener State:** `aliases`, `loading`, `editingAlias` (alle Signals)
+**Inputs:**
+- `set refreshTrigger(value: number)` – Trigger von der Root für externen Refresh
+- `installedVersions: InstalledNodeVersion[]` – Liste aller installierten Versionen für Dropdowns
+
+**Outputs:**
+- `logged: EventEmitter<LogEvent>` – Fehler und Infos an die Root-Komponente
+- `aliasChanged: EventEmitter<void>` – nach jeder Alias-Änderung, triggert Root-Refresh
+
+**Eigener State:** `aliases`, `loading`, `editingAlias`, `editingLtsAlias`, `ltsEditVersion` (alle Signals)
 
 Die komplexeste Card – sie verwaltet vollständiges CRUD für Aliases:
 
 - **Laden:** `load()` ruft `getAliases()` auf und setzt `aliases`-Signal
-- **Inline-Editing:** `startEdit(alias)` setzt `editingAlias`-Signal, Template
-  zeigt Inline-Eingabefeld statt statischem Text
+- **Inline-Editing (reguläre Aliases):** `startEdit(alias)` öffnet Dropdown mit
+  allen `installedVersions`; vorselektiert die aktuell aufgelöste Version.
+  `saveAlias()` ruft `setAlias()` auf. `cancelEdit()` bricht ab.
+- **LTS-Alias bearbeiten:** `startLtsEdit(alias)` öffnet Dropdown mit nur den
+  **kompatiblen Versionen** (passende Major-Version). `saveLtsAlias()` ruft
+  `setLtsAlias(codename, version)` auf.
+- **Default/Stable setzen:** `setAsDefault(alias)` und `setAsStable(alias)` rufen
+  `setDefaultVersion(alias.name)` bzw. `setStableVersion(alias.name)` auf.
 - **Erstellen:** Formular mit `newAliasName`/`newAliasTarget`, abgesetzt via `createAlias()`
-- **Löschen:** `deleteAlias()` mit `confirm()`-Dialog
+- **Löschen:** `deleteAlias(name)` mit `confirm()`-Dialog; leitet `lts/`-Namen
+  automatisch an `deleteLtsAlias(codename)` weiter.
+- **Refresh:** Nach jeder erfolgreichen Änderung emittiert die Komponente
+  `aliasChanged` – die Root-Komponente reagiert mit `loadInstalledVersions()`.
+
+**`ltsCompatibleVersions(alias)`:**
+```typescript
+ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
+  if (alias.name === 'lts/*') return this.installedVersions;
+  const majorMatch = /^v?(\d+)\./.exec(alias.target);
+  const major = majorMatch?.[1];
+  const filtered = this.installedVersions.filter((v) => v.version.startsWith(`${major}.`));
+  return filtered.length > 0 ? filtered : this.installedVersions;
+}
+```
+
+Filtert `installedVersions` auf die zum LTS passende Major-Version (z.B. nur 20.x
+für `lts/iron`). Fällt auf alle Versionen zurück, falls keine passenden gefunden werden.
 
 **Warum eigenständiger HTTP-Aufruf statt State von der Root?**
 Alias-State interagiert mit Alias-spezifischem UI-State (welcher Alias wird gerade
 editiert, neue Alias-Eingabefelder). Dieser lokale State gehört zur Komponente.
-Die Root greift nur via `aliasesRefreshTrigger` ein, wenn sie weiß, dass sich
-externe Aliases (z.B. `default`) geändert haben.
+Die Root greift via `aliasesRefreshTrigger` ein, wenn sich externe Aliases
+(z.B. `default`) geändert haben, und wird via `aliasChanged` über Mutations informiert.
 
 Fehler werden nicht per Log-Signal nach oben propagiert, sondern via
 `@Output() logged`-EventEmitter – das Root-Template verbindet diesen mit

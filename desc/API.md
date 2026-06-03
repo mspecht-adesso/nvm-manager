@@ -103,11 +103,12 @@ Gibt alle lokal installierten Node.js-Versionen zurück.
 **Response 200:**
 ```json
 {
-  "stdout": "->     v22.11.0 (default)\n       v20.18.0\n",
+  "stdout": "",
   "stderr": "",
   "versions": [
-    { "version": "22.11.0", "active": true,  "default": true,  "system": false },
-    { "version": "20.18.0", "active": false, "default": false, "system": false }
+    { "version": "22.14.0", "active": false, "default": true,  "system": false },
+    { "version": "22.20.0", "active": true,  "default": false, "system": false },
+    { "version": "20.17.0", "active": false, "default": false, "system": false }
   ]
 }
 ```
@@ -117,15 +118,20 @@ Gibt alle lokal installierten Node.js-Versionen zurück.
 | Feld | Typ | Bedeutung |
 |------|-----|-----------|
 | `version` | `string` | Semver ohne `v`-Präfix |
-| `active` | `boolean` | Zeile beginnt mit `->` in `nvm ls`-Ausgabe |
-| `default` | `boolean` | Zeile enthält `(default)` |
-| `system` | `boolean` | Zeile enthält `system` (Betriebssystem-Node) |
+| `active` | `boolean` | Version ist im `PATH` des laufenden Node.js-Prozesses aktiv |
+| `default` | `boolean` | Version entspricht dem aufgelösten `default`-Alias |
+| `system` | `boolean` | Immer `false` (System-Node nicht über Dateisystem ermittelbar) |
 
 **Implementierung:** `nvm.routes.ts → getInstalledHandler`
-Ruft `runNvmLs()` auf (nicht `runNvm(['ls'])`). `runNvmLs()` führt erst
-`nvm use default >/dev/null 2>&1 || true` aus, damit `->` die tatsächlich
-konfigurierte Default-Version anzeigt und nicht die Node-Version des
-Express-Prozesses selbst.
+Ruft `runNvmLsFast()` auf – liest die Daten direkt aus dem Dateisystem
+(`~/.nvm/versions/node/`, `~/.nvm/alias/default`), ohne eine Shell zu starten.
+Das macht den Endpunkt von ~20 Sekunden auf ~5 ms schnell.
+
+- **`active`** wird aus `process.env.PATH` ermittelt: enthält der PATH einen
+  `.nvm/versions/node/vX.Y.Z/bin`-Eintrag, ist das die aktive Version.
+- **`default`** wird durch Auflösung der Alias-Kette in `~/.nvm/alias/` ermittelt
+  (unterstützt Ketten wie `default → lts/* → v22.14.0`).
+- `stdout`/`stderr` sind immer leer (kein Shell-Prozess).
 
 ---
 
@@ -174,28 +180,28 @@ Gibt alle nvm-Aliases zurück.
     {
       "name": "default",
       "target": "lts/*",
-      "resolved": "22.20.0",
+      "resolved": "v22.20.0",
       "editable": true,
       "deletable": false
     },
     {
       "name": "node",
       "target": "stable",
-      "resolved": "22.20.0",
-      "editable": false,
+      "resolved": "v22.20.0",
+      "editable": true,
       "deletable": false
     },
     {
       "name": "lts/iron",
-      "target": "v20.19.1",
-      "resolved": "20.19.1",
+      "target": "v20.20.2",
+      "resolved": "v20.20.2",
       "editable": false,
-      "deletable": false
+      "deletable": true
     },
     {
       "name": "my-project",
       "target": "v18.18.0",
-      "resolved": "18.18.0",
+      "resolved": "v18.18.0",
       "editable": true,
       "deletable": true
     }
@@ -209,9 +215,9 @@ Gibt alle nvm-Aliases zurück.
 |------|-----|-----------|
 | `name` | `string` | Alias-Name |
 | `target` | `string` | Direkt-Ziel (z.B. `lts/*`, `v22.11.0`) |
-| `resolved` | `string \| null` | Aufgelöste Semver-Version oder `null` |
-| `editable` | `boolean` | `false` für `node`, `stable`, `unstable`, `lts/*` |
-| `deletable` | `boolean` | `false` für alle eingebauten + `default` |
+| `resolved` | `string \| null` | Aufgelöste Semver-Version oder `null` (N/A) |
+| `editable` | `boolean` | `false` nur für `lts/`-Aliases (eigener Endpunkt) |
+| `deletable` | `boolean` | `false` für `default`, `node`, `stable`, `unstable`, `iojs` |
 
 ---
 
@@ -274,18 +280,39 @@ Version aktiv.
 
 ### `POST /api/versions/default`
 
-Setzt eine Version als nvm-Default (identische Implementierung wie `/use`).
+Setzt eine Version oder einen Alias als nvm-Default.
 
 **Request-Body:**
 ```json
 { "version": "22.11.0" }
 ```
 
+Erlaubte Werte: alle gültigen Alias-Ziele – Semver (`22.11.0`, `v22.11.0`),
+`node`, `stable`, `unstable`, LTS-Codename (`lts/iron`, `lts/*`).
+
 **Response 200:** wie `/use`
 
-**Unterschied zu `/use`:** Aus UI-Perspektive unterschieden (separate Aktion im
-ActionCard-Widget), aber backend-seitig gleichwertig – beide rufen
-`nvm alias default <version>` auf.
+**Unterschied zu `/use`:** `/use` akzeptiert nur einfache Versions-Strings;
+`/default` akzeptiert zusätzlich LTS-Codenames (z.B. `lts/iron`), sodass
+Default dauerhaft eine LTS-Linie tracken kann.
+
+---
+
+### `POST /api/versions/stable`
+
+Setzt den `stable`-Alias auf eine Version oder einen Alias-Namen.
+
+**Request-Body:**
+```json
+{ "version": "lts/iron" }
+```
+
+Erlaubte Werte: identisch mit `/default`.
+
+**Response 200:**
+```json
+{ "stdout": "stable -> lts/iron (-> v20.20.2)\n", "stderr": "" }
+```
 
 ---
 
@@ -323,12 +350,9 @@ Erstellt oder überschreibt einen nvm-Alias.
 Erlaubte Namen: `[a-zA-Z][a-zA-Z0-9_-]{0,49}` – muss mit Buchstaben beginnen.
 Erlaubte Ziele: `node`, `stable`, `unstable`, `lts/<codename>`, `lts/*`, `vX.Y.Z`, `X.Y.Z`.
 
-**Response 400 – schreibgeschützter Alias:**
-```json
-{ "error": "Alias 'node' ist schreibgeschützt." }
-```
-
-Schreibgeschützt: `node`, `stable`, `unstable`, alle `lts/*`-Aliases.
+**Hinweis:** `lts/`-Aliases können nicht über diesen Endpunkt gesetzt werden –
+dafür gibt es `POST /api/versions/aliases/lts` (technischer Grund: nvm unterstützt
+keine Unterverzeichnis-Aliases über `nvm alias`).
 
 **Response 200:**
 ```json
@@ -340,9 +364,35 @@ Schreibgeschützt: `node`, `stable`, `unstable`, alle `lts/*`-Aliases.
 
 ---
 
+### `POST /api/versions/aliases/lts`
+
+Setzt einen LTS-Alias direkt als Datei in `~/.nvm/alias/lts/<codename>`.
+
+**Hintergrund:** `nvm alias lts/<codename> <version>` schlägt mit „Aliases in
+subdirectories are not supported" fehl. Dieser Endpunkt schreibt die Alias-Datei
+direkt, wie nvm es intern tut.
+
+**Request-Body:**
+```json
+{
+  "codename": "iron",
+  "version": "20.17.0"
+}
+```
+
+`codename` ist der Teil nach `lts/` (z.B. `iron`, `hydrogen`, `*`).
+`version` ist eine valide Semver-Angabe mit oder ohne `v`-Präfix.
+
+**Response 200:**
+```json
+{ "stdout": "", "stderr": "" }
+```
+
+---
+
 ### `DELETE /api/versions/aliases/:name`
 
-Löscht einen benutzerdefinierten Alias.
+Löscht einen Alias. `:name` darf **kein** Schrägstrich enthalten (kein `lts/`).
 
 **URL-Parameter:** `name` – Name des zu löschenden Alias (URL-encoded)
 
@@ -356,12 +406,32 @@ Löscht einen benutzerdefinierten Alias.
 }
 ```
 
-**Response 400 – nicht löschbarer Alias:**
+**Response 400 – geschützter Alias:**
 ```json
-{ "error": "Alias 'default' kann nicht gelöscht werden." }
+{ "error": "Alias 'default' ist geschützt und kann nicht gelöscht werden." }
 ```
 
-Nicht löschbar: `node`, `stable`, `unstable`, alle `lts/*`, `default`.
+Geschützt (nicht löschbar): `default`, `node`, `stable`, `unstable`, `iojs`.
+
+---
+
+### `DELETE /api/versions/aliases/lts/:codename`
+
+Löscht einen LTS-Alias durch direktes Entfernen der Datei `~/.nvm/alias/lts/<codename>`.
+
+**URL-Parameter:** `codename` – Teil nach `lts/` (z.B. `iron`, `hydrogen`)
+
+**Beispiel:** `DELETE /api/versions/aliases/lts/iron`
+
+**Response 200:**
+```json
+{ "stdout": "", "stderr": "" }
+```
+
+**Response 400 – ungültiger Codename:**
+```json
+{ "error": "Ungültiger LTS-Codename." }
+```
 
 ---
 
@@ -423,9 +493,10 @@ die Shell übergeben werden. Der Client kann keine unsicheren Werte einschleusen
 
 | Eingabe | Regex | Erlaubte Beispiele |
 |---------|-------|--------------------|
-| Version | `/^(node\|stable\|lts\/\*\|\d+(\.\d+){0,2})$/` | `node`, `lts/*`, `22`, `22.11`, `22.11.0` |
+| Version (`/install`, `/use`, `/uninstall`) | `/^(node\|stable\|lts\/\*\|\d+(\.\d+){0,2})$/` | `node`, `lts/*`, `22`, `22.11`, `22.11.0` |
+| Alias-Ziel (`/default`, `/stable`, `/aliases`) | `/^(node\|stable\|unstable\|lts\/[\w.*-]+\|v?\d+(\.\d+){0,2})$/` | `lts/iron`, `lts/*`, `v22.11.0`, `stable` |
 | Alias-Name | `/^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/` | `my-project`, `prod`, `default` |
-| Alias-Ziel | `/^(node\|stable\|unstable\|lts\/[\w.*-]+\|v?\d+(\.\d+){0,2})$/` | `lts/*`, `v22.11.0`, `stable` |
+| LTS-Codename | `/^[\w*-]+$/`, max. 30 Zeichen | `iron`, `hydrogen`, `*` |
 
 ---
 
@@ -436,12 +507,15 @@ GET    /api/status
 GET    /api/versions/installed
 GET    /api/versions/remote
 GET    /api/versions/aliases
-GET    /api/versions/install/stream   ← SSE
+GET    /api/versions/install/stream        ← SSE
 POST   /api/versions/install
 POST   /api/versions/use
 POST   /api/versions/default
+POST   /api/versions/stable
 POST   /api/versions/uninstall
 POST   /api/versions/aliases
+POST   /api/versions/aliases/lts           ← LTS-Alias direkt schreiben
+DELETE /api/versions/aliases/lts/:codename ← LTS-Alias direkt löschen
 DELETE /api/versions/aliases/:name
 ```
 

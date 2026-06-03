@@ -134,17 +134,19 @@ Diagnose im Frontend.
 Shell-Session geladen wird. Node.js-`child_process`-APIs können Shell-Funktionen
 nicht direkt aufrufen.
 
-**Lösung:** Jeder nvm-Aufruf startet eine neue `bash -lc`-Subshell, die zuerst
-`nvm.sh` sourcet und dann den gewünschten Befehl ausführt.
+**Lösung:** Jeder nvm-Aufruf startet eine neue `bash -c`-Subshell, die zuerst
+alle nötigen Umgebungsvariablen setzt, `nvm.sh` sourcet und dann den gewünschten
+Befehl ausführt.
 
-> 💡 **Konzept: Subshell, `bash -lc` und "sourcen"**
+> 💡 **Konzept: Subshell, `bash -c` und "sourcen"**
 > Eine **Subshell** ist eine vom Programm gestartete, frische Shell-Sitzung – wie
-> wenn man ein neues Terminalfenster öffnet. Das Flag `-l` (login) sorgt dafür,
-> dass Login-Konfigurationsdateien geladen werden, `-c` übergibt den auszuführenden
-> Befehl als Text. **"Sourcen"** (`. datei.sh` bzw. `source datei.sh`) bedeutet, ein
-> Shell-Skript in der *aktuellen* Sitzung auszuführen, sodass dessen Funktionen und
-> Variablen danach verfügbar sind. Genau das ist nötig, damit die `nvm`-Funktion
-> in der Subshell existiert.
+> wenn man ein neues Terminalfenster öffnet. Das Flag `-c` übergibt den auszuführenden
+> Befehl als Text. (Das früher genutzte `-l` für Login-Shell wurde entfernt, weil es
+> alle Profil-Dateien lädt und dadurch 15–30 Sekunden dauern kann.)
+> **"Sourcen"** (`. datei.sh` bzw. `source datei.sh`) bedeutet, ein Shell-Skript
+> in der *aktuellen* Sitzung auszuführen, sodass dessen Funktionen und Variablen
+> danach verfügbar sind. Genau das ist nötig, damit die `nvm`-Funktion in der
+> Subshell existiert.
 
 > 💡 **Konzept: `child_process` in Node.js**
 > Node.js kann mit dem eingebauten Modul `node:child_process` andere Programme als
@@ -160,6 +162,7 @@ const NVM_HEADER = `
   unset npm_config_prefix;
   unset NPM_CONFIG_PREFIX;
   export NVM_DIR="${NVM_DIR}";
+  export HOME="${process.env['HOME'] ?? ''}";
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh";
 `;
 ```
@@ -174,7 +177,16 @@ Dieser Shell-Preamble wird jedem nvm-Aufruf vorangestellt. Er:
 2. **`export NVM_DIR`** – Setzt das nvm-Verzeichnis explizit, da Subshells
    Umgebungsvariablen ihrer Elternprozesse nicht automatisch erben.
 
-3. **`. "$NVM_DIR/nvm.sh"`** – Sourcet (lädt) die nvm-Shell-Funktion.
+3. **`export HOME`** – Setzt `HOME` explizit, da die nicht-login Shell
+   (`bash -c`) es nicht automatisch erhält.
+
+4. **`. "$NVM_DIR/nvm.sh"`** – Sourcet (lädt) die nvm-Shell-Funktion.
+
+**Warum `bash -c` und nicht `bash -lc` (Login-Shell)?**
+Die Login-Shell (`-l`) lädt alle Profil-Dateien (`.bash_profile`, oh-my-zsh usw.),
+was auf manchen Systemen 15–30 Sekunden dauern kann. Da der `NVM_HEADER` alle
+benötigten Variablen manuell setzt, ist `-l` überflüssig. Ohne `-l` dauert ein
+nvm-Aufruf nur noch Millisekunden statt Sekunden.
 
 ### Shell-Injection-Schutz
 
@@ -200,7 +212,7 @@ Sequenz `'\''` (Quote-Ende, Escaped-Quote, Quote-Start) ersetzt.
 **Zweite Sicherheitslinie:** Die Whitelist-Validatoren in `nvm.types.ts` prüfen
 Eingaben per Regex, bevor sie überhaupt `escapeArgs` erreichen.
 
-### Die drei Ausführungsmodi
+### Die vier Ausführungsmodi
 
 > 💡 **Konzept: Promise**
 > Ein **Promise** ist ein Platzhalter für einen Wert, der erst *später* verfügbar
@@ -216,34 +228,57 @@ Eingaben per Regex, bevor sie überhaupt `escapeArgs` erreichen.
 export function runNvm(args: string[]): Promise<{ stdout: string; stderr: string }>
 ```
 
-Verwendet `execFile('bash', ['-lc', cmd])` mit:
+Verwendet `execFile('bash', ['-c', cmd])` mit:
 - **Timeout:** 3 Minuten (für `nvm install`, das Downloads durchführt)
 - **maxBuffer:** 10 MB (Ausgabe von `nvm ls-remote` kann groß sein)
 
 Gibt ein Promise zurück, das bei Fehler ein `NvmError` wirft.
 
-#### `runNvmLs()` – Spezialfall für `nvm ls`
+#### `runNvmLsFast()` – Dateisystem-basiertes Versions-Listing
 
 ```typescript
-export function runNvmLs(): Promise<{ stdout: string; stderr: string }>
+export async function runNvmLsFast(): Promise<InstalledVersionsResponse>
 ```
 
-```bash
-nvm use default > /dev/null 2>&1 || true;
-nvm ls
+**Warum kein Shell-Prozess für `nvm ls`?**
+
+`nvm ls` dauert auf vielen Systemen 10–30 Sekunden, weil es intern alle Alias-Ketten
+auflöst und durch das gesamte nvm-Alias-Verzeichnis iteriert. Das führte zu Timeouts
+in der UI.
+
+`runNvmLsFast()` liest die gleichen Informationen direkt aus dem Dateisystem:
+
+| Was | Wie | Dauer |
+|-----|-----|-------|
+| Installierte Versionen | `readdir(~/.nvm/versions/node/)` | < 1 ms |
+| Default-Version | `readFile(~/.nvm/alias/default)` + Alias-Auflösung | < 1 ms |
+| Aktive Version | aus `process.env.PATH` extrahieren | 0 ms |
+
+**Alias-Auflösung:** Die interne Funktion `resolveAlias()` löst Ketten auf:
+`default → lts/* → v22.14.0`. Sie verfolgt maximal 5 Ebenen, um Zyklen zu
+vermeiden.
+
+#### `setLtsAliasFile(codename, version)` – LTS-Alias direkt schreiben
+
+```typescript
+export async function setLtsAliasFile(codename: string, version: string): Promise<void>
 ```
 
-**Warum nicht einfach `runNvm(['ls'])`?**
+Schreibt `v<version>` in `~/.nvm/alias/lts/<codename>`. Erstellt das
+`lts/`-Unterverzeichnis falls nötig.
 
-Der Express-Prozess läuft mit einer bestimmten Node-Version (z.B. v20). Wenn man
-in einer Subshell dieses Prozesses `nvm ls` aufruft, zeigt `->` die Node-Version
-des Express-Prozesses an – nicht die tatsächlich als Default konfigurierte Version.
+**Warum direkt ins Dateisystem?** `nvm alias lts/<codename> <version>` schlägt
+mit „Aliases in subdirectories are not supported" fehl. nvm verwaltet lts-Aliases
+intern als Dateien – dieser Endpunkt tut dasselbe.
 
-`nvm use default` aktiviert vor `nvm ls` die Default-Version innerhalb der Subshell.
-Das `>/dev/null 2>&1 || true` unterdrückt die Ausgabe von `nvm use default`, sodass
-der Parser nur die saubere `nvm ls`-Ausgabe verarbeitet. Der `|| true` verhindert,
-dass ein Fehler bei `nvm use default` (z.B. kein Default gesetzt) den ganzen Aufruf
-abbricht.
+#### `deleteLtsAliasFile(codename)` – LTS-Alias direkt löschen
+
+```typescript
+export async function deleteLtsAliasFile(codename: string): Promise<void>
+```
+
+Löscht die Datei `~/.nvm/alias/lts/<codename>`. `nvm unalias lts/<codename>`
+schlägt aus demselben Grund fehl wie `nvm alias`.
 
 #### `spawnNvm(args)` – Streaming-Aufruf
 
@@ -251,7 +286,7 @@ abbricht.
 export function spawnNvm(args: string[]): ChildProcess
 ```
 
-Verwendet `spawn('bash', ['-lc', cmd])` statt `execFile`. Gibt den `ChildProcess`
+Verwendet `spawn('bash', ['-c', cmd])` statt `execFile`. Gibt den `ChildProcess`
 direkt zurück, damit die Route den `stdout`/`stderr`-Stream über **Server-Sent Events**
 (SSE) live an den Browser weiterleiten kann.
 
@@ -309,9 +344,18 @@ Der Parser extrahiert:
 - `resolved` – Aufgelöste Semver-Version aus `(-> vX.Y.Z)`, falls vorhanden
 
 Flags werden aus dem Namen abgeleitet:
-- `editable: false` für `node`, `stable`, `unstable`, `lts/*`-Aliases
-- `deletable: false` für alle nicht-editierbaren Aliases **und** für `default`
-  (der Default-Alias darf geändert, aber nicht gelöscht werden)
+
+```typescript
+const PROTECTED_ALIASES = new Set(['default', 'node', 'stable', 'unstable', 'iojs']);
+
+editable:  !name.startsWith('lts/')           // lts/-Aliases haben eigenen Endpunkt
+deletable: !PROTECTED_ALIASES.has(name)       // Kern-Aliases sind geschützt
+```
+
+- `editable: false` nur für `lts/`-Aliases – alle anderen (auch `node`, `stable`,
+  `unstable`, `default`) sind editierbar. LTS-Aliases haben einen dedizierten Endpunkt.
+- `deletable: false` für `default`, `node`, `stable`, `unstable`, `iojs` –
+  diese Kern-Aliases sind dauerhaft vor dem Löschen geschützt.
 
 ### `parseRemoteVersions(stdout)`
 
@@ -376,7 +420,7 @@ den vollständigen nvm-Output im HTTP-Response mitliefern kann.
 > `string` mit gültigem Inhalt ist. So verbinden diese Funktionen Laufzeit-Prüfung
 > (Regex) und statische Typsicherheit in einem.
 
-Drei Typ-Guard-Funktionen schützen gegen Shell-Injection auf Anwendungsebene:
+Vier Typ-Guard-Funktionen schützen gegen Shell-Injection auf Anwendungsebene:
 
 #### `isValidVersionInput(v)`
 
@@ -402,6 +446,15 @@ Bindestrich, Unterstrich. Verhindert Sonderzeichen, die Shell-Metacharacter sein
 ```
 
 Erlaubt: `node`, `stable`, `unstable`, `lts/<codename>`, `lts/*`, `v22.11.0`, `22`
+
+#### `isValidLtsCodename(v)`
+
+```typescript
+/^[\w*-]+$/  (Länge 1–30)
+```
+
+Erlaubt: `iron`, `hydrogen`, `*` – der Teil nach `lts/` in Requests an
+`POST /aliases/lts` und `DELETE /aliases/lts/:codename`.
 
 ---
 
@@ -431,7 +484,9 @@ npm start          # node dist/server.js
 | Whitelist-Regex | `nvm.types.ts` | Nur explizit erlaubte Eingaben |
 | Single-Quote-Escaping | `nvm.service.ts` | Shell-Injection verhindert |
 | CORS eingeschränkt | `server.ts` | Nur bekannter Origin erlaubt |
-| Readonly-Schutz für System-Aliases | `nvm.routes.ts` | `node`, `stable`, `lts/*`, `default` können nicht gelöscht werden |
+| Geschützte Kern-Aliases | `nvm.routes.ts` + `nvm.parser.ts` | `default`, `node`, `stable`, `unstable`, `iojs` können nicht gelöscht werden |
+| Kein Login-Shell-Flag (`-l`) | `nvm.service.ts` | Kein Laden von Profil-Dateien, verhindert Timeouts |
+| Direkte Dateisystem-Operationen für LTS | `nvm.service.ts` | Umgeht `nvm`-CLI-Einschränkungen für `lts/`-Unterverzeichnisse |
 
 ---
 
@@ -443,7 +498,7 @@ npm start          # node dist/server.js
 | **Middleware** | Funktion, die einen Request bearbeitet, bevor er den Routen-Handler erreicht |
 | **Routen-Handler** | Funktion, die einen konkreten Endpunkt (z.B. `GET /api/status`) bedient |
 | **Subshell** | Vom Programm gestartete, eigenständige Shell-Sitzung |
-| **`bash -lc`** | Startet eine Login-Bash und führt den nachfolgenden Befehlstext aus |
+| **`bash -c`** | Startet eine Bash-Subshell und führt den nachfolgenden Befehlstext aus |
 | **sourcen** | Ein Shell-Skript in der aktuellen Sitzung laden (`.` bzw. `source`) |
 | **`child_process`** | Node.js-Modul zum Starten externer Programme |
 | **`execFile`** | Führt ein Programm aus und liefert die gesammelte Ausgabe am Ende |
@@ -469,9 +524,12 @@ Versuche, die Fragen aus dem Gedächtnis zu beantworten, und prüfe dann im Text
 3. Warum kann Node.js `nvm` nicht direkt als Programm aufrufen?
 4. Wozu dient `unset npm_config_prefix` im `NVM_HEADER`?
 5. Welche zwei Mechanismen schützen gemeinsam gegen Shell-Injection?
-6. Worin unterscheiden sich `runNvm`, `runNvmLs` und `spawnNvm`?
-7. Warum führt `runNvmLs()` vor `nvm ls` zusätzlich `nvm use default` aus?
+6. Worin unterscheiden sich `runNvm`, `runNvmLsFast` und `spawnNvm`?
+7. Warum liest `runNvmLsFast()` Versionen und Aliases direkt vom Dateisystem,
+   statt `nvm ls` aufzurufen?
 8. Was ist der Vorteil einer Whitelist gegenüber einer Blacklist bei der Eingabeprüfung?
+9. Warum können `lts/`-Aliases nicht über `nvm alias`/`nvm unalias` verwaltet werden,
+   und wie löst das Backend dieses Problem?
 
 ---
 
@@ -481,7 +539,7 @@ Versuche, die Fragen aus dem Gedächtnis zu beantworten, und prüfe dann im Text
 > Aufgaben dienen dem Lernen – die bestehende Funktionalität soll erhalten bleiben.
 
 1. **Code lesen:** Öffne `apps/api/src/nvm/nvm.service.ts` und markiere im
-   `NVM_HEADER` jede der vier Zeilen mit einem Kommentar, der ihren Zweck erklärt.
+   `NVM_HEADER` jede der fünf Zeilen mit einem Kommentar, der ihren Zweck erklärt.
 2. **Validierung testen:** Schreibe auf Papier oder im Kopf durch, welche der
    folgenden Eingaben `isValidVersionInput` akzeptiert: `22`, `v22`, `lts/iron`,
    `22.11.0`, `22; ls`, `node`. Prüfe dann mit dem Regex aus `nvm.types.ts`.
@@ -495,3 +553,6 @@ Versuche, die Fragen aus dem Gedächtnis zu beantworten, und prüfe dann im Text
 5. **Vertiefung Tests:** Sieh dir `apps/api/src/nvm/nvm.parser.spec.ts` an.
    Welche Eingabe-Ausgabe-Paare werden getestet? Ergänze gedanklich einen Testfall
    für eine Alias-Zeile mit `(-> N/A)`.
+6. **Dateisystem-Modus verstehen:** Öffne `runNvmLsFast()` in `nvm.service.ts`.
+   Welche Dateien werden gelesen? Wie wird `active` vs. `default` ermittelt?
+   Welche Fehlerfälle könnten auftreten, wenn `~/.nvm/versions/node/` fehlt?

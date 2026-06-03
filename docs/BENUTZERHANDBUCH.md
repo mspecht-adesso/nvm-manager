@@ -128,7 +128,7 @@ Die Tabelle zeigt:
 - **Default**: Wird in neuen Terminal-Fenstern automatisch genutzt
 - **Verwenden**: Aktiviert die jeweilige Version direkt aus der Tabelle
 
-Unter der Tabelle wird zusätzlich die rohe `nvm ls`-Ausgabe als aufklappbares Element angezeigt.
+Unter der Tabelle wird zusätzlich die rohe nvm-Ausgabe als aufklappbares Element angezeigt.
 
 ---
 
@@ -199,7 +199,7 @@ Die Default-Version wird automatisch in neuen Terminal-Fenstern verwendet.
 
 ### Aliases verwalten
 
-nvm unterstützt benannte Aliases für Versionen (z.B. `default`, `my-project`). Die **Aliases-Card** ermöglicht die vollständige Verwaltung dieser Aliases.
+nvm unterstützt benannte Aliases für Versionen (z.B. `default`, `my-project`). Die **Aliases-Card** ermöglicht die vollständige Verwaltung aller Aliases.
 
 #### Aliases anzeigen
 
@@ -207,24 +207,46 @@ Die Tabelle zeigt alle vorhandenen Aliases mit:
 
 | Name | Ziel | Aufgelöst | Aktion |
 |------|------|-----------|--------|
-| `default` | `22` | `v22.11.0` | Bearbeiten |
-| `my-project` | `18.18.0` | `v18.18.0` | Bearbeiten / Löschen |
-| `node` | `stable` | `v22.11.0` | *(schreibgeschützt)* |
+| `default` | `lts/*` | `v22.20.0` | Bearbeiten |
+| `node` | `stable` | `v22.20.0` | Bearbeiten |
+| `stable` | `node` | `v22.20.0` | Bearbeiten |
+| `lts/iron` | `v20.20.2` | `v20.20.2` | Bearbeiten / Default / Stable / Löschen |
+| `my-project` | `v18.18.0` | `v18.18.0` | Bearbeiten / Löschen |
 
 - **Name**: Der Alias-Name
-- **Ziel**: Die hinterlegte Versionsangabe
+- **Ziel**: Die hinterlegte Versionsangabe (Dropdown beim Bearbeiten)
 - **Aufgelöst**: Die konkret zugeordnete Node.js-Version
 
-#### Alias bearbeiten
+#### Alias bearbeiten (alle Typen)
 
-Klicken Sie bei einem bearbeitbaren Alias auf **Bearbeiten**, geben Sie das neue Ziel ein und bestätigen mit **Speichern** (oder `Enter`). Mit **Abbrechen** oder `Escape` verwerfen Sie die Änderung.
+Klicken Sie auf **Bearbeiten**. In der Zielspalte öffnet sich ein **Dropdown** mit den installierten Node.js-Versionen. Wählen Sie die gewünschte Version aus und bestätigen Sie mit **Speichern**. Mit **Abbrechen** verwerfen Sie die Änderung.
 
-> Der `default`-Alias kann bearbeitet, aber nicht gelöscht werden.
-> Systemaliases (`node`, `stable`, `unstable`) und LTS-Aliases (`lts/*`) sind schreibgeschützt.
+Nach dem Speichern wird die Alias-Liste **und** die Installierte-Versionen-Liste automatisch aktualisiert.
+
+#### LTS-Aliases bearbeiten (`lts/iron`, `lts/krypton` usw.)
+
+LTS-Aliases zeigen drei zusätzliche Aktionen:
+
+| Button | Wirkung |
+|--------|---------|
+| **Bearbeiten** | Dropdown mit nur den passenden Major-Versionen (z.B. bei `lts/iron` nur 20.x-Versionen) |
+| **Default** | Setzt `nvm alias default lts/<codename>` – Default verfolgt ab jetzt diese LTS-Linie |
+| **Stable** | Setzt `nvm alias stable lts/<codename>` |
+| **Löschen** | Entfernt den LTS-Alias dauerhaft |
+
+Das Dropdown beim LTS-Bearbeiten zeigt **nur die zur LTS-Major-Version passenden** installierten Versionen. Bei `lts/iron` (Node 20.x) erscheinen also nur 20.x-Versionen.
 
 #### Alias löschen
 
-Klicken Sie bei einem löschbaren Alias auf **Löschen** und bestätigen Sie die Sicherheitsabfrage.
+Klicken Sie auf **Löschen** und bestätigen Sie die Sicherheitsabfrage. Gelöscht werden können alle Aliases **außer**:
+
+| Alias | Grund |
+|-------|-------|
+| `default` | nvm-Kernalias, geschützt |
+| `node` | nvm-Kernalias, geschützt |
+| `stable` | nvm-Kernalias, geschützt |
+| `unstable` | nvm-Kernalias, geschützt |
+| `iojs` | nvm-Kernalias, geschützt |
 
 #### Neuen Alias anlegen
 
@@ -307,11 +329,11 @@ export NVM_DIR="$HOME/.nvm"
 
 ---
 
-### „Alias ist schreibgeschützt"
+### „Alias ist geschützt und kann nicht gelöscht werden"
 
-**Ursache:** Die Aliases `node`, `stable`, `unstable` und alle `lts/*`-Aliases werden von nvm intern verwaltet und können nicht bearbeitet oder gelöscht werden.
+**Ursache:** Die Aliases `default`, `node`, `stable`, `unstable` und `iojs` sind nvm-Kern-Aliases und vor dem Löschen geschützt.
 
-**Lösung:** Nur benutzerdefinierte Aliases (z.B. `default`, eigene Namen) bearbeiten.
+**Lösung:** Diese Aliases können weiterhin **bearbeitet** (Zielversion geändert), aber nicht gelöscht werden.
 
 ---
 
@@ -320,7 +342,7 @@ export NVM_DIR="$HOME/.nvm"
 - Das Backend ist **ausschließlich auf `127.0.0.1`** erreichbar – kein Zugriff von anderen Geräten im Netzwerk.
 - Es werden **nur fest definierte nvm-Befehle** ausgeführt – keine freie Shell-Ausführung.
 - Alle Versionseingaben und Alias-Namen werden streng validiert – Sonderzeichen werden abgelehnt.
-- Schreibgeschützte System-Aliases können nicht überschrieben oder gelöscht werden.
+- Die Kern-Aliases `default`, `node`, `stable`, `unstable`, `iojs` können nicht gelöscht werden (serverseitig erzwungen).
 - Das Tool ist **nicht für den Einsatz auf einem öffentlichen Server** gedacht.
 
 ---
@@ -336,8 +358,8 @@ Bereits geöffnete Terminals oder andere Prozesse sind **nicht** betroffen.
 
 ### Kein automatisches Parsen aller nvm-Ausgaben
 
-Bei ungewöhnlichen nvm-Konfigurationen kann das Parsen der installierten Versionen
-unvollständig sein. Die **rohe Ausgabe** (`nvm ls`) wird immer korrekt angezeigt.
+Die installierten Versionen werden direkt aus dem Dateisystem (`~/.nvm/versions/node/`)
+gelesen. Bei sehr ungewöhnlichen nvm-Konfigurationen kann die Liste unvollständig sein.
 
 ### Keine `.nvmrc`-Unterstützung
 
