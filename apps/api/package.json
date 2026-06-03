@@ -25,9 +25,11 @@
     "@types/node": "latest",
     "@types/supertest": "^7.2.0",
     "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
     "supertest": "^7.2.2",
     "tsx": "latest",
     "typescript": "latest",
+    "typescript-eslint": "^8.60.1",
     "vitest": "^4.1.8"
   }
 }
