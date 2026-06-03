@@ -274,6 +274,12 @@ export async function updateNvm(): Promise<{ stdout: string; stderr: string }> {
   }
 
   const version = `v${latestVersion.replace(/^v/, '')}`;
+  // Defense-in-depth: the version comes from the GitHub API and is interpolated
+  // into a shell command. Reject anything that is not a plain semver tag so a
+  // malicious/garbled API response can never break out of the quoting.
+  if (!/^v\d+\.\d+\.\d+$/.test(version)) {
+    throw new NvmError(`Ungültiges nvm-Versionsformat von der GitHub-API: ${version}`, '', '');
+  }
   const safeDir = nvmDir.replace(/'/g, "'\\''");
   const cmd = `set -e; cd '${safeDir}'; git fetch --tags origin; git checkout '${version}'`;
 

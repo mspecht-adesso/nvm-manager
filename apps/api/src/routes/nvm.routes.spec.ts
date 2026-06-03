@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
+import { EventEmitter } from 'node:events';
 
 vi.mock('../nvm/nvm.service.js');
 vi.mock('../nvm/nvm.parser.js');
@@ -12,7 +13,6 @@ import { NvmError } from '../nvm/nvm.types.js';
 
 const app = createApp();
 
-const INSTALLED_STDOUT = '->     v22.11.0 (default)\n       v20.5.0';
 const ALIASES_STDOUT = 'default -> lts/* (-> v22.11.0)\nmy-alias -> v18.18.0';
 const REMOTE_STDOUT = '   v22.0.0   (Latest LTS: Jod)';
 
@@ -319,6 +319,60 @@ describe('DELETE /api/versions/aliases/:name', () => {
   });
 });
 
+// ── POST /api/versions/aliases/lts ────────────────────────────────────────────
+
+describe('POST /api/versions/aliases/lts', () => {
+  it('gibt 400 bei ungültigem Codename zurück', async () => {
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: '../escape', version: '22' });
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 400 bei ungültigem Ziel zurück', async () => {
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: 'iron', version: '; evil' });
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 200 zurück und schreibt die LTS-Alias-Datei', async () => {
+    vi.mocked(svc.setLtsAliasFile).mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: 'iron', version: '20.5.0' });
+
+    expect(res.status).toBe(200);
+    expect(svc.setLtsAliasFile).toHaveBeenCalledWith('iron', '20.5.0');
+  });
+});
+
+// ── DELETE /api/versions/aliases/lts/:codename ────────────────────────────────
+
+describe('DELETE /api/versions/aliases/lts/:codename', () => {
+  it('gibt 400 bei ungültigem Codename zurück', async () => {
+    const res = await request(app).delete('/api/versions/aliases/lts/has%20space');
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 200 zurück und löscht die LTS-Alias-Datei', async () => {
+    vi.mocked(svc.deleteLtsAliasFile).mockResolvedValue(undefined);
+
+    const res = await request(app).delete('/api/versions/aliases/lts/iron');
+
+    expect(res.status).toBe(200);
+    expect(svc.deleteLtsAliasFile).toHaveBeenCalledWith('iron');
+  });
+
+  it('gibt 500 zurück, wenn das Löschen fehlschlägt', async () => {
+    vi.mocked(svc.deleteLtsAliasFile).mockRejectedValue(new NvmError('ENOENT', '', ''));
+
+    const res = await request(app).delete('/api/versions/aliases/lts/ghost');
+    expect(res.status).toBe(500);
+  });
+});
+
 // ── GET /api/versions/install/stream ─────────────────────────────────────────
 
 describe('GET /api/versions/install/stream', () => {
@@ -332,5 +386,38 @@ describe('GET /api/versions/install/stream', () => {
       .get('/api/versions/install/stream')
       .query({ version: '; evil' });
     expect(res.status).toBe(400);
+  });
+
+  it('streamt stdout/stderr als SSE und beendet bei close', async () => {
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter;
+      stderr: EventEmitter;
+      kill: () => void;
+    };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+
+    // Emission an den tatsächlichen spawnNvm-Aufruf koppeln (kein freier Timer,
+    // der über Test-Grenzen hinweg feuern könnte). setImmediate läuft, nachdem
+    // der Handler seine Listener synchron registriert hat.
+    vi.mocked(svc.spawnNvm).mockImplementation(() => {
+      setImmediate(() => {
+        child.stdout.emit('data', Buffer.from('Downloading v22'));
+        child.stderr.emit('data', Buffer.from('warn'));
+        child.emit('close', 0);
+      });
+      return child as never;
+    });
+
+    const res = await request(app)
+      .get('/api/versions/install/stream')
+      .query({ version: '22' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/event-stream');
+    expect(res.text).toContain('Downloading v22');
+    expect(res.text).toContain('"type":"stderr"');
+    expect(res.text).toContain('"type":"done"');
   });
 });

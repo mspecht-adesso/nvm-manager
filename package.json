@@ -12,12 +12,16 @@
     "test:web": "npm --prefix apps/web run test",
     "test:e2e": "npm --prefix apps/e2e run test",
     "test": "npm run test:api && npm run test:web",
+    "lint:api": "npm --prefix apps/api run lint",
     "lint:web": "npm --prefix apps/web run lint",
-    "lint": "npm run lint:web",
+    "lint": "npm run lint:api && npm run lint:web",
     "docs:build": "node scripts/build-docs.mjs"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
     "concurrently": "latest",
-    "marked": "^18.0.4"
+    "eslint": "^10.4.1",
+    "marked": "^18.0.4",
+    "typescript-eslint": "^8.60.1"
   }
 }
