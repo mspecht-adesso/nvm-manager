@@ -1,8 +1,11 @@
 $color-text: #1e293b;
 $color-border: #e2e8f0;
+$color-primary: #2563eb;
+$color-surface: #ffffff;
 $spacing-xs: 0.25rem;
 $spacing-sm: 0.5rem;
 $spacing-md: 1rem;
+$border-radius-sm: 4px;
 
 .alias-form {
   border-top: 1px solid $color-border;
@@ -23,5 +26,24 @@ $spacing-md: 1rem;
     flex-wrap: wrap;
     align-items: center;
     gap: $spacing-sm;
+  }
+}
+
+.select {
+  &--inline {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid $color-primary;
+    border-radius: $border-radius-sm;
+    font-size: 0.8rem;
+    color: $color-text;
+    background: $color-surface;
+    cursor: pointer;
+    min-width: 120px;
+    max-width: 200px;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+    }
   }
 }

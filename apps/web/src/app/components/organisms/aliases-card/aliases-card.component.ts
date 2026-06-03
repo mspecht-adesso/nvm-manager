@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { NvmAlias, AliasesResponse, LogEvent } from '../../../models/nvm.models';
+import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-aliases-card',
@@ -19,13 +19,18 @@ export class AliasesCardComponent implements OnInit {
     if (value > 0) this.load();
   }
 
+  @Input() installedVersions: InstalledNodeVersion[] = [];
+
   @Output() logged = new EventEmitter<LogEvent>();
+  @Output() aliasChanged = new EventEmitter<void>();
 
   readonly aliases = signal<NvmAlias[]>([]);
   readonly loading = signal(false);
   readonly editingAlias = signal<string | null>(null);
+  readonly editingLtsAlias = signal<string | null>(null);
 
   editAliasTarget = '';
+  ltsEditVersion = '';
   newAliasName = '';
   newAliasTarget = '';
 
@@ -49,7 +54,9 @@ export class AliasesCardComponent implements OnInit {
 
   startEdit(alias: NvmAlias): void {
     this.editingAlias.set(alias.name);
-    this.editAliasTarget = alias.target;
+    const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
+    const hasMatch = this.installedVersions.some((v) => v.version === resolvedWithoutV);
+    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions[0]?.version ?? '');
   }
 
   cancelEdit(): void {
@@ -66,9 +73,81 @@ export class AliasesCardComponent implements OnInit {
         this.editingAlias.set(null);
         this.editAliasTarget = '';
         this.load();
+        this.aliasChanged.emit();
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Setzen des Alias '${name}': ${err.message}`, type: 'error' });
+      },
+    });
+  }
+
+  /**
+   * Gibt die installierten Versionen zurück, die zum LTS-Alias passen.
+   * Die Major-Version wird aus alias.target extrahiert (z.B. "v24.16.0" → 24).
+   * Für lts/* (Wildcard) oder unbekannte Targets werden alle Versionen zurückgegeben.
+   */
+  ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
+    if (alias.name === 'lts/*') return this.installedVersions;
+    const majorMatch = /^v?(\d+)\./.exec(alias.target);
+    if (!majorMatch) return this.installedVersions;
+    const major = majorMatch[1];
+    const filtered = this.installedVersions.filter((v) => v.version.startsWith(`${major}.`));
+    return filtered.length > 0 ? filtered : this.installedVersions;
+  }
+
+  startLtsEdit(alias: NvmAlias): void {
+    this.editingLtsAlias.set(alias.name);
+    const compatible = this.ltsCompatibleVersions(alias);
+    const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
+    const hasMatch = compatible.some((v) => v.version === resolvedWithoutV);
+    this.ltsEditVersion = hasMatch ? resolvedWithoutV : (compatible[0]?.version ?? '');
+  }
+
+  cancelLtsEdit(): void {
+    this.editingLtsAlias.set(null);
+    this.ltsEditVersion = '';
+  }
+
+  saveLtsAlias(alias: NvmAlias): void {
+    const version = this.ltsEditVersion.trim();
+    if (!version) return;
+    const codename = alias.name.slice('lts/'.length);
+    this.nvmApi.setLtsAlias(codename, version).subscribe({
+      next: () => {
+        this.logged.emit({ message: `LTS-Alias '${alias.name}' → '${version}' gesetzt.`, type: 'success' });
+        this.editingLtsAlias.set(null);
+        this.ltsEditVersion = '';
+        this.load();
+        this.aliasChanged.emit();
+      },
+      error: (err: Error) => {
+        this.logged.emit({ message: `Fehler beim Setzen von '${alias.name}': ${err.message}`, type: 'error' });
+      },
+    });
+  }
+
+  setAsDefault(alias: NvmAlias): void {
+    this.nvmApi.setDefaultVersion(alias.name).subscribe({
+      next: () => {
+        this.logged.emit({ message: `Default → '${alias.name}' gesetzt.`, type: 'success' });
+        this.load();
+        this.aliasChanged.emit();
+      },
+      error: (err: Error) => {
+        this.logged.emit({ message: `Fehler beim Setzen des Defaults: ${err.message}`, type: 'error' });
+      },
+    });
+  }
+
+  setAsStable(alias: NvmAlias): void {
+    this.nvmApi.setStableVersion(alias.name).subscribe({
+      next: () => {
+        this.logged.emit({ message: `Stable → '${alias.name}' gesetzt.`, type: 'success' });
+        this.load();
+        this.aliasChanged.emit();
+      },
+      error: (err: Error) => {
+        this.logged.emit({ message: `Fehler beim Setzen von Stable: ${err.message}`, type: 'error' });
       },
     });
   }
@@ -83,6 +162,7 @@ export class AliasesCardComponent implements OnInit {
         this.newAliasName = '';
         this.newAliasTarget = '';
         this.load();
+        this.aliasChanged.emit();
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Anlegen des Alias '${name}': ${err.message}`, type: 'error' });
@@ -92,10 +172,16 @@ export class AliasesCardComponent implements OnInit {
 
   deleteAlias(name: string): void {
     if (!confirm(`Alias '${name}' wirklich löschen?`)) return;
-    this.nvmApi.deleteAlias(name).subscribe({
+
+    const request$ = name.startsWith('lts/')
+      ? this.nvmApi.deleteLtsAlias(name.slice('lts/'.length))
+      : this.nvmApi.deleteAlias(name);
+
+    request$.subscribe({
       next: () => {
         this.logged.emit({ message: `Alias '${name}' gelöscht.`, type: 'success' });
         this.load();
+        this.aliasChanged.emit();
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Löschen des Alias '${name}': ${err.message}`, type: 'error' });

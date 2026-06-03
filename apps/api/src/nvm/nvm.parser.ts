@@ -28,9 +28,9 @@ const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
  *   lts/iron -> v20.19.1 (-> N/A)
  *   my-project -> v18.18.0
  */
-export function parseAliases(stdout: string): NvmAlias[] {
-  const BUILTIN = new Set(['node', 'stable', 'unstable']);
+const PROTECTED_ALIASES = new Set(['default', 'node', 'stable', 'unstable', 'iojs']);
 
+export function parseAliases(stdout: string): NvmAlias[] {
   return stdout
     .split('\n')
     .map((line) => line.replace(ANSI_ESCAPE, '').trim())
@@ -50,14 +50,13 @@ export function parseAliases(stdout: string): NvmAlias[] {
       const resolved = resolvedFromMatch ?? (/^v\d+\.\d+\.\d+$/.test(target) ? target : null);
 
       const isLts = name.startsWith('lts/');
-      const isBuiltin = BUILTIN.has(name) || isLts;
 
       return {
         name,
         target,
         resolved,
-        editable: !isBuiltin,
-        deletable: !isBuiltin && name !== 'default',
+        editable: !isLts,
+        deletable: !PROTECTED_ALIASES.has(name),
       };
     })
     .filter((a): a is NvmAlias => a !== null && a.name.length > 0);

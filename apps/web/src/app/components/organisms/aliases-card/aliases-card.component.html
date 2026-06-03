@@ -20,19 +20,27 @@
         @for (alias of aliases(); track alias.name) {
           <tr>
             <td><code>{{ alias.name }}</code></td>
+
+            <!-- Zielspalte: Dropdown beim Bearbeiten, sonst Code -->
             <td>
               @if (editingAlias() === alias.name) {
-                <input
-                  class="input input--inline"
-                  [(ngModel)]="editAliasTarget"
-                  (keydown.enter)="saveAlias(alias.name)"
-                  (keydown.escape)="cancelEdit()"
-                  placeholder="z.B. 22, lts/*, v18.18.0"
-                />
+                <select class="select select--inline" [(ngModel)]="editAliasTarget">
+                  @for (v of installedVersions; track v.version) {
+                    <option [value]="v.version">{{ v.version }}</option>
+                  }
+                </select>
+              } @else if (editingLtsAlias() === alias.name) {
+                <select class="select select--inline" [(ngModel)]="ltsEditVersion">
+                  @for (v of ltsCompatibleVersions(alias); track v.version) {
+                    <option [value]="v.version">{{ v.version }}</option>
+                  }
+                </select>
               } @else {
                 <code>{{ alias.target }}</code>
               }
             </td>
+
+            <!-- Aufgelöst-Spalte -->
             <td>
               @if (alias.resolved) {
                 <code>{{ alias.resolved }}</code>
@@ -40,17 +48,31 @@
                 <span class="text--muted">N/A</span>
               }
             </td>
+
+            <!-- Aktionsspalte -->
             <td class="td-actions">
-              @if (alias.editable) {
+              @if (alias.name.startsWith('lts/')) {
+                @if (editingLtsAlias() === alias.name) {
+                  <button class="btn btn--xs btn--primary" (click)="saveLtsAlias(alias)" [disabled]="!ltsEditVersion">Speichern</button>
+                  <button class="btn btn--xs btn--secondary" (click)="cancelLtsEdit()">Abbrechen</button>
+                } @else {
+                  <button class="btn btn--xs btn--secondary" (click)="startLtsEdit(alias)">Bearbeiten</button>
+                  <button class="btn btn--xs btn--accent" (click)="setAsDefault(alias)" title="'{{ alias.name }}' als default setzen">Default</button>
+                  <button class="btn btn--xs btn--accent" (click)="setAsStable(alias)" title="'{{ alias.name }}' als stable setzen">Stable</button>
+                  <button class="btn btn--xs btn--danger" (click)="deleteAlias(alias.name)">Löschen</button>
+                }
+              } @else {
                 @if (editingAlias() === alias.name) {
-                  <button class="btn btn--xs btn--primary" (click)="saveAlias(alias.name)">Speichern</button>
+                  <button class="btn btn--xs btn--primary" (click)="saveAlias(alias.name)" [disabled]="!editAliasTarget">Speichern</button>
                   <button class="btn btn--xs btn--secondary" (click)="cancelEdit()">Abbrechen</button>
                 } @else {
-                  <button class="btn btn--xs btn--secondary" (click)="startEdit(alias)">Bearbeiten</button>
+                  @if (alias.editable) {
+                    <button class="btn btn--xs btn--secondary" (click)="startEdit(alias)">Bearbeiten</button>
+                  }
+                  @if (alias.deletable) {
+                    <button class="btn btn--xs btn--danger" (click)="deleteAlias(alias.name)">Löschen</button>
+                  }
                 }
-              }
-              @if (alias.deletable) {
-                <button class="btn btn--xs btn--danger" (click)="deleteAlias(alias.name)">Löschen</button>
               }
             </td>
           </tr>

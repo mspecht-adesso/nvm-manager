@@ -1,17 +1,15 @@
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
-import { runNvm, runNvmLs, spawnNvm } from '../nvm/nvm.service.js';
-import { parseInstalledVersions, parseAliases, parseRemoteVersions } from '../nvm/nvm.parser.js';
-import { isValidVersionInput, isValidAliasName, isValidAliasTarget } from '../nvm/nvm.types.js';
+import { runNvm, runNvmLsFast, spawnNvm, setLtsAliasFile, deleteLtsAliasFile } from '../nvm/nvm.service.js';
+import { parseAliases, parseRemoteVersions } from '../nvm/nvm.parser.js';
+import { isValidVersionInput, isValidAliasName, isValidAliasTarget, isValidLtsCodename } from '../nvm/nvm.types.js';
 
 const router = Router();
 
 const getInstalledHandler: RequestHandler = async (_req, res, next) => {
   try {
-    // nvm use default vor nvm ls in derselben Shell: zeigt die korrekte aktive Version (->) an.
-    const { stdout, stderr } = await runNvmLs();
-    const versions = parseInstalledVersions(stdout);
-    res.json({ stdout, stderr, versions });
+    const result = await runNvmLsFast();
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -60,12 +58,44 @@ const useHandler: RequestHandler = async (req, res, next) => {
 const setDefaultHandler: RequestHandler = async (req, res, next) => {
   try {
     const { version } = req.body as { version: unknown };
-    if (!isValidVersionInput(version)) {
-      res.status(400).json({ error: `Ungültige Version: ${String(version)}` });
+    if (!isValidAliasTarget(version)) {
+      res.status(400).json({ error: `Ungültiges Ziel: ${String(version)}` });
       return;
     }
     const result = await runNvm(['alias', 'default', version]);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const setStableHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const { version } = req.body as { version: unknown };
+    if (!isValidAliasTarget(version)) {
+      res.status(400).json({ error: `Ungültiges Ziel: ${String(version)}` });
+      return;
+    }
+    const result = await runNvm(['alias', 'stable', version]);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const setLtsAliasHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const { codename, version } = req.body as { codename: unknown; version: unknown };
+    if (!isValidLtsCodename(codename)) {
+      res.status(400).json({ error: 'Ungültiger LTS-Codename.' });
+      return;
+    }
+    if (!isValidAliasTarget(version)) {
+      res.status(400).json({ error: `Ungültiges Ziel: ${String(version)}` });
+      return;
+    }
+    await setLtsAliasFile(codename, version);
+    res.json({ stdout: '', stderr: '' });
   } catch (err) {
     next(err);
   }
@@ -85,7 +115,7 @@ const uninstallHandler: RequestHandler = async (req, res, next) => {
   }
 };
 
-const READONLY_ALIASES = new Set(['node', 'stable', 'unstable']);
+const PROTECTED_ALIASES = new Set(['default', 'node', 'stable', 'unstable', 'iojs']);
 
 const getAliasesHandler: RequestHandler = async (_req, res, next) => {
   try {
@@ -104,8 +134,8 @@ const setAliasHandler: RequestHandler = async (req, res, next) => {
       res.status(400).json({ error: 'Ungültiger Alias-Name.' });
       return;
     }
-    if (READONLY_ALIASES.has(name) || name.startsWith('lts/')) {
-      res.status(400).json({ error: `Alias '${name}' ist schreibgeschützt.` });
+    if (name.startsWith('lts/')) {
+      res.status(400).json({ error: `LTS-Aliases über den dedizierten Endpunkt setzen.` });
       return;
     }
     if (!isValidAliasTarget(target)) {
@@ -126,12 +156,26 @@ const deleteAliasHandler: RequestHandler = async (req, res, next) => {
       res.status(400).json({ error: 'Ungültiger Alias-Name.' });
       return;
     }
-    if (READONLY_ALIASES.has(name) || name.startsWith('lts/') || name === 'default') {
-      res.status(400).json({ error: `Alias '${name}' kann nicht gelöscht werden.` });
+    if (PROTECTED_ALIASES.has(name)) {
+      res.status(400).json({ error: `Alias '${name}' ist geschützt und kann nicht gelöscht werden.` });
       return;
     }
     const result = await runNvm(['unalias', name]);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteLtsAliasHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const { codename } = req.params;
+    if (!isValidLtsCodename(codename)) {
+      res.status(400).json({ error: 'Ungültiger LTS-Codename.' });
+      return;
+    }
+    await deleteLtsAliasFile(codename);
+    res.json({ stdout: '', stderr: '' });
   } catch (err) {
     next(err);
   }
@@ -174,8 +218,11 @@ router.get('/install/stream', installStreamHandler);
 router.post('/install', installHandler);
 router.post('/use', useHandler);
 router.post('/default', setDefaultHandler);
+router.post('/stable', setStableHandler);
 router.post('/uninstall', uninstallHandler);
 router.post('/aliases', setAliasHandler);
+router.post('/aliases/lts', setLtsAliasHandler);
+router.delete('/aliases/lts/:codename', deleteLtsAliasHandler);
 router.delete('/aliases/:name', deleteAliasHandler);
 
 export default router;

@@ -25,7 +25,9 @@
 
   <app-aliases-card
     [refreshTrigger]="aliasesRefreshTrigger()"
+    [installedVersions]="installedVersions()"
     (logged)="onLogged($event)"
+    (aliasChanged)="loadInstalledVersions()"
   />
 
   <app-remote-versions-card

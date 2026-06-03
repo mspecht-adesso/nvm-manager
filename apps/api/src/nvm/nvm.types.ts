@@ -87,3 +87,12 @@ export function isValidAliasName(v: unknown): v is string {
 export function isValidAliasTarget(v: unknown): v is string {
   return typeof v === 'string' && /^(node|stable|unstable|lts\/[\w.*-]+|v?\d+(\.\d+){0,2})$/.test(v);
 }
+
+/**
+ * Prüft, ob ein LTS-Codename sicher ist (der Teil nach "lts/").
+ * Erlaubt: Buchstaben, Ziffern, Bindestrich, Unterstrich, Sternchen.
+ * Beispiele: iron, hydrogen, *, lts-2024.
+ */
+export function isValidLtsCodename(v: unknown): v is string {
+  return typeof v === 'string' && /^[\w*-]+$/.test(v) && v.length >= 1 && v.length <= 30;
+}

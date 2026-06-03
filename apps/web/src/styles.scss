@@ -105,6 +105,17 @@ h1, h2, h3, h4, h5, h6 {
     &:hover:not(:disabled) { background: rgba($color-primary, 0.08); }
   }
 
+  &--accent {
+    background: $color-surface;
+    color: $color-success;
+    border-color: $color-success;
+
+    &:hover:not(:disabled) {
+      background: $color-success;
+      color: #fff;
+    }
+  }
+
   &--sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
   &--xs { padding: 0.2rem 0.5rem; font-size: 0.75rem; }
 }

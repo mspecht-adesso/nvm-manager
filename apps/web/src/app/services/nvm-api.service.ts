@@ -51,6 +51,18 @@ export class NvmApiService {
       .pipe(catchError(this.handleError));
   }
 
+  setStableVersion(version: string): Observable<NvmCommandResult> {
+    return this.http
+      .post<NvmCommandResult>(`${this.baseUrl}/versions/stable`, { version })
+      .pipe(catchError(this.handleError));
+  }
+
+  setLtsAlias(codename: string, version: string): Observable<NvmCommandResult> {
+    return this.http
+      .post<NvmCommandResult>(`${this.baseUrl}/versions/aliases/lts`, { codename, version })
+      .pipe(catchError(this.handleError));
+  }
+
   uninstallVersion(version: string): Observable<NvmCommandResult> {
     return this.http
       .post<NvmCommandResult>(`${this.baseUrl}/versions/uninstall`, { version })
@@ -72,6 +84,12 @@ export class NvmApiService {
   deleteAlias(name: string): Observable<NvmCommandResult> {
     return this.http
       .delete<NvmCommandResult>(`${this.baseUrl}/versions/aliases/${encodeURIComponent(name)}`)
+      .pipe(catchError(this.handleError));
+  }
+
+  deleteLtsAlias(codename: string): Observable<NvmCommandResult> {
+    return this.http
+      .delete<NvmCommandResult>(`${this.baseUrl}/versions/aliases/lts/${encodeURIComponent(codename)}`)
       .pipe(catchError(this.handleError));
   }
 
