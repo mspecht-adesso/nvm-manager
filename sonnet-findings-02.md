@@ -85,18 +85,21 @@ Der `prefillVersion`-`effect()` schreibt in das lokale `versionInput`. Genau die
 
 **Aufwand:** M · **Impact:** Medium
 
-- [ ] Funktionalen `HttpInterceptor` (`withInterceptors`) für einheitliche Fehler-Normalisierung
-- [ ] Globalen `ErrorHandler` registrieren (fängt unerwartete Laufzeitfehler)
-- [ ] `provideHttpClient(withFetch(), withInterceptors([...]))` in `app.config.ts`
+- [x] Funktionaler `httpErrorInterceptor` (`core/http-error.interceptor.ts`) — normalisiert `HttpErrorResponse` → `Error` mit API-`{error}`-Body oder Transport-Message
+- [x] `GlobalErrorHandler` (`core/global-error-handler.ts`) als `ErrorHandler` registriert (Safety-Net + zentrales Logging)
+- [x] `provideHttpClient(withFetch(), withInterceptors([httpErrorInterceptor]))` + `{ provide: ErrorHandler, useClass: GlobalErrorHandler }` in `app.config.ts`
+- [x] Dedizierte Specs für Interceptor und ErrorHandler angelegt
 
 ### Schritt 5 – `handleError`-Methodenreferenz absichern
 
 **Aufwand:** XS · **Impact:** Low
 
-In `nvm-api.service.ts` wird `catchError(this.handleError)` als Methodenreferenz übergeben.
-Funktioniert nur, weil `this` nicht genutzt wird — fragil.
+In `nvm-api.service.ts` wurde `catchError(this.handleError)` als Methodenreferenz übergeben.
+Funktionierte nur, weil `this` nicht genutzt wurde — fragil.
 
-- [ ] `handleError` als Arrow-Field oder inline-Arrow umstellen
+- [x] Gelöst durch Schritt 4: `handleError` + alle `catchError`-Pipes komplett entfernt, die
+  Normalisierung übernimmt jetzt der zentrale `httpErrorInterceptor`. Der Service besteht nur
+  noch aus schlanken HTTP-Aufrufen.
 
 ---
 
@@ -120,6 +123,6 @@ Funktioniert nur, weil `this` nicht genutzt wird — fragil.
 | 1 | ESLint + angular-eslint | 1 | M | erledigt |
 | 2 | rxResource() Migration | 1 | L | erledigt |
 | 3 | linkedSignal() action-card | 2 | S | erledigt |
-| 4 | Error-Interceptor + ErrorHandler | 2 | M | offen |
-| 5 | handleError absichern | 2 | XS | offen |
+| 4 | Error-Interceptor + ErrorHandler | 2 | M | erledigt |
+| 5 | handleError absichern | 2 | XS | erledigt (via Schritt 4) |
 | 6 | Accessibility | 3 | M | offen |
