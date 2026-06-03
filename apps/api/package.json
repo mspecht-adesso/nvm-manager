@@ -12,20 +12,20 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "cors": "latest",
-    "express": "latest",
-    "morgan": "latest"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "@types/cors": "latest",
-    "@types/express": "latest",
-    "@types/morgan": "latest",
-    "@types/node": "latest",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.9.1",
     "@types/supertest": "^7.2.0",
     "@vitest/coverage-v8": "^4.1.8",
     "supertest": "^7.2.2",
-    "tsx": "latest",
-    "typescript": "latest",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }
 }

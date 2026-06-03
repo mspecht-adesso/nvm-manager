@@ -29,28 +29,9 @@ export type NvmAlias = {
   deletable: boolean;
 };
 
-export type AliasesResponse = {
-  stdout: string;
-  stderr: string;
-  aliases: NvmAlias[];
-};
-
 export type RemoteNodeVersion = {
   version: string;
   lts: string | null;
-};
-
-export type RemoteVersionsResponse = {
-  stdout: string;
-  stderr: string;
-  versions: RemoteNodeVersion[];
-};
-
-export type NvmStatus = {
-  ok: boolean;
-  nvmVersion?: string;
-  nvmDir?: string;
-  error?: string;
 };
 
 /**

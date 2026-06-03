@@ -127,6 +127,12 @@ protected onError(message: string): void {
 }
 ```
 
+## Dependency Hygiene
+
+- **No unused devDependencies**: if a tool is not referenced in any config or script (e.g. a formatter whose config lives at the root), remove it from `apps/web/package.json`.
+- **No `"latest"` versions**: pin with caret ranges (`"^x.y.z"`). The Angular packages use `"^21.x.x"` — keep them aligned.
+- **No duplicate model types**: types in `apps/web/src/app/models/nvm.models.ts` are the single source of truth for the frontend. Do not copy them to or from the backend.
+
 ## Further Resources
 
 - For SCSS conventions: see rule `angular-standalone.mdc`
