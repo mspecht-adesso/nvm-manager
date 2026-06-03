@@ -3,7 +3,7 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
 import { ThemeService } from '../../../services/theme.service';
 
 @Component({
-  selector: 'app-app-header',
+  selector: 'app-header',
   standalone: true,
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.scss',

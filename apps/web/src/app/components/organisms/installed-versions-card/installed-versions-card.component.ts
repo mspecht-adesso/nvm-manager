@@ -8,6 +8,7 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
   standalone: true,
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './installed-versions-card.component.html',
+  styleUrl: './installed-versions-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InstalledVersionsCardComponent {

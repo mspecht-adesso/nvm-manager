@@ -261,12 +261,12 @@ if (!confirm(`Alias '${name}' wirklich löschen?`)) return;
 
 ### Ansatz: Signal-gesteuertes Inline-Confirm
 
-- [ ] Signal `confirmPendingAlias = signal<string | null>(null)` in `AliasesCardComponent` anlegen
-- [ ] `deleteAlias()` setzt zuerst nur `confirmPendingAlias.set(name)`, löscht noch nicht
-- [ ] Template: `@if (confirmPendingAlias())` zeigt eine Confirm-Zeile/Row mit „Bestätigen" und „Abbrechen"
-- [ ] Bestätigen ruft die eigentliche Delete-Logik auf und setzt `confirmPendingAlias.set(null)`
-- [ ] Abbrechen setzt `confirmPendingAlias.set(null)`
-- [ ] `confirm()` komplett entfernen
+- [x] Signal `confirmPendingAlias = signal<string | null>(null)` in `AliasesCardComponent` anlegen
+- [x] `deleteAlias()` setzt zuerst nur `confirmPendingAlias.set(name)`, löscht noch nicht
+- [x] Template: `@if (confirmPendingAlias() === alias.name)` zeigt Inline-Confirm mit „Ja, löschen" und „Abbrechen"
+- [x] `confirmDelete()` ruft die eigentliche Delete-Logik auf und setzt `confirmPendingAlias.set(null)`
+- [x] `cancelDelete()` setzt `confirmPendingAlias.set(null)`
+- [x] `confirm()` komplett entfernt
 
 ---
 
@@ -300,13 +300,10 @@ export const appConfig: ApplicationConfig = {
 
 ## Zusätzliche Kleinigkeiten (parallel zu jedem Schritt erledigbar)
 
-- [ ] `apps/web/src/app/components/organisms/app-footer/app-footer.component.spec.ts` anlegen (Mindest-Render-Test)
-- [ ] `installed-versions-card/` — dedizierte SCSS-Datei für Tabellen-Styles anlegen
-- [ ] Selektoren `app-app-header` / `app-app-footer` bereinigen:
-  Option A: Komponenten umbenennen in `Header` / `Footer` (Selektor wird `app-header`)
-  Option B: Selektor explizit überschreiben: `selector: 'app-header'`
-- [ ] `spinner.component.ts` — Spinner-Styles aus `styles.scss` in die Komponente encapsulaten
-  (oder Komponente als bewusste Thin-Wrapper-Komponente in einem Kommentar dokumentieren)
+- [x] `apps/web/src/app/components/organisms/app-footer/app-footer.component.spec.ts` anlegen (Mindest-Render-Test)
+- [x] `installed-versions-card/` — dedizierte SCSS-Datei für Tabellen-Styles anlegen
+- [x] Selektoren `app-app-header` / `app-app-footer` bereinigen (Option B: Selektor explizit überschrieben → `app-header` / `app-footer`)
+- [x] `spinner.component.ts` — `.spinner`-Styles aus `styles.scss` in eigene `spinner.component.scss` verschoben und `styleUrl` ergänzt
 
 ---
 
@@ -321,5 +318,5 @@ export const appConfig: ApplicationConfig = {
 | 5 | OnPush auf alle Components | M | erledigt |
 | 6 | OnChanges → effect() | S | erledigt (mit Schritt 4) |
 | 7 | NvmStateService | L | erledigt |
-| 8 | confirm() → Custom-Modal | M | offen |
+| 8 | confirm() → Custom-Modal | M | erledigt |
 | 9 | Zoneless (optional) | XL | zurückgestellt |

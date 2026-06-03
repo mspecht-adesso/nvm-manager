@@ -26,6 +26,7 @@ export class AliasesCardComponent implements OnInit {
   readonly loading = signal(false);
   readonly editingAlias = signal<string | null>(null);
   readonly editingLtsAlias = signal<string | null>(null);
+  readonly confirmPendingAlias = signal<string | null>(null);
 
   editAliasTarget = '';
   ltsEditVersion = '';
@@ -175,7 +176,13 @@ export class AliasesCardComponent implements OnInit {
   }
 
   deleteAlias(name: string): void {
-    if (!confirm(`Alias '${name}' wirklich löschen?`)) return;
+    this.confirmPendingAlias.set(name);
+  }
+
+  confirmDelete(): void {
+    const name = this.confirmPendingAlias();
+    if (!name) return;
+    this.confirmPendingAlias.set(null);
 
     const request$ = name.startsWith('lts/')
       ? this.nvmApi.deleteLtsAlias(name.slice('lts/'.length))
@@ -191,5 +198,9 @@ export class AliasesCardComponent implements OnInit {
         this.logged.emit({ message: `Fehler beim Löschen des Alias '${name}': ${err.message}`, type: 'error' });
       },
     });
+  }
+
+  cancelDelete(): void {
+    this.confirmPendingAlias.set(null);
   }
 }

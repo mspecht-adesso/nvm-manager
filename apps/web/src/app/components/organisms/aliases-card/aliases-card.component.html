@@ -51,7 +51,11 @@
 
             <!-- Aktionsspalte -->
             <td class="td-actions">
-              @if (alias.name.startsWith('lts/')) {
+              @if (confirmPendingAlias() === alias.name) {
+                <span class="confirm-prompt">Wirklich löschen?</span>
+                <button class="btn btn--xs btn--danger" (click)="confirmDelete()">Ja, löschen</button>
+                <button class="btn btn--xs btn--secondary" (click)="cancelDelete()">Abbrechen</button>
+              } @else if (alias.name.startsWith('lts/')) {
                 @if (editingLtsAlias() === alias.name) {
                   <button class="btn btn--xs btn--primary" (click)="saveLtsAlias(alias)" [disabled]="!ltsEditVersion">Speichern</button>
                   <button class="btn btn--xs btn--secondary" (click)="cancelLtsEdit()">Abbrechen</button>

@@ -1,6 +1,6 @@
 <app-install-modal [state]="state.installModal()" (closed)="state.closeInstallModal()" />
 
-<app-app-header [activeVersion]="state.activeVersion()" />
+<app-header [activeVersion]="state.activeVersion()" />
 
 <main class="main">
   <app-status-card (nvmUpdate)="state.onNvmUpdate($event)" />
@@ -41,4 +41,4 @@
   <app-log-card [log]="state.log()" />
 </main>
 
-<app-app-footer />
+<app-footer />
