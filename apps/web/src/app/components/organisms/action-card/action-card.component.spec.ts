@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const flushEffects = () => (TestBed as any).flushEffects?.();
 import { ActionCardComponent } from './action-card.component';
 
 describe('ActionCardComponent', () => {
@@ -23,20 +25,22 @@ describe('ActionCardComponent', () => {
 
   it('isLoading ist standardmäßig false', async () => {
     const { comp } = await setup();
-    expect(comp.isLoading).toBe(false);
+    expect(comp.isLoading()).toBe(false);
   });
 
   describe('prefillVersion', () => {
     it('setzt versionInput wenn ein nicht-leerer Wert übergeben wird', async () => {
-      const { comp } = await setup();
-      comp.prefillVersion = '20';
+      const { fixture, comp } = await setup();
+      fixture.componentRef.setInput('prefillVersion', '20');
+      flushEffects();
       expect(comp.versionInput).toBe('20');
     });
 
     it('setzt versionInput nicht wenn ein leerer Wert übergeben wird', async () => {
-      const { comp } = await setup();
+      const { fixture, comp } = await setup();
       comp.versionInput = '22';
-      comp.prefillVersion = '';
+      fixture.componentRef.setInput('prefillVersion', '');
+      flushEffects();
       expect(comp.versionInput).toBe('22');
     });
   });

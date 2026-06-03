@@ -25,19 +25,19 @@ describe('LogCardComponent', () => {
 
   it('hat leeres Log als Default', async () => {
     const { comp } = await setup();
-    expect(comp.log).toEqual([]);
+    expect(comp.log()).toEqual([]);
   });
 
   it('nimmt Log-Einträge als Input entgegen', async () => {
     const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
-    expect(comp.log).toHaveLength(3);
+    expect(comp.log()).toHaveLength(3);
   });
 
   it('rendert alle Log-Einträge', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -46,8 +46,8 @@ describe('LogCardComponent', () => {
   });
 
   it('rendert Platzhalter-Text wenn Log leer ist', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = [];
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', []);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -55,8 +55,8 @@ describe('LogCardComponent', () => {
   });
 
   it('setzt korrekte CSS-Klassen je Eintragstyp', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -66,8 +66,8 @@ describe('LogCardComponent', () => {
   });
 
   it('zeigt die Nachricht des Log-Eintrags an', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = [ENTRIES[0]];
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', [ENTRIES[0]]);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;

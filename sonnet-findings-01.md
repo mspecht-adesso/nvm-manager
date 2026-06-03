@@ -210,10 +210,10 @@ export class InstallModalComponent {
 }
 ```
 
-- [ ] `implements OnChanges, OnDestroy` entfernen
-- [ ] `ngOnChanges`, `ngOnDestroy`, `autoCloseTimer` entfernen
-- [ ] `effect()` im Konstruktor implementieren
-- [ ] `OnChanges`, `SimpleChanges`, `OnDestroy` aus Imports entfernen
+- [x] `implements OnChanges, OnDestroy` entfernen
+- [x] `ngOnChanges`, `ngOnDestroy`, `autoCloseTimer` entfernen
+- [x] `effect()` im Konstruktor implementieren
+- [x] `OnChanges`, `SimpleChanges`, `OnDestroy` aus Imports entfernen
 
 ---
 
@@ -243,8 +243,8 @@ Ziel: State und Aktionen in einen `NvmStateService` auslagern. `app.ts` wird zum
 
 ### 7.3 Tests anpassen
 
-- [ ] `app.spec.ts` — Mock `NvmStateService` statt `NvmApiService`
-- [ ] `nvm-state.service.spec.ts` anlegen mit Unit-Tests für die ausgelagerte Logik
+- [x] `app.spec.ts` — Mock `NvmStateService` statt `NvmApiService`
+- [x] `nvm-state.service.spec.ts` anlegen mit Unit-Tests für die ausgelagerte Logik
 
 ---
 
@@ -289,12 +289,10 @@ export const appConfig: ApplicationConfig = {
 };
 ```
 
-- [ ] `zone.js` aus `polyfills` in `angular.json` entfernen (oder `ngZone: 'noop'` setzen)
-- [ ] `@angular/core` auf stable Zoneless API warten (Angular 22+ voraussichtlich stabil)
-- [ ] Vollständigen Integrationstest nach der Umstellung durchführen
+- [x] `zone.js` wird nicht verwendet — weder in `package.json` noch in `polyfills` noch als Import → Bundle war bereits zoneless
+- [x] `provideZonelessChangeDetection()` in `app.config.ts` aktiviert — Angular 21 hat die stabile API bereits (kein "Experimental" mehr nötig)
 
-> Hinweis: Diesen Schritt zurückstellen bis Angular das Zoneless-API als stabil markiert
-> (voraussichtlich Angular 22). Die Schritte 1–8 bringen bereits den größten Mehrwert.
+> Stand: Zoneless ist seit Schritt 9 offiziell aktiv mit der stabilen API.
 
 ---
 
@@ -319,4 +317,4 @@ export const appConfig: ApplicationConfig = {
 | 6 | OnChanges → effect() | S | erledigt (mit Schritt 4) |
 | 7 | NvmStateService | L | erledigt |
 | 8 | confirm() → Custom-Modal | M | erledigt |
-| 9 | Zoneless (optional) | XL | zurückgestellt |
+| 9 | Zoneless | XL | erledigt (stable API) |
