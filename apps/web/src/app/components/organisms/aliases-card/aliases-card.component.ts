@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { Component, OnInit, effect, input, output, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
@@ -15,14 +15,11 @@ import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '
 export class AliasesCardComponent implements OnInit {
   private readonly nvmApi = inject(NvmApiService);
 
-  @Input() set refreshTrigger(value: number) {
-    if (value > 0) this.load();
-  }
+  readonly refreshTrigger = input(0);
+  readonly installedVersions = input<InstalledNodeVersion[]>([]);
 
-  @Input() installedVersions: InstalledNodeVersion[] = [];
-
-  @Output() logged = new EventEmitter<LogEvent>();
-  @Output() aliasChanged = new EventEmitter<void>();
+  readonly logged = output<LogEvent>();
+  readonly aliasChanged = output<void>();
 
   readonly aliases = signal<NvmAlias[]>([]);
   readonly loading = signal(false);
@@ -33,6 +30,12 @@ export class AliasesCardComponent implements OnInit {
   ltsEditVersion = '';
   newAliasName = '';
   newAliasTarget = '';
+
+  constructor() {
+    effect(() => {
+      if (this.refreshTrigger() > 0) this.load();
+    });
+  }
 
   ngOnInit(): void {
     this.load();
@@ -55,8 +58,8 @@ export class AliasesCardComponent implements OnInit {
   startEdit(alias: NvmAlias): void {
     this.editingAlias.set(alias.name);
     const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
-    const hasMatch = this.installedVersions.some((v) => v.version === resolvedWithoutV);
-    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions[0]?.version ?? '');
+    const hasMatch = this.installedVersions().some((v) => v.version === resolvedWithoutV);
+    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions()[0]?.version ?? '');
   }
 
   cancelEdit(): void {
@@ -87,12 +90,12 @@ export class AliasesCardComponent implements OnInit {
    * For lts/* (wildcard) or unknown targets all installed versions are returned.
    */
   ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
-    if (alias.name === 'lts/*') return this.installedVersions;
+    if (alias.name === 'lts/*') return this.installedVersions();
     const majorMatch = /^v?(\d+)\./.exec(alias.target);
-    if (!majorMatch) return this.installedVersions;
+    if (!majorMatch) return this.installedVersions();
     const major = majorMatch[1];
-    const filtered = this.installedVersions.filter((v) => v.version.startsWith(`${major}.`));
-    return filtered.length > 0 ? filtered : this.installedVersions;
+    const filtered = this.installedVersions().filter((v) => v.version.startsWith(`${major}.`));
+    return filtered.length > 0 ? filtered : this.installedVersions();
   }
 
   startLtsEdit(alias: NvmAlias): void {

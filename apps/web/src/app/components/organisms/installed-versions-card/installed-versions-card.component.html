@@ -1,12 +1,12 @@
 <app-card>
   <span card-title>Installierte Versionen</span>
-  <button card-actions class="btn btn--sm btn--ghost" (click)="refresh.emit()" [disabled]="loading">
-    @if (loading) { Lade... } @else { Aktualisieren }
+  <button card-actions class="btn btn--sm btn--ghost" (click)="refresh.emit()" [disabled]="loading()">
+    @if (loading()) { Lade... } @else { Aktualisieren }
   </button>
 
-  @if (loading) {
+  @if (loading()) {
     <app-loading-state message="Lade installierte Versionen ..." />
-  } @else if (versions.length > 0) {
+  } @else if (versions().length > 0) {
     <table class="versions-table">
       <thead>
         <tr>
@@ -16,7 +16,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (v of versions; track v.version) {
+        @for (v of versions(); track v.version) {
           <tr [class.row--active]="v.active" [class.row--default]="v.default">
             <td>
               <code>v{{ v.version }}</code>
@@ -35,14 +35,14 @@
               <button
                 class="btn btn--xs btn--secondary"
                 (click)="useVersion.emit(v.version)"
-                [disabled]="isLoading || v.active"
+                [disabled]="isLoading() || v.active"
               >
                 Verwenden
               </button>
               <button
                 class="btn btn--xs btn--danger"
                 (click)="uninstallVersion.emit(v.version)"
-                [disabled]="isLoading || v.active || v.system"
+                [disabled]="isLoading() || v.active || v.system"
                 [title]="v.active ? 'Aktive Version kann nicht deinstalliert werden' : 'Version deinstallieren'"
               >
                 Deinstallieren
@@ -54,14 +54,14 @@
     </table>
   }
 
-  @if (raw) {
+  @if (raw()) {
     <details class="raw-output">
       <summary>Rohe Ausgabe (nvm ls)</summary>
-      <pre class="pre">{{ raw }}</pre>
+      <pre class="pre">{{ raw() }}</pre>
     </details>
   }
 
-  @if (!loading && versions.length === 0 && !raw) {
+  @if (!loading() && versions().length === 0 && !raw()) {
     <p class="text--muted">Keine installierten Versionen gefunden.</p>
   }
 </app-card>

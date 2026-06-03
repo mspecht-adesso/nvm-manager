@@ -4,8 +4,8 @@
       <span class="header__icon">&#9881;</span> nvm Manager
     </h1>
     <div class="header__right">
-      @if (activeVersion) {
-        <span class="header__active-badge">Aktiv: v{{ activeVersion.version }}</span>
+      @if (activeVersion(); as av) {
+        <span class="header__active-badge">Aktiv: v{{ av.version }}</span>
       }
       <button
         class="header__theme-toggle"

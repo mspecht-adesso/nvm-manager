@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
 import { ThemeService } from '../../../services/theme.service';
 
@@ -9,7 +9,7 @@ import { ThemeService } from '../../../services/theme.service';
   styleUrl: './app-header.component.scss',
 })
 export class AppHeaderComponent {
-  @Input() activeVersion: InstalledNodeVersion | undefined = undefined;
+  readonly activeVersion = input<InstalledNodeVersion | undefined>(undefined);
 
   readonly themeService = inject(ThemeService);
 }

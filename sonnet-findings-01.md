@@ -102,15 +102,15 @@ readonly install = output<string>();
 
 ### Betroffene Dateien (eine nach der anderen abarbeiten)
 
-- [ ] `loading-state.component.ts` — `@Input({ required: true }) message` → `input.required<string>()`
-- [ ] `action-card.component.ts` — `@Input() isLoading`, `@Input() set prefillVersion`, alle `@Output()`
-- [ ] `installed-versions-card.component.ts` — `@Input() versions`, `@Input() raw`, `@Input() loading`, `@Input() isLoading`, alle `@Output()`
-- [ ] `aliases-card.component.ts` — `@Input() set refreshTrigger`, `@Input() installedVersions`, beide `@Output()`
-- [ ] `remote-versions-card.component.ts` — `@Input() installedVersions`, `@Input() isLoading`, beide `@Output()`
-- [ ] `log-card.component.ts` — `@Input() log`
-- [ ] `app-header.component.ts` — `@Input() activeVersion`
-- [ ] `install-modal.component.ts` — `@Input() state`, `@Output() closed`
-- [ ] `status-card.component.ts` — `@Output() nvmUpdate`
+- [x] `loading-state.component.ts` — `@Input({ required: true }) message` → `input.required<string>()`
+- [x] `action-card.component.ts` — `@Input() isLoading`, `@Input() set prefillVersion`, alle `@Output()`
+- [x] `installed-versions-card.component.ts` — `@Input() versions`, `@Input() raw`, `@Input() loading`, `@Input() isLoading`, alle `@Output()`
+- [x] `aliases-card.component.ts` — `@Input() set refreshTrigger`, `@Input() installedVersions`, beide `@Output()`
+- [x] `remote-versions-card.component.ts` — `@Input() installedVersions`, `@Input() isLoading`, beide `@Output()`
+- [x] `log-card.component.ts` — `@Input() log`
+- [x] `app-header.component.ts` — `@Input() activeVersion`
+- [x] `install-modal.component.ts` — `@Input() state`, `@Output() closed`
+- [x] `status-card.component.ts` — `@Output() nvmUpdate`
 
 ### Hinweise
 
@@ -317,9 +317,9 @@ export const appConfig: ApplicationConfig = {
 | 1 | index.html fixen | XS | erledigt |
 | 2 | withFetch() | XS | erledigt |
 | 3 | SCSS _variables.scss | S | erledigt |
-| 4 | Signal Inputs/Outputs | M | offen |
+| 4 | Signal Inputs/Outputs | M | erledigt |
 | 5 | OnPush auf alle Components | M | offen |
-| 6 | OnChanges → effect() | S | offen |
+| 6 | OnChanges → effect() | S | erledigt (mit Schritt 4) |
 | 7 | NvmStateService | L | offen |
 | 8 | confirm() → Custom-Modal | M | offen |
 | 9 | Zoneless (optional) | XL | zurückgestellt |

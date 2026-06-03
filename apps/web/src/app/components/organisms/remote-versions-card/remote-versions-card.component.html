@@ -47,7 +47,7 @@
               <button
                 class="btn btn--xs btn--primary"
                 (click)="install.emit(v.version)"
-                [disabled]="isLoading"
+                [disabled]="isLoading()"
               >
                 Installieren
               </button>

@@ -10,21 +10,21 @@
         type="text"
         [(ngModel)]="versionInput"
         placeholder="z.B. 22, 22.11, lts/*, node"
-        [disabled]="isLoading"
+        [disabled]="isLoading()"
       />
       <span class="input-group__hint">Erlaubt: node, stable, lts/*, 22, 22.11, 22.11.0</span>
     </div>
     <div class="action-buttons">
-      <button class="btn btn--primary" (click)="onInstall()" [disabled]="isLoading">
-        @if (isLoading) { Bitte warten ... } @else { Installieren }
+      <button class="btn btn--primary" (click)="onInstall()" [disabled]="isLoading()">
+        @if (isLoading()) { Bitte warten ... } @else { Installieren }
       </button>
-      <button class="btn btn--secondary" (click)="onUse()" [disabled]="isLoading">
+      <button class="btn btn--secondary" (click)="onUse()" [disabled]="isLoading()">
         Verwenden
       </button>
-      <button class="btn btn--secondary" (click)="onSetDefault()" [disabled]="isLoading">
+      <button class="btn btn--secondary" (click)="onSetDefault()" [disabled]="isLoading()">
         Als Default setzen
       </button>
-      <button class="btn btn--danger" (click)="onUninstall()" [disabled]="isLoading">
+      <button class="btn btn--danger" (click)="onUninstall()" [disabled]="isLoading()">
         Deinstallieren
       </button>
     </div>

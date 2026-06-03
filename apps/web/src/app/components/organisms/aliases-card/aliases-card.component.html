@@ -25,7 +25,7 @@
             <td>
               @if (editingAlias() === alias.name) {
                 <select class="select select--inline" [(ngModel)]="editAliasTarget">
-                  @for (v of installedVersions; track v.version) {
+                  @for (v of installedVersions(); track v.version) {
                     <option [value]="v.version">{{ v.version }}</option>
                   }
                 </select>

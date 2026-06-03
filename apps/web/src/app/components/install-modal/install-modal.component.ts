@@ -1,12 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  OnChanges,
-  SimpleChanges,
-  OnDestroy,
-} from '@angular/core';
+import { Component, effect, input, output } from '@angular/core';
 import type { InstallModalState } from '../../models/nvm.models';
 
 @Component({
@@ -15,23 +7,20 @@ import type { InstallModalState } from '../../models/nvm.models';
   templateUrl: './install-modal.component.html',
   styleUrl: './install-modal.component.scss',
 })
-export class InstallModalComponent implements OnChanges, OnDestroy {
-  @Input() state: InstallModalState = null;
-  @Output() closed = new EventEmitter<void>();
+export class InstallModalComponent {
+  readonly state = input<InstallModalState>(null);
+  readonly closed = output<void>();
 
-  private autoCloseTimer?: ReturnType<typeof setTimeout>;
+  constructor() {
+    let autoCloseTimer: ReturnType<typeof setTimeout> | undefined;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['state']) {
-      clearTimeout(this.autoCloseTimer);
-      if (this.state?.phase === 'success') {
-        this.autoCloseTimer = setTimeout(() => this.closed.emit(), 3000);
+    effect((onCleanup) => {
+      clearTimeout(autoCloseTimer);
+      if (this.state()?.phase === 'success') {
+        autoCloseTimer = setTimeout(() => this.closed.emit(), 3000);
       }
-    }
-  }
-
-  ngOnDestroy(): void {
-    clearTimeout(this.autoCloseTimer);
+      onCleanup(() => clearTimeout(autoCloseTimer));
+    });
   }
 
   getErrorInstructions(action: 'install' | 'use' | 'uninstall' | 'nvm-update', message: string | undefined): string {

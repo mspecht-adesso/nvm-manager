@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, inject } from '@angular/core';
+import { Component, computed, input, output, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
@@ -15,18 +15,18 @@ import type { InstalledNodeVersion, RemoteNodeVersion, RemoteVersionsResponse, L
 export class RemoteVersionsCardComponent {
   private readonly nvmApi = inject(NvmApiService);
 
-  @Input() installedVersions: InstalledNodeVersion[] = [];
-  @Input() isLoading = false;
+  readonly installedVersions = input<InstalledNodeVersion[]>([]);
+  readonly isLoading = input(false);
 
-  @Output() install = new EventEmitter<string>();
-  @Output() logged = new EventEmitter<LogEvent>();
+  readonly install = output<string>();
+  readonly logged = output<LogEvent>();
 
   readonly remoteVersions = signal<RemoteNodeVersion[]>([]);
   readonly remoteSearch = signal('');
   readonly loading = signal(false);
 
   readonly filteredVersions = computed(() => {
-    const installedSet = new Set(this.installedVersions.map((v) => v.version));
+    const installedSet = new Set(this.installedVersions().map((v) => v.version));
     const query = this.remoteSearch().trim().toLowerCase();
     const available = this.remoteVersions().filter((v) => !installedSet.has(v.version));
     if (query) {
@@ -38,7 +38,7 @@ export class RemoteVersionsCardComponent {
   });
 
   readonly availableCount = computed(() => {
-    const installedSet = new Set(this.installedVersions.map((v) => v.version));
+    const installedSet = new Set(this.installedVersions().map((v) => v.version));
     return this.remoteVersions().filter((v) => !installedSet.has(v.version)).length;
   });
 

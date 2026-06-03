@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { CardComponent } from '../../molecules/card/card.component';
 import type { LogEntry } from '../../../models/nvm.models';
@@ -11,5 +11,5 @@ import type { LogEntry } from '../../../models/nvm.models';
   styleUrl: './log-card.component.scss',
 })
 export class LogCardComponent {
-  @Input() log: LogEntry[] = [];
+  readonly log = input<LogEntry[]>([]);
 }

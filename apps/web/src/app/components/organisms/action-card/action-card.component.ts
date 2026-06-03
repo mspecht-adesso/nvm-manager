@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, effect, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardComponent } from '../../molecules/card/card.component';
 
@@ -10,18 +10,22 @@ import { CardComponent } from '../../molecules/card/card.component';
   styleUrl: './action-card.component.scss',
 })
 export class ActionCardComponent {
-  @Input() isLoading = false;
+  readonly isLoading = input(false);
+  readonly prefillVersion = input('');
 
-  @Input() set prefillVersion(v: string) {
-    if (v) this.versionInput = v;
-  }
-
-  @Output() install = new EventEmitter<string>();
-  @Output() use = new EventEmitter<string>();
-  @Output() setDefault = new EventEmitter<string>();
-  @Output() uninstall = new EventEmitter<string>();
+  readonly install = output<string>();
+  readonly use = output<string>();
+  readonly setDefault = output<string>();
+  readonly uninstall = output<string>();
 
   versionInput = '22';
+
+  constructor() {
+    effect(() => {
+      const v = this.prefillVersion();
+      if (v) this.versionInput = v;
+    });
+  }
 
   onInstall(): void {
     const v = this.versionInput.trim();

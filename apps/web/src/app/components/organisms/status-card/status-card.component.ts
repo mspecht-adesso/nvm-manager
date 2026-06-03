@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, output, signal, computed, inject } from '@angular/core';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
@@ -14,7 +14,7 @@ import type { NvmStatus } from '../../../models/nvm.models';
 export class StatusCardComponent implements OnInit, OnDestroy {
   private readonly nvmApi = inject(NvmApiService);
 
-  @Output() nvmUpdate = new EventEmitter<string>();
+  readonly nvmUpdate = output<string>();
 
   readonly status = signal<NvmStatus | null>(null);
   readonly loading = signal(false);
