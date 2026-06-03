@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CardComponent } from './card.component';
 
 @Component({
@@ -12,6 +12,7 @@ import { CardComponent } from './card.component';
       <p>Inhalt</p>
     </app-card>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class TestHostComponent {}
 

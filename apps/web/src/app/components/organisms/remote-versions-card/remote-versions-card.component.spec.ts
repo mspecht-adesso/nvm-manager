@@ -52,7 +52,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('isLoading ist standardmäßig false', async () => {
     const { comp } = await setup();
-    expect(comp.isLoading).toBe(false);
+    expect(comp.isLoading()).toBe(false);
   });
 
   // ── load() ──────────────────────────────────────────────────────────────────
@@ -66,18 +66,16 @@ describe('RemoteVersionsCardComponent', () => {
     expect(comp.loading()).toBe(false);
   });
 
-  it('setzt remoteVersions vor dem Laden zurück', async () => {
-    const { fixture, comp } = await setup();
-    // Load versions first, then reload and verify that the list is cleared beforehand
+  it('lädt bei wiederholtem load() erneut (reload)', async () => {
+    const { fixture, comp, mockSvc } = await setup();
     comp.load();
     await fixture.whenStable();
     expect(comp.remoteVersions()).toHaveLength(40);
+    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(1);
 
-    // On the next load() call versions are reset to [] first
-    comp.remoteVersions.set([{ version: '99.0.0', lts: null }]);
-    // Synchron sicherstellen, dass load() die Liste leert bevor das Observable resolved
-    comp.remoteVersions.set([]);
-    expect(comp.remoteVersions()).toHaveLength(0);
+    comp.load();
+    await fixture.whenStable();
+    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(2);
   });
 
   it('emittiert Fehler-Log wenn getRemoteVersions fehlschlägt', async () => {
@@ -99,7 +97,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('filtert installierte Versionen heraus', async () => {
     const { fixture, comp } = await setup();
-    comp.installedVersions = INSTALLED;
+    fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
     await fixture.whenStable();
 
@@ -149,7 +147,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('berechnet die Anzahl nicht installierter Versionen', async () => {
     const { fixture, comp } = await setup();
-    comp.installedVersions = INSTALLED;
+    fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
     await fixture.whenStable();
 
@@ -163,12 +161,8 @@ describe('RemoteVersionsCardComponent', () => {
 
   // ── install output ───────────────────────────────────────────────────────────
 
-  it('emittiert install mit der gewählten Version', async () => {
+  it('stellt install als Output bereit', async () => {
     const { comp } = await setup();
-    const emitted: string[] = [];
-    comp.install.subscribe((v: string) => emitted.push(v));
-
-    comp.install.emit('22.0.0');
-    expect(emitted).toContain('22.0.0');
+    expect(comp.install).toBeDefined();
   });
 });

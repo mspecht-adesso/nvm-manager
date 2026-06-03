@@ -1,9 +1,10 @@
-import { Component, OnInit, Input, Output, EventEmitter, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, inject } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '../../../models/nvm.models';
+import type { NvmAlias, LogEvent, InstalledNodeVersion, InstallModalState } from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-aliases-card',
@@ -11,52 +12,58 @@ import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '
   imports: [FormsModule, CardComponent, LoadingStateComponent],
   templateUrl: './aliases-card.component.html',
   styleUrl: './aliases-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AliasesCardComponent implements OnInit {
+export class AliasesCardComponent {
   private readonly nvmApi = inject(NvmApiService);
 
-  @Input() set refreshTrigger(value: number) {
-    if (value > 0) this.load();
-  }
+  readonly refreshTrigger = input(0);
+  readonly installedVersions = input<InstalledNodeVersion[]>([]);
 
-  @Input() installedVersions: InstalledNodeVersion[] = [];
+  readonly logged = output<LogEvent>();
+  readonly aliasChanged = output<void>();
+  readonly modalStateChange = output<InstallModalState>();
 
-  @Output() logged = new EventEmitter<LogEvent>();
-  @Output() aliasChanged = new EventEmitter<void>();
+  // The resource reloads automatically whenever `refreshTrigger` changes.
+  private readonly aliasesResource = rxResource({
+    params: () => this.refreshTrigger(),
+    stream: () => this.nvmApi.getAliases(),
+  });
 
-  readonly aliases = signal<NvmAlias[]>([]);
-  readonly loading = signal(false);
+  readonly aliases = computed(() =>
+    this.aliasesResource.hasValue() ? (this.aliasesResource.value()?.aliases ?? []) : [],
+  );
+  readonly loading = this.aliasesResource.isLoading;
   readonly editingAlias = signal<string | null>(null);
   readonly editingLtsAlias = signal<string | null>(null);
+  readonly confirmPendingAlias = signal<string | null>(null);
 
   editAliasTarget = '';
   ltsEditVersion = '';
   newAliasName = '';
   newAliasTarget = '';
 
-  ngOnInit(): void {
-    this.load();
+  constructor() {
+    effect(() => {
+      const err = this.aliasesResource.error();
+      if (err) {
+        this.logged.emit({
+          message: 'Fehler beim Laden der Aliases: ' + (err as Error).message,
+          type: 'error',
+        });
+      }
+    });
   }
 
   load(): void {
-    this.loading.set(true);
-    this.nvmApi.getAliases().subscribe({
-      next: (res: AliasesResponse) => {
-        this.aliases.set(res.aliases);
-        this.loading.set(false);
-      },
-      error: (err: Error) => {
-        this.logged.emit({ message: 'Fehler beim Laden der Aliases: ' + err.message, type: 'error' });
-        this.loading.set(false);
-      },
-    });
+    this.aliasesResource.reload();
   }
 
   startEdit(alias: NvmAlias): void {
     this.editingAlias.set(alias.name);
     const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
-    const hasMatch = this.installedVersions.some((v) => v.version === resolvedWithoutV);
-    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions[0]?.version ?? '');
+    const hasMatch = this.installedVersions().some((v) => v.version === resolvedWithoutV);
+    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions()[0]?.version ?? '');
   }
 
   cancelEdit(): void {
@@ -67,6 +74,11 @@ export class AliasesCardComponent implements OnInit {
   saveAlias(name: string): void {
     const target = this.editAliasTarget.trim();
     if (!target) return;
+    // Beim Default-Alias erhält der Nutzer zusätzlich ein Modal mit dem Fortschritt.
+    const withModal = name === 'default';
+    if (withModal) {
+      this.modalStateChange.emit({ action: 'default', phase: 'running', version: target });
+    }
     this.nvmApi.setAlias(name, target).subscribe({
       next: () => {
         this.logged.emit({ message: `Alias '${name}' → '${target}' gesetzt.`, type: 'success' });
@@ -74,9 +86,15 @@ export class AliasesCardComponent implements OnInit {
         this.editAliasTarget = '';
         this.load();
         this.aliasChanged.emit();
+        if (withModal) {
+          this.modalStateChange.emit({ action: 'default', phase: 'success', version: target });
+        }
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Setzen des Alias '${name}': ${err.message}`, type: 'error' });
+        if (withModal) {
+          this.modalStateChange.emit({ action: 'default', phase: 'error', version: target, errorMessage: err.message });
+        }
       },
     });
   }
@@ -87,12 +105,12 @@ export class AliasesCardComponent implements OnInit {
    * For lts/* (wildcard) or unknown targets all installed versions are returned.
    */
   ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
-    if (alias.name === 'lts/*') return this.installedVersions;
+    if (alias.name === 'lts/*') return this.installedVersions();
     const majorMatch = /^v?(\d+)\./.exec(alias.target);
-    if (!majorMatch) return this.installedVersions;
+    if (!majorMatch) return this.installedVersions();
     const major = majorMatch[1];
-    const filtered = this.installedVersions.filter((v) => v.version.startsWith(`${major}.`));
-    return filtered.length > 0 ? filtered : this.installedVersions;
+    const filtered = this.installedVersions().filter((v) => v.version.startsWith(`${major}.`));
+    return filtered.length > 0 ? filtered : this.installedVersions();
   }
 
   startLtsEdit(alias: NvmAlias): void {
@@ -171,7 +189,13 @@ export class AliasesCardComponent implements OnInit {
   }
 
   deleteAlias(name: string): void {
-    if (!confirm(`Alias '${name}' wirklich löschen?`)) return;
+    this.confirmPendingAlias.set(name);
+  }
+
+  confirmDelete(): void {
+    const name = this.confirmPendingAlias();
+    if (!name) return;
+    this.confirmPendingAlias.set(null);
 
     const request$ = name.startsWith('lts/')
       ? this.nvmApi.deleteLtsAlias(name.slice('lts/'.length))
@@ -187,5 +211,9 @@ export class AliasesCardComponent implements OnInit {
         this.logged.emit({ message: `Fehler beim Löschen des Alias '${name}': ${err.message}`, type: 'error' });
       },
     });
+  }
+
+  cancelDelete(): void {
+    this.confirmPendingAlias.set(null);
   }
 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
-import { runNvm, runNvmLsFast, spawnNvm, setLtsAliasFile, deleteLtsAliasFile } from '../nvm/nvm.service.js';
+import { runNvm, runNvmLsFast, spawnNvm, setLtsAliasFile, deleteLtsAliasFile, setActiveVersionOverride } from '../nvm/nvm.service.js';
 import { parseAliases, parseRemoteVersions } from '../nvm/nvm.parser.js';
 import { isValidVersionInput, isValidAliasName, isValidAliasTarget, isValidLtsCodename } from '../nvm/nvm.types.js';
 
@@ -46,9 +46,13 @@ const useHandler: RequestHandler = async (req, res, next) => {
       res.status(400).json({ error: `Ungültige Version: ${String(version)}` });
       return;
     }
-    // Persistenter Wechsel: nvm alias default setzt die Version dauerhaft in ~/.nvm/alias/default.
-    // Dadurch zeigt GET /installed nach dem Wechsel korrekt die neue aktive Version an.
-    const result = await runNvm(['alias', 'default', version]);
+    // "Verwenden" setzt die Version nur aktiv, NICHT als Default.
+    // nvm use validiert die Version und liefert "Now using node ...".
+    // Da nvm use prozessgebunden ist, merken wir die aktive Version zusätzlich
+    // als Override, damit GET /installed (und damit der Header) sie als aktiv
+    // markiert. Der default-Alias bleibt unverändert.
+    const result = await runNvm(['use', version]);
+    setActiveVersionOverride(version);
     res.json(result);
   } catch (err) {
     next(err);

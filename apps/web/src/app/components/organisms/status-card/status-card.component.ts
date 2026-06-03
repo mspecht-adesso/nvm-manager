@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, output, signal, computed, inject } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { NvmStatus } from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-status-card',
@@ -10,14 +10,26 @@ import type { NvmStatus } from '../../../models/nvm.models';
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './status-card.component.html',
   styleUrl: './status-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatusCardComponent implements OnInit, OnDestroy {
+export class StatusCardComponent implements OnDestroy {
   private readonly nvmApi = inject(NvmApiService);
 
-  @Output() nvmUpdate = new EventEmitter<string>();
+  readonly nvmUpdate = output<string>();
 
-  readonly status = signal<NvmStatus | null>(null);
-  readonly loading = signal(false);
+  private readonly statusResource = rxResource({
+    stream: () => this.nvmApi.getStatus(),
+  });
+
+  readonly status = computed(() =>
+    this.statusResource.hasValue() ? this.statusResource.value() : undefined,
+  );
+  readonly loading = this.statusResource.isLoading;
+  readonly statusError = computed(() => {
+    const err = this.statusResource.error();
+    return err ? (err as Error).message : null;
+  });
+
   readonly openingDir = signal(false);
   readonly openDirError = signal<string | null>(null);
 
@@ -29,26 +41,12 @@ export class StatusCardComponent implements OnInit, OnDestroy {
     return s.nvmVersion !== s.nvmLatestVersion;
   });
 
-  ngOnInit(): void {
-    this.load();
-  }
-
   ngOnDestroy(): void {
     clearTimeout(this.openDirErrorTimer);
   }
 
   load(): void {
-    this.loading.set(true);
-    this.nvmApi.getStatus().subscribe({
-      next: (s) => {
-        this.status.set(s);
-        this.loading.set(false);
-      },
-      error: (err: Error) => {
-        this.status.set({ ok: false, error: err.message });
-        this.loading.set(false);
-      },
-    });
+    this.statusResource.reload();
   }
 
   onNvmUpdate(): void {

@@ -17,8 +17,8 @@ describe('LoadingStateComponent', () => {
   });
 
   it('zeigt die übergebene Nachricht an', async () => {
-    const { fixture, comp } = await setup();
-    comp.message = 'Lade Daten ...';
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('message', 'Lade Daten ...');
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -26,8 +26,8 @@ describe('LoadingStateComponent', () => {
   });
 
   it('rendert den .loading-state Wrapper', async () => {
-    const { fixture, comp } = await setup();
-    comp.message = 'Test';
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('message', 'Test');
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;

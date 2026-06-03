@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { InstallModalComponent } from './install-modal.component';
 import type { InstallModalState } from '../../models/nvm.models';
-import { SimpleChange } from '@angular/core';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const flushEffects = () => (TestBed as any).flushEffects?.();
 
 describe('InstallModalComponent', () => {
   async function setup() {
@@ -20,7 +22,7 @@ describe('InstallModalComponent', () => {
 
   it('hat state: null als Default', async () => {
     const { comp } = await setup();
-    expect(comp.state).toBeNull();
+    expect(comp.state()).toBeNull();
   });
 
   describe('close()', () => {
@@ -33,17 +35,72 @@ describe('InstallModalComponent', () => {
     });
   });
 
-  describe('ngOnChanges – Auto-Close bei success', () => {
+  describe('Accessibility / Escape', () => {
+    it('hat role="dialog" und aria-modal im Fehler-Zustand', async () => {
+      const { fixture } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+
+      const dialog = (fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]');
+      expect(dialog).toBeTruthy();
+      expect(dialog?.getAttribute('aria-modal')).toBe('true');
+      expect(dialog?.getAttribute('aria-labelledby')).toBe('modal-title');
+    });
+
+    it('schließt bei Escape im Fehler-Zustand', async () => {
+      const { fixture, comp } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+
+      expect(closed).toBe(true);
+    });
+
+    it('schließt NICHT bei Escape während running', async () => {
+      const { fixture, comp } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'running', version: '22' });
+      fixture.detectChanges();
+
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+
+      expect(closed).toBe(false);
+    });
+
+    it('schließt NICHT bei Escape wenn kein Modal offen ist', async () => {
+      const { comp } = await setup();
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+      expect(closed).toBe(false);
+    });
+
+    it('fokussiert den Schließen-Button im Fehler-Zustand', async () => {
+      const { fixture } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const btn = (fixture.nativeElement as HTMLElement).querySelector('.modal__close-btn');
+      expect(document.activeElement).toBe(btn);
+    });
+  });
+
+  describe('Auto-Close bei phase: success', () => {
     it('startet Auto-Close-Timer bei phase: success', async () => {
       vi.useFakeTimers();
-      const { comp } = await setup();
+      const { fixture, comp } = await setup();
 
       let closed = false;
       comp.closed.subscribe(() => (closed = true));
 
       const state: InstallModalState = { action: 'install', phase: 'success', version: '22' };
-      comp.state = state;
-      comp.ngOnChanges({ state: new SimpleChange(null, state, false) });
+      fixture.componentRef.setInput('state', state);
+      flushEffects();
 
       expect(closed).toBe(false);
       vi.advanceTimersByTime(3000);
@@ -54,13 +111,13 @@ describe('InstallModalComponent', () => {
 
     it('startet keinen Timer bei phase: running', async () => {
       vi.useFakeTimers();
-      const { comp } = await setup();
+      const { fixture, comp } = await setup();
       let closed = false;
       comp.closed.subscribe(() => (closed = true));
 
       const state: InstallModalState = { action: 'install', phase: 'running', version: '22' };
-      comp.state = state;
-      comp.ngOnChanges({ state: new SimpleChange(null, state, false) });
+      fixture.componentRef.setInput('state', state);
+      flushEffects();
 
       vi.advanceTimersByTime(5000);
       expect(closed).toBe(false);
@@ -70,17 +127,17 @@ describe('InstallModalComponent', () => {
 
     it('löscht vorherigen Timer bei erneutem State-Wechsel', async () => {
       vi.useFakeTimers();
-      const { comp } = await setup();
+      const { fixture, comp } = await setup();
       let closeCount = 0;
       comp.closed.subscribe(() => closeCount++);
 
       const successState: InstallModalState = { action: 'install', phase: 'success', version: '22' };
-      comp.state = successState;
-      comp.ngOnChanges({ state: new SimpleChange(null, successState, false) });
+      fixture.componentRef.setInput('state', successState);
+      flushEffects();
 
       const errorState: InstallModalState = { action: 'install', phase: 'error', version: '22' };
-      comp.state = errorState;
-      comp.ngOnChanges({ state: new SimpleChange(successState, errorState, false) });
+      fixture.componentRef.setInput('state', errorState);
+      flushEffects();
 
       vi.advanceTimersByTime(5000);
       expect(closeCount).toBe(0);

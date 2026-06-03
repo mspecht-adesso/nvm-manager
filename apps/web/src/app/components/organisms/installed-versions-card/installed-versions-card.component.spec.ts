@@ -24,37 +24,34 @@ describe('InstalledVersionsCardComponent', () => {
 
   it('hat leere Versions-Liste als Default', async () => {
     const { comp } = await setup();
-    expect(comp.versions).toEqual([]);
+    expect(comp.versions()).toEqual([]);
   });
 
   it('nimmt Versions-Liste als Input entgegen', async () => {
     const { fixture, comp } = await setup();
-    comp.versions = VERSIONS;
+    fixture.componentRef.setInput('versions', VERSIONS);
     fixture.detectChanges();
-    expect(comp.versions).toHaveLength(2);
+    expect(comp.versions()).toHaveLength(2);
   });
 
-  it('emittiert useVersion wenn aufgerufen', async () => {
-    const { fixture, comp } = await setup();
-    const emitted: string[] = [];
-    comp.useVersion.subscribe((v: string) => emitted.push(v));
-
-    comp.useVersion.emit('20.5.0');
-    expect(emitted).toContain('20.5.0');
-  });
-
-  it('emittiert refresh wenn aufgerufen', async () => {
-    const { fixture, comp } = await setup();
-    let refreshed = false;
-    comp.refresh.subscribe(() => (refreshed = true));
-
-    comp.refresh.emit();
-    expect(refreshed).toBe(true);
-  });
-
-  it('setzt loading auf false als Default', async () => {
+  it('hat loading und isLoading false als Default', async () => {
     const { comp } = await setup();
-    expect(comp.loading).toBe(false);
-    expect(comp.isLoading).toBe(false);
+    expect(comp.loading()).toBe(false);
+    expect(comp.isLoading()).toBe(false);
+  });
+
+  it('stellt useVersion als Output bereit', async () => {
+    const { comp } = await setup();
+    expect(comp.useVersion).toBeDefined();
+  });
+
+  it('stellt refresh als Output bereit', async () => {
+    const { comp } = await setup();
+    expect(comp.refresh).toBeDefined();
+  });
+
+  it('stellt uninstallVersion als Output bereit', async () => {
+    const { comp } = await setup();
+    expect(comp.uninstallVersion).toBeDefined();
   });
 });

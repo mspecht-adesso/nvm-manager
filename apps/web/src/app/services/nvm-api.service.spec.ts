@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { NvmApiService } from './nvm-api.service';
+import { httpErrorInterceptor } from '../core/http-error.interceptor';
 import { firstValueFrom } from 'rxjs';
 
 describe('NvmApiService', () => {
@@ -11,7 +12,10 @@ describe('NvmApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(NvmApiService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -138,7 +142,7 @@ describe('NvmApiService', () => {
     });
   });
 
-  describe('handleError', () => {
+  describe('Fehlerbehandlung (httpErrorInterceptor)', () => {
     it('extrahiert error-Eigenschaft aus der Fehlerantwort', async () => {
       const promise = firstValueFrom(service.getStatus());
       httpMock.expectOne('/api/status').flush(

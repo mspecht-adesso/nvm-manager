@@ -1,7 +1,4 @@
-$spacing-xs: 0.25rem;
-$spacing-sm: 0.5rem;
-$spacing-md: 1rem;
-$spacing-xl: 2rem;
+@use '../../../../styles/variables' as *;
 
 .header {
   background: var(--color-primary);

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
@@ -8,14 +8,16 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
   standalone: true,
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './installed-versions-card.component.html',
+  styleUrl: './installed-versions-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InstalledVersionsCardComponent {
-  @Input() versions: InstalledNodeVersion[] = [];
-  @Input() raw = '';
-  @Input() loading = false;
-  @Input() isLoading = false;
+  readonly versions = input<InstalledNodeVersion[]>([]);
+  readonly raw = input('');
+  readonly loading = input(false);
+  readonly isLoading = input(false);
 
-  @Output() useVersion = new EventEmitter<string>();
-  @Output() uninstallVersion = new EventEmitter<string>();
-  @Output() refresh = new EventEmitter<void>();
+  readonly useVersion = output<string>();
+  readonly uninstallVersion = output<string>();
+  readonly refresh = output<void>();
 }

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { CardComponent } from '../../molecules/card/card.component';
 import type { LogEntry } from '../../../models/nvm.models';
@@ -9,7 +9,8 @@ import type { LogEntry } from '../../../models/nvm.models';
   imports: [DatePipe, CardComponent],
   templateUrl: './log-card.component.html',
   styleUrl: './log-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LogCardComponent {
-  @Input() log: LogEntry[] = [];
+  readonly log = input<LogEntry[]>([]);
 }
