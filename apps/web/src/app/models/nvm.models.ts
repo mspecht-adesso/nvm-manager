@@ -24,6 +24,9 @@ export type InstalledNodeVersion = {
   active: boolean;
   default: boolean;
   system: boolean;
+  stable: boolean;
+  unstable: boolean;
+  iojs: boolean;
 };
 
 export type InstalledVersionsResponse = NvmCommandResult & {
@@ -43,7 +46,7 @@ export type AliasesResponse = NvmCommandResult & {
 };
 
 export type InstallModalState = {
-  action: 'install' | 'use';
+  action: 'install' | 'use' | 'uninstall';
   phase: 'running' | 'success' | 'error';
   version: string;
   errorMessage?: string;

@@ -121,12 +121,14 @@ Die Tabelle zeigt:
 
 | Version | Status | Aktion |
 |---------|--------|--------|
-| v22.11.0 (Aktiv, Default) | In Verwendung | Verwenden |
-| v20.5.0 | Installiert | Verwenden |
+| v22.11.0 (Aktiv, Default) | In Verwendung | Verwenden · ~~Deinstallieren~~ |
+| v20.5.0 (stable) | Installiert | Verwenden · Deinstallieren |
 
 - **Aktiv**: Die aktuell in Verwendung befindliche Version
 - **Default**: Wird in neuen Terminal-Fenstern automatisch genutzt
+- **stable / unstable / iojs**: Zeigt, welchem Alias diese Version zugeordnet ist
 - **Verwenden**: Aktiviert die jeweilige Version direkt aus der Tabelle
+- **Deinstallieren**: Entfernt die Version permanent (deaktiviert für die aktive Version)
 
 Unter der Tabelle wird zusätzlich die rohe nvm-Ausgabe als aufklappbares Element angezeigt.
 
@@ -189,11 +191,24 @@ Die Default-Version wird automatisch in neuen Terminal-Fenstern verwendet.
 
 ### Version deinstallieren
 
+**Über das Aktionsfeld:**
+
 1. Zu deinstallierende Version eingeben.
 2. **Deinstallieren** klicken.
-3. **Sicherheitsabfrage bestätigen** – ohne Bestätigung wird nichts gelöscht.
 
-> Die aktive Version kann nicht deinstalliert werden. Setzen Sie vorher eine andere Version aktiv.
+**Direkt aus der Versions-Tabelle:**
+
+Klicken Sie in der Zeile der gewünschten Version auf den roten **Deinstallieren**-Button.
+
+In beiden Fällen öffnet sich ein **Fortschritts-Modal**:
+
+| Phase | Anzeige |
+|-------|---------|
+| laufend | Spinner + „Deinstallation läuft" |
+| Erfolg | Grünes Häkchen + „Deinstallation erfolgreich" (automatisch geschlossen nach 3 s) |
+| Fehler | Rotes X + Fehlermeldung + kontextbezogener Hinweis + aufklappbare technische Details |
+
+> Die **aktive** Version kann nicht deinstalliert werden – der Button ist deaktiviert. Setzen Sie vorher eine andere Version aktiv.
 
 ---
 

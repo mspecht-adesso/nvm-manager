@@ -10,6 +10,74 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.4.0] – 2026-06-03
+
+### Hinzugefügt
+
+- **„Deinstallieren"-Button in der Versions-Liste** – jede Zeile der Card „Installierte Versionen" enthält jetzt einen roten „Deinstallieren"-Button direkt neben „Verwenden"
+  - Deaktiviert für die aktuell **aktive** Version (Tooltip erklärt den Grund)
+  - Deaktiviert für System-Node (`v.system`)
+  - Deaktiviert während einer laufenden Aktion (`isLoading`)
+  - Bestätigungsdialog vor der Ausführung (`confirm()`)
+  - Nach erfolgreicher Deinstallation wird die Versions-Liste automatisch aktualisiert
+  - Fehler werden im Log-Panel angezeigt
+
+### Geändert
+
+- `InstalledVersionsCardComponent` – neuer `@Output() uninstallVersion: EventEmitter<string>`; Aktions-Spalte nutzt jetzt `.td-actions` (Flexbox mit `gap`) für einheitlichen Button-Abstand
+- `app.html` – `(uninstallVersion)="onUninstall($event)"` verbindet den neuen Output mit der bereits vorhandenen `onUninstall()`-Methode der Root-Komponente
+
+---
+
+## [0.3.0] – 2026-06-03
+
+### Hinzugefügt
+
+- **LTS-Alias-Verwaltung** – Vollständiges CRUD für `lts/`-Aliases über einen dedizierten Backend-Endpunkt, da `nvm alias lts/<codename>` von nvm selbst nicht unterstützt wird:
+  - `POST /api/versions/aliases/lts` – schreibt Alias-Datei direkt in `~/.nvm/alias/lts/<codename>`
+  - `DELETE /api/versions/aliases/lts/:codename` – löscht die Alias-Datei direkt
+  - `isValidLtsCodename` als neuer Whitelist-Validator in `nvm.types.ts`
+  - `setLtsAliasFile()` und `deleteLtsAliasFile()` als neue Service-Funktionen in `nvm.service.ts`
+
+- **`POST /api/versions/stable`** – neuer Endpunkt zum Setzen des `stable`-Alias auf eine beliebige Version oder LTS-Linie
+
+- **LTS-Alias-Buttons im Frontend** – für jeden `lts/*`-Eintrag in der Aliases-Card:
+  - **Bearbeiten** öffnet Dropdown mit nur den kompatiblen Major-Versionen (z.B. nur 22.x für `lts/krypton`)
+  - **Default** setzt `nvm alias default lts/<codename>`
+  - **Stable** setzt `nvm alias stable lts/<codename>`
+  - **Löschen** entfernt den LTS-Alias dauerhaft
+
+- **Dropdown-Editierung für alle Aliases** – statt freiem Texteingabefeld wählt man beim Bearbeiten aus einem Dropdown der installierten Versionen (vorselektiert auf die aktuell aufgelöste Version)
+
+- **Alias-Badges in der Versions-Liste** – die Karte „Installierte Versionen" zeigt jetzt Badges für `stable`, `unstable` und `iojs`, sofern der jeweilige nvm-Alias auf diese Version zeigt
+
+- **Automatischer Refresh nach Alias-Änderungen** – `AliasesCardComponent` emittiert `@Output() aliasChanged` nach jeder erfolgreichen Mutation; die Root-Komponente reagiert mit `loadInstalledVersions()`, sodass Badges und Default-Markierung immer aktuell sind
+
+### Geändert
+
+- **`GET /api/versions/installed` 100× schneller** – `runNvmLs()` durch `runNvmLsFast()` ersetzt: liest installierte Versionen und Alias-Informationen direkt aus dem Dateisystem (`~/.nvm/versions/node/`, `~/.nvm/alias/`), ohne eine Shell zu starten (vorher ~20 s, jetzt < 10 ms)
+
+- **`bash -lc` → `bash -c`** – Login-Shell-Flag entfernt; alle benötigten Variablen (`NVM_DIR`, `HOME`) werden im `NVM_HEADER` manuell gesetzt, was bei Systemen mit langen `.bash_profile`-Ladezeiten erhebliche Zeitersparnisse bringt
+
+- **Alias-Schutzlogik überarbeitet**:
+  - `editable: false` gilt jetzt *nur* für `lts/`-Aliases (Bearbeitung über dedizierten Endpunkt)
+  - `deletable: false` gilt für `default`, `node`, `stable`, `unstable`, `iojs` – Backend blockiert Löschanfragen serverseitig mit HTTP 400
+  - Alle anderen Aliases (inkl. `node`, `stable`, `unstable`, `default`) sind über den generischen `setAlias`-Endpunkt editierbar
+
+- **`InstalledNodeVersion`-Typ** um Felder `stable`, `unstable`, `iojs` (boolean) erweitert
+
+- **`POST /api/versions/default`** akzeptiert jetzt auch LTS-Codenames als Ziel (z.B. `lts/iron`)
+
+- **`AliasesCardComponent`** empfängt `installedVersions` als `@Input()` von der Root-Komponente (für Dropdown-Population)
+
+### Tests
+
+- `nvm.service.spec.ts` – `runNvmLs`-Tests durch `runNvmLsFast`-Tests ersetzt; mockt `node:fs/promises` statt `child_process`; `-lc` → `-c` in allen Assertions
+- `nvm.parser.spec.ts` – Assertions für `editable`/`deletable` an neue Schutzlogik angepasst
+- `nvm.routes.spec.ts` – `runNvmLsFast`-Mock mit neuen Typ-Feldern; `schreibgeschützt`-Test durch `lts/-Alias über generischen Endpunkt`-Test ersetzt
+
+---
+
 ## [0.2.2] – 2026-06-02
 
 ### Hinzugefügt
@@ -158,7 +226,9 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.1.0...v0.2.0

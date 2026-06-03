@@ -20,6 +20,7 @@
     [loading]="installedLoading()"
     [isLoading]="isLoading()"
     (useVersion)="onUseFromList($event)"
+    (uninstallVersion)="onUninstall($event)"
     (refresh)="loadInstalledVersions()"
   />
 

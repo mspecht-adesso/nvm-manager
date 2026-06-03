@@ -12,6 +12,12 @@
             Node <code class="ver">v{{ state.version }}</code> wird installiert.<br>
             Dies kann einige Minuten dauern – bitte warten.
           </p>
+        } @else if (state.action === 'uninstall') {
+          <h2 class="modal__title">Deinstallation läuft</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> wird deinstalliert.<br>
+            Bitte warten …
+          </p>
         } @else {
           <h2 class="modal__title">Version wird aktiviert</h2>
           <p class="modal__body">
@@ -30,6 +36,11 @@
           <p class="modal__body">
             Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich installiert.
           </p>
+        } @else if (state.action === 'uninstall') {
+          <h2 class="modal__title">Deinstallation erfolgreich</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich deinstalliert.
+          </p>
         } @else {
           <h2 class="modal__title">Version aktiviert</h2>
           <p class="modal__body">
@@ -47,6 +58,11 @@
           <h2 class="modal__title">Installation fehlgeschlagen</h2>
           <p class="modal__body">
             Node <code class="ver">v{{ state.version }}</code> konnte nicht installiert werden.
+          </p>
+        } @else if (state.action === 'uninstall') {
+          <h2 class="modal__title">Deinstallation fehlgeschlagen</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ state.version }}</code> konnte nicht deinstalliert werden.
           </p>
         } @else {
           <h2 class="modal__title">Aktivierung fehlgeschlagen</h2>

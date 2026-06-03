@@ -16,5 +16,6 @@ export class InstalledVersionsCardComponent {
   @Input() isLoading = false;
 
   @Output() useVersion = new EventEmitter<string>();
+  @Output() uninstallVersion = new EventEmitter<string>();
   @Output() refresh = new EventEmitter<void>();
 }

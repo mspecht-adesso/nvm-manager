@@ -119,15 +119,18 @@ describe('parseAliases', () => {
     });
   });
 
-  it('setzt editable/deletable korrekt für eingebaute Aliases', () => {
+  it('setzt editable/deletable korrekt für geschützte Kern-Aliases', () => {
     const stdout = [
       'node -> stable (-> v22.20.0)',
       'stable -> v22.20.0 (default)',
       'unstable -> v0.11.6 (-> N/A)',
+      'default -> lts/* (-> v22.20.0)',
+      'iojs -> v0.11.6',
     ].join('\n');
     const result = parseAliases(stdout);
     result.forEach((a) => {
-      expect(a.editable).toBe(false);
+      // Kern-Aliases sind editierbar, aber NICHT löschbar
+      expect(a.editable).toBe(true);
       expect(a.deletable).toBe(false);
     });
   });
@@ -135,8 +138,9 @@ describe('parseAliases', () => {
   it('setzt editable/deletable korrekt für lts-Aliases', () => {
     const stdout = 'lts/iron -> v20.19.1 (-> N/A)';
     const result = parseAliases(stdout);
+    // LTS-Aliases nutzen eigenen Endpunkt → editable: false; aber löschbar
     expect(result[0].editable).toBe(false);
-    expect(result[0].deletable).toBe(false);
+    expect(result[0].deletable).toBe(true);
   });
 
   it('parst benutzerdefinierten Alias korrekt', () => {

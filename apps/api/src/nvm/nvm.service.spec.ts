@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NvmError } from './nvm.types.js';
 
 vi.mock('node:child_process');
+vi.mock('node:fs/promises');
 
 import * as childProcess from 'node:child_process';
-import { runNvm, runNvmLs, spawnNvm } from './nvm.service.js';
+import * as fs from 'node:fs/promises';
+import { runNvm, runNvmLsFast, spawnNvm } from './nvm.service.js';
 
 // ── runNvm ────────────────────────────────────────────────────────────────────
 
@@ -57,7 +59,7 @@ describe('runNvm', () => {
     await runNvm(['install', '22']);
     const [cmd, args] = execFileMock.mock.calls[0] as [string, string[]];
     expect(cmd).toBe('bash');
-    expect(args[0]).toBe('-lc');
+    expect(args[0]).toBe('-c');
     expect(args[1]).toContain("nvm 'install' '22'");
   });
 
@@ -75,47 +77,34 @@ describe('runNvm', () => {
   });
 });
 
-// ── runNvmLs ──────────────────────────────────────────────────────────────────
+// ── runNvmLsFast ──────────────────────────────────────────────────────────────
 
-describe('runNvmLs', () => {
+describe('runNvmLsFast', () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it('gibt stdout und stderr bei Erfolg zurück', async () => {
-    vi.mocked(childProcess.execFile).mockImplementation(
-      (_cmd, _args, _opts, callback) => {
-        (callback as (err: null, stdout: string, stderr: string) => void)(
-          null,
-          '->     v22.11.0 (default)',
-          '',
-        );
-        return {} as ReturnType<typeof childProcess.execFile>;
-      },
-    );
+  it('gibt installierte Versionen aus dem Dateisystem zurück', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue(['v20.5.0', 'v22.11.0'] as never);
+    vi.mocked(fs.readFile).mockResolvedValue('v22.11.0\n' as never);
 
-    const result = await runNvmLs();
-    expect(result.stdout).toContain('v22.11.0');
+    const result = await runNvmLsFast();
+    expect(result.versions.length).toBeGreaterThan(0);
+    expect(result.versions.some((v) => v.version === '22.11.0')).toBe(true);
+    expect(result.stdout).toBe('');
   });
 
-  it('wirft NvmError bei Fehler', async () => {
-    vi.mocked(childProcess.execFile).mockImplementation(
-      (_cmd, _args, _opts, callback) => {
-        (callback as (err: Error, stdout: string, stderr: string) => void)(
-          new Error('exec failed'),
-          '',
-          '',
-        );
-        return {} as ReturnType<typeof childProcess.execFile>;
-      },
-    );
+  it('gibt leere Versions-Liste zurück wenn Verzeichnis fehlt', async () => {
+    vi.mocked(fs.readdir).mockRejectedValue(new Error('ENOENT'));
+    vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
 
-    await expect(runNvmLs()).rejects.toThrow(NvmError);
+    const result = await runNvmLsFast();
+    expect(result.versions).toHaveLength(0);
   });
 });
 
 // ── spawnNvm ──────────────────────────────────────────────────────────────────
 
 describe('spawnNvm', () => {
-  it('ruft spawn mit bash und -lc auf', () => {
+  it('ruft spawn mit bash und -c auf', () => {
     const fakeChild = { stdout: null, stderr: null, on: vi.fn() };
     const spawnMock = vi.mocked(childProcess.spawn).mockReturnValue(
       fakeChild as unknown as ReturnType<typeof childProcess.spawn>,
@@ -124,7 +113,7 @@ describe('spawnNvm', () => {
     spawnNvm(['install', '22']);
     const [cmd, args] = spawnMock.mock.calls[0] as [string, string[]];
     expect(cmd).toBe('bash');
-    expect(args[0]).toBe('-lc');
+    expect(args[0]).toBe('-c');
     expect(args[1]).toContain("nvm 'install' '22'");
   });
 });

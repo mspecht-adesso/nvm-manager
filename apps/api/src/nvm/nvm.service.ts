@@ -119,8 +119,20 @@ export async function runNvmLsFast(): Promise<InstalledVersionsResponse> {
     versionDirs = [];
   }
 
-  const defaultAlias = await readAliasFile('default');
-  const defaultVersion = defaultAlias ? await resolveAlias(defaultAlias) : null;
+  // Alle relevanten Aliases parallel auflösen
+  const [defaultAlias, stableAlias, unstableAlias, iojsAlias] = await Promise.all([
+    readAliasFile('default'),
+    readAliasFile('stable'),
+    readAliasFile('unstable'),
+    readAliasFile('iojs'),
+  ]);
+
+  const [defaultVersion, stableVersion, unstableVersion, iojsVersion] = await Promise.all([
+    defaultAlias ? resolveAlias(defaultAlias) : null,
+    stableAlias ? resolveAlias(stableAlias) : null,
+    unstableAlias ? resolveAlias(unstableAlias) : null,
+    iojsAlias ? resolveAlias(iojsAlias) : null,
+  ]);
 
   // Aktive Version: aus PATH des laufenden Node.js-Prozesses ermitteln
   const pathEnv = process.env['PATH'] ?? '';
@@ -131,6 +143,9 @@ export async function runNvmLsFast(): Promise<InstalledVersionsResponse> {
     version: dir.slice(1),
     active: dir === activeVersion,
     default: dir === defaultVersion,
+    stable: stableVersion !== null && dir === stableVersion,
+    unstable: unstableVersion !== null && dir === unstableVersion,
+    iojs: iojsVersion !== null && dir === iojsVersion,
     system: false,
   }));
 

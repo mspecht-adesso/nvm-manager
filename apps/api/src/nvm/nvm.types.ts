@@ -3,6 +3,12 @@ export type InstalledNodeVersion = {
   active: boolean;
   default: boolean;
   system: boolean;
+  /** true wenn der "stable"-Alias auf diese Version zeigt. */
+  stable: boolean;
+  /** true wenn der "unstable"-Alias auf diese Version zeigt. */
+  unstable: boolean;
+  /** true wenn der "iojs"-Alias auf diese Version zeigt. */
+  iojs: boolean;
 };
 
 export type InstalledVersionsResponse = {

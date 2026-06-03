@@ -45,20 +45,24 @@ describe('GET /api/status', () => {
 
 describe('GET /api/versions/installed', () => {
   it('gibt 200 mit installierten Versionen zurück', async () => {
-    vi.mocked(svc.runNvmLs).mockResolvedValue({ stdout: INSTALLED_STDOUT, stderr: '' });
-    vi.mocked(parser.parseInstalledVersions).mockReturnValue([
-      { version: '22.11.0', active: true, default: true, system: false },
-      { version: '20.5.0', active: false, default: false, system: false },
-    ]);
+    vi.mocked(svc.runNvmLsFast).mockResolvedValue({
+      stdout: '',
+      stderr: '',
+      versions: [
+        { version: '22.11.0', active: true, default: true, system: false, stable: true, unstable: false, iojs: false },
+        { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
+      ],
+    });
 
     const res = await request(app).get('/api/versions/installed');
     expect(res.status).toBe(200);
     expect(res.body.versions).toHaveLength(2);
     expect(res.body.versions[0].active).toBe(true);
+    expect(res.body.versions[0].stable).toBe(true);
   });
 
-  it('gibt 500 zurück wenn nvm fehlschlägt', async () => {
-    vi.mocked(svc.runNvmLs).mockRejectedValue(new NvmError('exec failed', '', 'stderr'));
+  it('gibt 500 zurück wenn runNvmLsFast fehlschlägt', async () => {
+    vi.mocked(svc.runNvmLsFast).mockRejectedValue(new NvmError('exec failed', '', 'stderr'));
 
     const res = await request(app).get('/api/versions/installed');
     expect(res.status).toBe(500);
@@ -194,12 +198,11 @@ describe('POST /api/versions/aliases', () => {
     expect(res.status).toBe(400);
   });
 
-  it('gibt 400 bei schreibgeschütztem Alias zurück', async () => {
+  it('gibt 400 wenn lts/-Alias über den generischen Endpunkt gesetzt wird', async () => {
     const res = await request(app)
       .post('/api/versions/aliases')
-      .send({ name: 'node', target: '22' });
+      .send({ name: 'lts/iron', target: '22' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('schreibgeschützt');
   });
 
   it('gibt 400 bei lts/-Alias zurück', async () => {

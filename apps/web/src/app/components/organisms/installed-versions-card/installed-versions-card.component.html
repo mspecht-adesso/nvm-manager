@@ -22,19 +22,30 @@
               <code>v{{ v.version }}</code>
               @if (v.active) { <span class="badge badge--active">Aktiv</span> }
               @if (v.default) { <span class="badge badge--default">Default</span> }
+              @if (v.stable) { <span class="badge badge--alias">stable</span> }
+              @if (v.unstable) { <span class="badge badge--alias">unstable</span> }
+              @if (v.iojs) { <span class="badge badge--alias">iojs</span> }
             </td>
             <td>
               @if (v.system) { <span class="text--muted">System</span> }
               @else if (v.active) { <span class="text--success">In Verwendung</span> }
               @else { <span class="text--muted">Installiert</span> }
             </td>
-            <td>
+            <td class="td-actions">
               <button
                 class="btn btn--xs btn--secondary"
                 (click)="useVersion.emit(v.version)"
                 [disabled]="isLoading || v.active"
               >
                 Verwenden
+              </button>
+              <button
+                class="btn btn--xs btn--danger"
+                (click)="uninstallVersion.emit(v.version)"
+                [disabled]="isLoading || v.active || v.system"
+                [title]="v.active ? 'Aktive Version kann nicht deinstalliert werden' : 'Version deinstallieren'"
+              >
+                Deinstallieren
               </button>
             </td>
           </tr>

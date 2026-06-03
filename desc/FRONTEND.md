@@ -379,10 +379,15 @@ Sie führt selbst keine HTTP-Aufrufe durch.
 
 **Selector:** `app-installed-versions-card`
 **Inputs:** `versions`, `raw`, `loading`, `isLoading`
-**Outputs:** `useVersion: EventEmitter<string>`, `refresh: EventEmitter<void>`
+**Outputs:** `useVersion: EventEmitter<string>`, `uninstallVersion: EventEmitter<string>`, `refresh: EventEmitter<void>`
 
-Zeigt eine Tabelle aller installierten Node-Versionen mit Badges für `Aktiv` und
-`Default`. Der "Verwenden"-Button ist deaktiviert wenn `isLoading` oder `v.active`.
+Zeigt eine Tabelle aller installierten Node-Versionen mit Badges für `Aktiv`,
+`Default`, `stable`, `unstable` und `iojs`. Jede Zeile hat zwei Aktionsbuttons:
+
+- **Verwenden** – deaktiviert wenn `isLoading` oder `v.active`
+- **Deinstallieren** – deaktiviert wenn `isLoading`, `v.active` oder `v.system`; emittiert `uninstallVersion`
+
+Die Aktionsspalte nutzt `.td-actions` (Flexbox mit `gap`) für einheitlichen Button-Abstand.
 
 Nutzt das Angular 17 **Control Flow Template-Syntax** (`@if`, `@for`, `@else`):
 
@@ -396,7 +401,7 @@ Nutzt das Angular 17 **Control Flow Template-Syntax** (`@if`, `@for`, `@else`):
 }
 ```
 
-Zeigt optional die rohe `nvm ls`-Ausgabe in einem `<details>`-Element.
+Zeigt optional die rohe nvm-Ausgabe in einem `<details>`-Element.
 
 ---
 
@@ -517,14 +522,16 @@ Max. 20 Einträge (begrenzt in `App.addLog()` via `.slice(0, 19)`).
 
 ```typescript
 type InstallModalState =
-  | { action: 'install' | 'use'; phase: 'running' | 'success' | 'error'; version: string; errorMessage?: string }
+  | { action: 'install' | 'use' | 'uninstall'; phase: 'running' | 'success' | 'error'; version: string; errorMessage?: string }
   | null;
 ```
 
 Drei Phasen:
-- `running` – Spinner, laufende Aktion
+- `running` – Spinner, laufende Aktion; Modal **nicht schließbar**
 - `success` – Erfolgsmeldung, **Auto-Close nach 3 Sekunden**
-- `error` – Fehlermeldung + intelligente Hilfetext-Generierung
+- `error` – Fehlermeldung + intelligente Hilfetext-Generierung + aufklappbare technische Details + Schließen-Button
+
+Alle drei `action`-Werte haben jeweils eigene Texte für jede Phase (z.B. „Installation läuft" / „Deinstallation läuft" / „Version wird aktiviert").
 
 **Auto-Close-Mechanismus via `OnChanges`:**
 
@@ -548,11 +555,16 @@ ein alter Timer feuert, wenn schnell hintereinander Aktionen ausgeführt werden.
 
 **Intelligente Fehlertexte (`getErrorInstructions()`):**
 
-Die Methode analysiert die Fehlermeldung und gibt kontextbezogene Hilfe:
-- `npm_config_prefix`-Konflikt → Anleitung zum `unset`
-- `ETIMEDOUT`/`ENOTFOUND` → Netzwerk-Hinweis
-- `already installed` → Hinweis zum Aktualisieren
-- `not installed`/`not found` bei `use` → Hinweis zu "Installieren zuerst"
+Die Methode analysiert `action` und `errorMessage` und gibt kontextbezogene Hilfe:
+
+| action | Fehlermuster | Hinweis |
+|--------|-------------|---------|
+| `install` | `npm_config_prefix` | `unset`-Anleitung |
+| `install` | `ETIMEDOUT`/`ENOTFOUND` | Netzwerk-Hinweis |
+| `install` | `already installed` | Liste neu laden |
+| `use` | `not installed`/`not found` | Zuerst installieren |
+| `uninstall` | `not installed`/`not found` | Bereits deinstalliert, Liste neu laden |
+| `uninstall` | `currently active`/`in use` | Erst zu anderer Version wechseln |
 
 ---
 
@@ -620,31 +632,45 @@ Generischer Card-Wrapper mit drei `ng-content`-Slots:
 
 ## Datenfluss (Gesamtbild)
 
+**Beispiel: Installation**
 ```
 Benutzeraktion (z.B. Klick "Installieren")
     ↓
 ActionCardComponent.onInstall()
     ↓ @Output install.emit('22')
 App.onInstall('22')
-    ↓ isLoading.set(true), installModal.set({phase:'running',...})
+    ↓ isLoading.set(true), installModal.set({action:'install', phase:'running',...})
     ↓ addLog('Installiere Node 22 ...')
 NvmApiService.installVersion('22')
     ↓ POST /api/versions/install
-Express-Backend
-    ↓ runNvm(['install', '22'])
-    ↓ bash -lc "... nvm 'install' '22'"
-nvm install 22
-    ↓
+Express-Backend → nvm install 22
     ↓ Response { stdout, stderr }
-NvmApiService Observable.next(res)
-    ↓
 App.onInstall() next-Handler
     ↓ addLog('Node 22 installiert.')
     ↓ isLoading.set(false)
-    ↓ installModal.set({phase:'success',...})
+    ↓ installModal.set({action:'install', phase:'success',...})
     ↓ loadInstalledVersions()  ← Refresh der installierten Liste
-         ↓
-    InstalledVersionsCardComponent zeigt neue Version
+InstallModalComponent (Auto-Close nach 3s)
+```
+
+**Beispiel: Deinstallation**
+```
+Benutzeraktion (Klick "Deinstallieren" in InstalledVersionsCard)
+    ↓
+InstalledVersionsCardComponent
+    ↓ @Output uninstallVersion.emit('20.5.0')
+App.onUninstall('20.5.0')
+    ↓ isLoading.set(true), installModal.set({action:'uninstall', phase:'running',...})
+    ↓ addLog('Deinstalliere Node 20.5.0 ...')
+NvmApiService.uninstallVersion('20.5.0')
+    ↓ POST /api/versions/uninstall
+Express-Backend → nvm uninstall 20.5.0
+    ↓ Response { stdout, stderr }
+App.onUninstall() next-Handler
+    ↓ addLog('Node 20.5.0 deinstalliert.')
+    ↓ isLoading.set(false)
+    ↓ installModal.set({action:'uninstall', phase:'success',...})
+    ↓ loadInstalledVersions()  ← Version verschwindet aus der Liste
 InstallModalComponent (Auto-Close nach 3s)
 ```
 
@@ -733,9 +759,10 @@ Express-Server – kein CORS-Problem im Entwicklungsbetrieb.
    UI-Elemente dadurch (de)aktiviert werden.
 3. **Komponente einordnen:** Wähle drei Komponenten und bestimme für jede: Ist sie
    Atom, Molecule oder Organism? Ist sie Smart oder Dumb? Begründe.
-4. **Kleine Erweiterung (Konzept):** Skizziere, welche `@Input()`/`@Output()` du
-   bräuchtest, um in der `InstalledVersionsCardComponent` einen "Deinstallieren"-Button
-   zu ergänzen, der die Aktion an `App` meldet.
+4. **Datenfluss verfolgen:** Der "Deinstallieren"-Button ist bereits implementiert.
+   Verfolge im Code den Weg von `installed-versions-card.component.html` →
+   `app.html` → `app.ts (onUninstall)` → `nvm-api.service.ts` → Backend.
+   Notiere bei jedem Schritt, welche Methode aufgerufen wird.
 5. **Reaktivität verstehen:** Erkläre anhand von `activeVersion` (ein `computed`),
    warum sich die Kopfzeile automatisch aktualisiert, sobald `installedVersions`
    neu gesetzt wird.

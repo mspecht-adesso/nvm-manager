@@ -140,18 +140,20 @@ export class App implements OnInit {
   }
 
   onUninstall(version: string): void {
-    if (!confirm(`Node ${version} wirklich deinstallieren?`)) return;
     this.isLoading.set(true);
+    this.installModal.set({ action: 'uninstall', phase: 'running', version });
     this.addLog(`Deinstalliere Node ${version} ...`, 'info');
     this.nvmApi.uninstallVersion(version).subscribe({
       next: (res: NvmCommandResult) => {
         this.addLog(`Node ${version} deinstalliert. ${res.stdout.trim()}`, 'success');
         this.isLoading.set(false);
+        this.installModal.set({ action: 'uninstall', phase: 'success', version });
         this.loadInstalledVersions();
       },
       error: (err: Error) => {
         this.addLog(`Fehler bei Deinstallation von ${version}: ${err.message}`, 'error');
         this.isLoading.set(false);
+        this.installModal.set({ action: 'uninstall', phase: 'error', version, errorMessage: err.message });
       },
     });
   }
