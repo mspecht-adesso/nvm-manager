@@ -35,6 +35,61 @@ describe('InstallModalComponent', () => {
     });
   });
 
+  describe('Accessibility / Escape', () => {
+    it('hat role="dialog" und aria-modal im Fehler-Zustand', async () => {
+      const { fixture } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+
+      const dialog = (fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]');
+      expect(dialog).toBeTruthy();
+      expect(dialog?.getAttribute('aria-modal')).toBe('true');
+      expect(dialog?.getAttribute('aria-labelledby')).toBe('modal-title');
+    });
+
+    it('schließt bei Escape im Fehler-Zustand', async () => {
+      const { fixture, comp } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+
+      expect(closed).toBe(true);
+    });
+
+    it('schließt NICHT bei Escape während running', async () => {
+      const { fixture, comp } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'running', version: '22' });
+      fixture.detectChanges();
+
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+
+      expect(closed).toBe(false);
+    });
+
+    it('schließt NICHT bei Escape wenn kein Modal offen ist', async () => {
+      const { comp } = await setup();
+      let closed = false;
+      comp.closed.subscribe(() => (closed = true));
+      comp.onEscape();
+      expect(closed).toBe(false);
+    });
+
+    it('fokussiert den Schließen-Button im Fehler-Zustand', async () => {
+      const { fixture } = await setup();
+      fixture.componentRef.setInput('state', { action: 'install', phase: 'error', version: '22' });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const btn = (fixture.nativeElement as HTMLElement).querySelector('.modal__close-btn');
+      expect(document.activeElement).toBe(btn);
+    });
+  });
+
   describe('Auto-Close bei phase: success', () => {
     it('startet Auto-Close-Timer bei phase: success', async () => {
       vi.useFakeTimers();

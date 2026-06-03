@@ -52,7 +52,7 @@
             <!-- Aktionsspalte -->
             <td class="td-actions">
               @if (confirmPendingAlias() === alias.name) {
-                <span class="confirm-prompt">Wirklich löschen?</span>
+                <span class="confirm-prompt" role="alert">Wirklich löschen?</span>
                 <button class="btn btn--xs btn--danger" (click)="confirmDelete()">Ja, löschen</button>
                 <button class="btn btn--xs btn--secondary" (click)="cancelDelete()">Abbrechen</button>
               } @else if (alias.name.startsWith('lts/')) {

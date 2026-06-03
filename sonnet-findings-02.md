@@ -109,10 +109,12 @@ Funktionierte nur, weil `this` nicht genutzt wurde — fragil.
 
 **Aufwand:** M · **Impact:** Medium
 
-- [ ] `install-modal`: Fokus-Management (Fokus beim Öffnen, `Escape` schließt, Fokus-Trap)
-- [ ] `log-card`: `aria-live="polite"` für neue Log-Einträge
-- [ ] `aliases-card` Inline-Confirm: Keyboard-Bedienbarkeit + `role`/`aria`
-- [ ] `role="dialog"` / `aria-modal` am Modal prüfen
+- [x] `install-modal`: Fokus-Management — `viewChild`-basierter Fokus auf den Schließen-Button (bzw. Dialog) beim Öffnen via `effect()`, Fokus-Wiederherstellung auf das vorher fokussierte Element beim Schließen
+- [x] `install-modal`: `Escape` schließt (Host-Listener `(document:keydown.escape)`), aber **nicht** während `phase === 'running'` (bewusst nicht-dismissbar)
+- [x] `log-card`: `role="log"` + `aria-live="polite"` + `aria-relevant="additions"` für neue Log-Einträge
+- [x] `aliases-card` Inline-Confirm: `role="alert"` am Bestätigungs-Prompt (Screenreader-Ansage); Buttons sind nativ keyboard-bedienbar
+- [x] `role="dialog"` / `aria-modal` am Modal vorhanden + `aria-labelledby="modal-title"` (Titel-IDs ergänzt), `tabindex="-1"` für Fokussierbarkeit
+- [x] Tests: Escape-Verhalten (Fehler/running/geschlossen), aria-Attribute und Fokus auf Schließen-Button — 200 Tests grün, Lint sauber
 
 ---
 
@@ -125,4 +127,4 @@ Funktionierte nur, weil `this` nicht genutzt wurde — fragil.
 | 3 | linkedSignal() action-card | 2 | S | erledigt |
 | 4 | Error-Interceptor + ErrorHandler | 2 | M | erledigt |
 | 5 | handleError absichern | 2 | XS | erledigt (via Schritt 4) |
-| 6 | Accessibility | 3 | M | offen |
+| 6 | Accessibility | 3 | M | erledigt |

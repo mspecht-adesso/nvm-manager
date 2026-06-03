@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  effect,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
 import type { InstallModalAction, InstallModalState } from '../../models/nvm.models';
 
 @Component({
@@ -7,10 +15,19 @@ import type { InstallModalAction, InstallModalState } from '../../models/nvm.mod
   templateUrl: './install-modal.component.html',
   styleUrl: './install-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'onEscape()',
+  },
 })
 export class InstallModalComponent {
   readonly state = input<InstallModalState>(null);
   readonly closed = output<void>();
+
+  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
+  private readonly closeButton = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
+
+  /** Element that had focus before the dialog opened, restored on close. */
+  private previouslyFocused: HTMLElement | null = null;
 
   constructor() {
     let autoCloseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -18,10 +35,26 @@ export class InstallModalComponent {
     effect((onCleanup) => {
       clearTimeout(autoCloseTimer);
       if (this.state()?.phase === 'success') {
-        autoCloseTimer = setTimeout(() => this.closed.emit(), 3000);
+        autoCloseTimer = setTimeout(() => this.close(), 3000);
       }
       onCleanup(() => clearTimeout(autoCloseTimer));
     });
+
+    // Move focus into the dialog when it opens so keyboard/screen-reader users
+    // land on the most relevant element (the close button when present).
+    effect(() => {
+      const dialogEl = this.dialog()?.nativeElement;
+      if (!this.state() || !dialogEl) return;
+      this.previouslyFocused = document.activeElement as HTMLElement | null;
+      (this.closeButton()?.nativeElement ?? dialogEl).focus();
+    });
+  }
+
+  onEscape(): void {
+    // The running phase is intentionally non-dismissable.
+    if (this.state() && this.state()?.phase !== 'running') {
+      this.close();
+    }
   }
 
   private static includesAny(message: string, terms: string[]): boolean {
@@ -86,6 +119,8 @@ export class InstallModalComponent {
   }
 
   close(): void {
+    this.previouslyFocused?.focus();
+    this.previouslyFocused = null;
     this.closed.emit();
   }
 }
