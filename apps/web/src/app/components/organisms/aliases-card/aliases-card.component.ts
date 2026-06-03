@@ -82,9 +82,9 @@ export class AliasesCardComponent implements OnInit {
   }
 
   /**
-   * Gibt die installierten Versionen zurück, die zum LTS-Alias passen.
-   * Die Major-Version wird aus alias.target extrahiert (z.B. "v24.16.0" → 24).
-   * Für lts/* (Wildcard) oder unbekannte Targets werden alle Versionen zurückgegeben.
+   * Returns the installed versions that are compatible with the given LTS alias.
+   * The major version is extracted from alias.target (e.g. "v24.16.0" → 24).
+   * For lts/* (wildcard) or unknown targets all installed versions are returned.
    */
   ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
     if (alias.name === 'lts/*') return this.installedVersions;

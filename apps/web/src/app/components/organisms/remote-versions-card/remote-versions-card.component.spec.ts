@@ -68,12 +68,12 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('setzt remoteVersions vor dem Laden zurück', async () => {
     const { fixture, comp } = await setup();
-    // Erst Versionen laden, dann erneut laden und prüfen, dass vorher geleert wird
+    // Load versions first, then reload and verify that the list is cleared beforehand
     comp.load();
     await fixture.whenStable();
     expect(comp.remoteVersions()).toHaveLength(40);
 
-    // Beim nächsten load() werden Versionen zuerst auf [] gesetzt
+    // On the next load() call versions are reset to [] first
     comp.remoteVersions.set([{ version: '99.0.0', lts: null }]);
     // Synchron sicherstellen, dass load() die Liste leert bevor das Observable resolved
     comp.remoteVersions.set([]);

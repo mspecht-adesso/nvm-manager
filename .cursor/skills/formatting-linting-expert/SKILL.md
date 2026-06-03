@@ -5,15 +5,15 @@ description: Expert guidance for code formatting and linting in nvm-manager. Cov
 
 # Formatting & Linting Expert – nvm-manager
 
-## Setup-Workflow
+## Setup Workflow
 
-### 1. Prettier (Root-Level)
+### 1. Prettier (root level)
 
 ```bash
 npm install --save-dev prettier
 ```
 
-`.prettierrc` im Root:
+`.prettierrc` in root:
 ```json
 {
   "semi": true,
@@ -26,7 +26,7 @@ npm install --save-dev prettier
 }
 ```
 
-### 2. ESLint für API (`apps/api/`)
+### 2. ESLint for API (`apps/api/`)
 
 ```bash
 npm install --save-dev eslint typescript-eslint --prefix apps/api
@@ -57,7 +57,7 @@ export default tseslint.config(
 );
 ```
 
-### 3. ESLint für Angular Web (`apps/web/`)
+### 3. ESLint for Angular Web (`apps/web/`)
 
 ```bash
 npm install --save-dev eslint typescript-eslint @angular-eslint/eslint-plugin @angular-eslint/eslint-plugin-template @angular-eslint/template-parser --prefix apps/web
@@ -92,41 +92,41 @@ export default tseslint.config(
 );
 ```
 
-## Häufige Lint-Fehler und Fixes
+## Common Lint Errors and Fixes
 
 ### `@typescript-eslint/no-floating-promises`
 ```typescript
-// ❌ Fehler
+// ❌ Error
 this.nvmService.install(version);
 
-// ✅ Fix: void oder await
+// ✅ Fix: void or await
 void this.nvmService.install(version);
-// oder
+// or
 await this.nvmService.install(version);
 ```
 
 ### `@typescript-eslint/no-explicit-any`
 ```typescript
-// ❌ Fehler
+// ❌ Error
 const body = req.body as any;
 
-// ✅ Fix: unknown + Type Guard
+// ✅ Fix: unknown + type guard
 const body = req.body as { version: unknown };
 if (!isValidVersionInput(body.version)) { ... }
 ```
 
 ### `@angular-eslint/prefer-standalone`
 ```typescript
-// ❌ Fehler: Komponente ohne standalone: true
+// ❌ Error: component without standalone: true
 @Component({ selector: 'app-foo' })
 
 // ✅ Fix
 @Component({ selector: 'app-foo', standalone: true })
 ```
 
-## Scripts ergänzen
+## Add Scripts
 
-In `apps/api/package.json` und `apps/web/package.json`:
+In `apps/api/package.json` and `apps/web/package.json`:
 ```json
 "lint": "eslint src/",
 "lint:fix": "eslint src/ --fix",
@@ -134,14 +134,14 @@ In `apps/api/package.json` und `apps/web/package.json`:
 "format:check": "prettier --check src/"
 ```
 
-Im Root `package.json`:
+In root `package.json`:
 ```json
 "lint": "npm run lint --prefix apps/api && npm run lint --prefix apps/web",
 "format": "npm run format --prefix apps/api && npm run format --prefix apps/web",
 "format:check": "npm run format:check --prefix apps/api && npm run format:check --prefix apps/web"
 ```
 
-## VSCode/Cursor-Settings (`.cursor/settings.json`)
+## VSCode/Cursor Settings (`.cursor/settings.json`)
 
 ```json
 {

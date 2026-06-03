@@ -129,7 +129,7 @@ describe('parseAliases', () => {
     ].join('\n');
     const result = parseAliases(stdout);
     result.forEach((a) => {
-      // Kern-Aliases sind editierbar, aber NICHT löschbar
+      // Core aliases are editable but NOT deletable
       expect(a.editable).toBe(true);
       expect(a.deletable).toBe(false);
     });
@@ -138,7 +138,7 @@ describe('parseAliases', () => {
   it('setzt editable/deletable korrekt für lts-Aliases', () => {
     const stdout = 'lts/iron -> v20.19.1 (-> N/A)';
     const result = parseAliases(stdout);
-    // LTS-Aliases nutzen eigenen Endpunkt → editable: false; aber löschbar
+    // LTS aliases use a dedicated endpoint → editable: false; but deletable
     expect(result[0].editable).toBe(false);
     expect(result[0].deletable).toBe(true);
   });
@@ -156,7 +156,7 @@ describe('parseAliases', () => {
   });
 
   it('setzt resolved auf null wenn keine Version auflösbar', () => {
-    // target ist kein konkreter Semver, und (-> N/A) liefert keine auflösbare Version
+    // target is not a concrete semver and (-> N/A) yields no resolvable version
     const stdout = 'my-alias -> lts/* (-> N/A)';
     const result = parseAliases(stdout);
     expect(result[0].resolved).toBeNull();

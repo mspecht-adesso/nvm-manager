@@ -26,7 +26,7 @@ describe('ThemeService', () => {
       (key: string, value: string) => { localStorageMock[key] = value; },
     );
 
-    // matchMedia ist in jsdom standardmäßig nicht definiert
+    // matchMedia is not defined in jsdom by default
     Object.defineProperty(globalThis, 'matchMedia', {
       writable: true,
       configurable: true,

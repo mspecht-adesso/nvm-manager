@@ -1,26 +1,26 @@
 ---
-description: Test-Konventionen mit Vitest (API) und Angular Testing (Web) für nvm-manager
+description: Testing conventions with Vitest (API) and Angular Testing (Web) for nvm-manager
 globs: apps/**/*.spec.ts,apps/**/*.test.ts,apps/**/*.e2e.ts
 alwaysApply: false
 ---
 
-# Test-Konventionen
+# Testing Conventions
 
-## API-Tests (Vitest + Supertest)
+## API Tests (Vitest + Supertest)
 
-Testdateien neben der Quelldatei ablegen:
+Place test files next to the source file:
 
 ```
 apps/api/src/nvm/
 ├── nvm.parser.ts
-├── nvm.parser.spec.ts   ← Unit-Test
+├── nvm.parser.spec.ts   ← unit test
 ├── nvm.service.ts
-└── nvm.service.spec.ts  ← Unit-Test (mit Mocks)
+└── nvm.service.spec.ts  ← unit test (with mocks)
 apps/api/src/routes/
-└── nvm.routes.spec.ts   ← Integrations-Test mit Supertest
+└── nvm.routes.spec.ts   ← integration test with Supertest
 ```
 
-Unit-Test-Muster:
+Unit test pattern:
 
 ```typescript
 // nvm.parser.spec.ts
@@ -28,7 +28,7 @@ import { describe, it, expect } from 'vitest';
 import { parseInstalledVersions } from './nvm.parser.js';
 
 describe('parseInstalledVersions', () => {
-  it('erkennt die aktive Version', () => {
+  it('identifies the active version', () => {
     const stdout = '->     v22.11.0 (default)\n       v20.5.0';
     const result = parseInstalledVersions(stdout);
     expect(result).toHaveLength(2);
@@ -37,13 +37,13 @@ describe('parseInstalledVersions', () => {
     expect(result[0].version).toBe('22.11.0');
   });
 
-  it('gibt leeres Array bei leerem Input zurück', () => {
+  it('returns an empty array for empty input', () => {
     expect(parseInstalledVersions('')).toEqual([]);
   });
 });
 ```
 
-Integrations-Test mit Supertest:
+Integration test with Supertest:
 
 ```typescript
 // nvm.routes.spec.ts
@@ -55,12 +55,12 @@ import * as nvmService from '../nvm/nvm.service.js';
 vi.mock('../nvm/nvm.service.js');
 
 describe('POST /api/versions/install', () => {
-  it('lehnt ungültige Version mit 400 ab', async () => {
+  it('rejects an invalid version with 400', async () => {
     const res = await request(app).post('/api/versions/install').send({ version: '../etc/passwd' });
     expect(res.status).toBe(400);
   });
 
-  it('gibt 200 bei gültiger Version zurück', async () => {
+  it('returns 200 for a valid version', async () => {
     vi.mocked(nvmService.install).mockResolvedValue({ stdout: 'ok', stderr: '' });
     const res = await request(app).post('/api/versions/install').send({ version: '22' });
     expect(res.status).toBe(200);
@@ -68,7 +68,7 @@ describe('POST /api/versions/install', () => {
 });
 ```
 
-## Angular-Tests (Vitest + @testing-library/angular)
+## Angular Tests (Vitest + @testing-library/angular)
 
 ```typescript
 // version-card.component.spec.ts
@@ -76,17 +76,17 @@ import { render, screen, fireEvent } from '@testing-library/angular';
 import { VersionCardComponent } from './version-card.component';
 
 describe('VersionCardComponent', () => {
-  it('deaktiviert Buttons während isLoading', async () => {
+  it('disables buttons while isLoading', async () => {
     const { fixture } = await render(VersionCardComponent);
     const comp = fixture.componentInstance;
     comp.isLoading.set(true);
     fixture.detectChanges();
-    expect(screen.getByRole('button', { name: /installieren/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /install/i })).toBeDisabled();
   });
 });
 ```
 
-## Vitest-Konfiguration (API – `vitest.config.ts`)
+## Vitest Configuration (API – `vitest.config.ts`)
 
 ```typescript
 import { defineConfig } from 'vitest/config';
@@ -113,18 +113,18 @@ export default defineConfig({
 // install-flow.spec.ts
 import { test, expect } from '@playwright/test';
 
-test('Kann eine Node-Version installieren', async ({ page }) => {
+test('can install a Node.js version', async ({ page }) => {
   await page.goto('http://localhost:4200');
   await expect(page.getByText('nvm Manager')).toBeVisible();
   await page.getByLabel('Version').fill('22');
-  await page.getByRole('button', { name: 'Installieren' }).click();
-  await expect(page.getByText(/Installiere/)).toBeVisible();
+  await page.getByRole('button', { name: 'Install' }).click();
+  await expect(page.getByText(/Installing/)).toBeVisible();
 });
 ```
 
-## Benennungsregeln
+## Naming Rules
 
-- Testdateien: `*.spec.ts` (Unit/Integration), `*.e2e.ts` (Playwright)
-- `describe`-Blöcke: Klassenname oder Funktionsname
-- `it`-Texte: auf Deutsch, verhalten beschreibend ("gibt 400 zurück wenn...")
-- Mocks immer über `vi.mock()`, kein manuelles Stub-Patching
+- Test files: `*.spec.ts` (unit/integration), `*.e2e.ts` (Playwright)
+- `describe` blocks: class name or function name
+- `it` labels: in English, behaviour-describing ("returns 400 when...")
+- Always mock via `vi.mock()`, no manual stub patching

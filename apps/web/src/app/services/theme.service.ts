@@ -6,12 +6,12 @@ export type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'nvm-manager-theme';
 
 /**
- * Verwaltet das UI-Theme (hell/dunkel) der Anwendung.
+ * Manages the UI theme (light/dark) of the application.
  *
- * Beim ersten Aufruf wird die System-Präferenz via `prefers-color-scheme`
- * erkannt; spätere Wahl wird in `localStorage` persistiert.
- * Das aktive Theme wird als `data-theme`-Attribut auf `<html>` gesetzt,
- * sodass CSS Custom Properties in `:root` / `[data-theme="dark"]` greifen.
+ * On first load the system preference is detected via `prefers-color-scheme`;
+ * subsequent choices are persisted in `localStorage`.
+ * The active theme is applied as a `data-theme` attribute on `<html>`,
+ * so CSS Custom Properties in `:root` / `[data-theme="dark"]` take effect.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -29,7 +29,7 @@ export class ThemeService {
     try {
       localStorage.setItem(STORAGE_KEY, this.theme());
     } catch {
-      // localStorage kann in bestimmten Kontexten nicht verfügbar sein
+      // localStorage may not be available in certain contexts
     }
   }
 

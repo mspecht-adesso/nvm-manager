@@ -5,7 +5,7 @@ description: Expert-level Node.js and Express guidance for nvm-manager backend. 
 
 # Node.js & Express Expert – nvm-manager
 
-## Server-Setup (`server.ts`)
+## Server Setup (`server.ts`)
 
 ```typescript
 import express from 'express';
@@ -22,11 +22,11 @@ app.use(cors({ origin: 'http://localhost:4200' }));
 app.use('/api/versions', versionsRouter);
 app.use('/api', statusRouter);
 
-// Error-Middleware – immer zuletzt
+// Error middleware – always last
 app.use(errorMiddleware);
 
 app.listen(3789, '127.0.0.1', () =>
-  console.log('nvm manager api läuft auf http://127.0.0.1:3789')
+  console.log('nvm manager api running at http://127.0.0.1:3789')
 );
 ```
 
@@ -39,7 +39,7 @@ export const installHandler: RequestHandler = async (req, res, next) => {
   try {
     const { version } = req.body as { version: unknown };
     if (!isValidVersionInput(version)) {
-      res.status(400).json({ error: 'Ungültige Version: ' + String(version) });
+      res.status(400).json({ error: 'Invalid version: ' + String(version) });
       return;
     }
     const result = await nvmService.install(version);
@@ -50,9 +50,9 @@ export const installHandler: RequestHandler = async (req, res, next) => {
 };
 ```
 
-## nvm-Kommando-Ausführung
+## nvm Command Execution
 
-Zentrale Funktion in `nvm.service.ts`:
+Central function in `nvm.service.ts`:
 
 ```typescript
 import { execFile } from 'node:child_process';
@@ -67,7 +67,7 @@ export function runNvm(args: string[]): Promise<{ stdout: string; stderr: string
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh";
       nvm ${escaped}
     `;
-    execFile('bash', ['-lc', cmd],
+    execFile('bash', ['-c', cmd],
       { timeout: 180_000, maxBuffer: 10 * 1024 * 1024 },
       (error, stdout, stderr) => {
         if (error) reject(new NvmError(error.message, stdout, stderr));
@@ -78,9 +78,9 @@ export function runNvm(args: string[]): Promise<{ stdout: string; stderr: string
 }
 ```
 
-## SSE-Streaming für lange Operationen (z.B. `nvm install`)
+## SSE Streaming for Long Operations (e.g. `nvm install`)
 
-Für Echtzeit-Ausgabe während `nvm install`:
+For real-time output during `nvm install`:
 
 ```typescript
 export const installStreamHandler: RequestHandler = (req, res, next) => {
@@ -94,7 +94,7 @@ export const installStreamHandler: RequestHandler = (req, res, next) => {
   res.setHeader('Connection', 'keep-alive');
 
   const cmd = buildNvmCommand(['install', version]);
-  const child = spawn('bash', ['-lc', cmd]);
+  const child = spawn('bash', ['-c', cmd]);
 
   child.stdout.on('data', (chunk: Buffer) =>
     res.write(`data: ${JSON.stringify({ type: 'stdout', line: chunk.toString() })}\n\n`)
@@ -110,7 +110,7 @@ export const installStreamHandler: RequestHandler = (req, res, next) => {
 };
 ```
 
-## Fehler-Middleware
+## Error Middleware
 
 ```typescript
 import { ErrorRequestHandler } from 'express';
@@ -118,14 +118,14 @@ import { ErrorRequestHandler } from 'express';
 export const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
   const isNvmError = err instanceof NvmError;
   res.status(500).json({
-    error: err instanceof Error ? err.message : 'Interner Fehler',
+    error: err instanceof Error ? err.message : 'Internal server error',
     stdout: isNvmError ? err.stdout : '',
     stderr: isNvmError ? err.stderr : '',
   });
 };
 ```
 
-## NvmError-Klasse
+## NvmError Class
 
 ```typescript
 export class NvmError extends Error {
@@ -140,7 +140,7 @@ export class NvmError extends Error {
 }
 ```
 
-## Versions-Validierung
+## Version Validation
 
 ```typescript
 const VERSION_RE = /^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/;
@@ -150,7 +150,7 @@ export function isValidVersionInput(v: unknown): v is string {
 }
 ```
 
-## tsconfig.json für API
+## tsconfig.json for API
 
 ```json
 {
@@ -166,9 +166,9 @@ export function isValidVersionInput(v: unknown): v is string {
 }
 ```
 
-## Nvm-Output parsen (`nvm.parser.ts`)
+## Parsing nvm Output (`nvm.parser.ts`)
 
-`nvm ls` gibt z.B. aus: `->     v22.11.0 (default)`
+`nvm ls` produces output like: `->     v22.11.0 (default)`
 
 ```typescript
 export function parseInstalledVersions(stdout: string): InstalledNodeVersion[] {

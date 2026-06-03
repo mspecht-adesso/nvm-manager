@@ -182,8 +182,8 @@ const deleteLtsAliasHandler: RequestHandler = async (req, res, next) => {
 };
 
 /**
- * SSE-Endpoint für Live-Output während `nvm install`.
- * Der MVP nutzt den regulären POST /install, dieser Endpoint ist für spätere UI-Integration vorbereitet.
+ * SSE endpoint for live output during `nvm install`.
+ * The MVP uses the regular POST /install; this endpoint is prepared for future UI integration.
  */
 const installStreamHandler: RequestHandler = (req, res) => {
   const { version } = req.query as { version: unknown };

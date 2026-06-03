@@ -23,3 +23,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Blog (lokale Entwürfe, nicht im Repository)
+blog/

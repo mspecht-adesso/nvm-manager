@@ -1,37 +1,37 @@
 ---
-description: Projektweite Konventionen für nvm-manager (Monorepo, TypeScript, Sicherheit)
+description: Project-wide conventions for nvm-manager (monorepo, TypeScript, security)
 alwaysApply: true
 ---
 
-# nvm-manager Projektkonventionen
+# nvm-manager Project Conventions
 
-## Struktur
+## Structure
 
-- Monorepo: `apps/web/` (Angular) und `apps/api/` (Express)
-- Root `package.json` enthält nur Start-Scripts und `concurrently`
-- Keine gemeinsame Codebasis zwischen `web` und `api` (kein `shared/` im MVP)
+- Monorepo: `apps/web/` (Angular) and `apps/api/` (Express)
+- Root `package.json` contains only start scripts and `concurrently`
+- No shared code between `web` and `api` (no `shared/` in the MVP)
 
 ## TypeScript
 
-- Stricter Modus in beiden Apps: `strict: true`, `noImplicitAny: true`
-- Keine `any`-Typen – bei Unsicherheit `unknown` + Type Guard
-- Explizite Rückgabetypen bei allen Funktionen
-- `tsx` für lokales API-Development
+- Strict mode in both apps: `strict: true`, `noImplicitAny: true`
+- No `any` types – use `unknown` + type guard when uncertain
+- Explicit return types on all functions
+- `tsx` for local API development
 
-## Benennung
+## Naming
 
-- Dateien: `kebab-case` (z.B. `nvm.service.ts`, `nvm.routes.ts`)
-- Klassen/Interfaces/Types: `PascalCase`
-- Variablen/Funktionen: `camelCase`
-- Konstanten: `UPPER_SNAKE_CASE`
+- Files: `kebab-case` (e.g. `nvm.service.ts`, `nvm.routes.ts`)
+- Classes/Interfaces/Types: `PascalCase`
+- Variables/Functions: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
 
-## Sicherheit (kritisch)
+## Security (critical)
 
-- Backend **ausschließlich** an `127.0.0.1:3789` binden
-- Keine freie Shell-Ausführung aus dem Frontend
-- Alle Versionseingaben streng validieren vor nvm-Aufruf
-- CORS nur für `http://localhost:4200` erlauben
+- Backend binds **exclusively** to `127.0.0.1:3789`
+- No arbitrary shell execution from the frontend
+- Strictly validate all version inputs before nvm calls
+- Allow CORS only for `http://localhost:4200`
 
-## API-Präfix
+## API Prefix
 
-Alle Backend-Endpunkte unter `/api/` (z.B. `/api/status`, `/api/versions/installed`)
+All backend endpoints under `/api/` (e.g. `/api/status`, `/api/versions/installed`)

@@ -1,28 +1,28 @@
-# Angular-Architektur – nvm-manager
+# Angular Architecture – nvm-manager
 
-## Komponenten-Hierarchie (Atomic Design)
+## Component Hierarchy (Atomic Design)
 
 ```
-App (Root-Komponente)
-├── AppHeaderComponent          – Titel, nvm-Version, globaler Status
-├── StatusCardComponent         – nvm-Verbindungsstatus (GET /api/status)
-├── ActionCardComponent         – Eingabe für "Installieren" / "Aktivieren"
-├── InstalledVersionsCardComponent – Liste installierter Node-Versionen
-├── AliasesCardComponent        – nvm-Alias-Verwaltung
-├── RemoteVersionsCardComponent – Verfügbare Node-Versionen von nodejs.org
-├── LogCardComponent            – Live-Aktivitätslog
-└── InstallModalComponent       – Modale Fortschrittsanzeige für Aktionen
+App (root component)
+├── AppHeaderComponent          – title, nvm version, global status
+├── StatusCardComponent         – nvm connection status (GET /api/status)
+├── ActionCardComponent         – input for "Install" / "Use"
+├── InstalledVersionsCardComponent – list of installed Node.js versions
+├── AliasesCardComponent        – nvm alias management
+├── RemoteVersionsCardComponent – available Node.js versions from nodejs.org
+├── LogCardComponent            – live activity log
+└── InstallModalComponent       – modal progress indicator for actions
 
-Atoms (wiederverwendbare Grundbausteine):
+Atoms (reusable building blocks):
   └── SpinnerComponent, LoadingStateComponent
 
 Molecules:
-  └── CardComponent             – generischer Card-Wrapper mit Slot/ng-content
+  └── CardComponent             – generic card wrapper with ng-content slots
 ```
 
-## State-Management mit Angular Signals
+## State Management with Angular Signals
 
-Die Root-Komponente `App` hält den gesamten applikationsweiten State:
+The root component `App` holds all application-wide state:
 
 ```typescript
 // apps/web/src/app/app.ts
@@ -39,21 +39,21 @@ readonly activeVersion = computed(() =>
 );
 ```
 
-**Warum in der Root-Komponente?**
-Der State wird von mehreren Cards gleichzeitig gebraucht (z.B. `isLoading` blockiert
-ActionCard und InstalledVersionsCard gleichzeitig). Lifting state up in die Root
-verhindert prop-drilling über mehrere Ebenen und macht den Datenfluss explizit.
+**Why in the root component?**
+The state is needed by multiple cards simultaneously (e.g. `isLoading` blocks
+ActionCard and InstalledVersionsCard at the same time). Lifting state up to the root
+prevents prop-drilling across multiple levels and makes the data flow explicit.
 
-**Warum `aliasesRefreshTrigger`?**
-`AliasesCardComponent` hat einen eigenen `NvmApiService`-Aufruf. Nach `useVersion()`
-oder `setDefault()` in der Root muss die Alias-Liste neu geladen werden – ohne
-die komplette App neu zu rendern. Ein inkrementiertes Signal triggert `ngOnChanges`
-in der AliasesCard, die dann selbst neu lädt.
+**Why `aliasesRefreshTrigger`?**
+`AliasesCardComponent` has its own `NvmApiService` call. After `useVersion()`
+or `setDefault()` in the root, the alias list must be reloaded – without
+re-rendering the entire app. An incremented signal triggers `ngOnChanges`
+in the AliasesCard, which then reloads itself.
 
-## Datenkommunikation: Input/Output-Kontrakt
+## Data Communication: Input/Output Contract
 
-Cards sind **reine Präsentationskomponenten** – sie empfangen Daten via `@Input()`
-und emittieren Aktionen via `@Output()`:
+Cards are **pure presentation components** – they receive data via `@Input()`
+and emit actions via `@Output()`:
 
 ```typescript
 // InstalledVersionsCardComponent
@@ -63,30 +63,30 @@ und emittieren Aktionen via `@Output()`:
 @Output() refresh = new EventEmitter<void>();
 ```
 
-Die eigentliche HTTP-Logik liegt ausschließlich in:
-- `App` (Root): für Aktionen mit appweitem State-Impact
-- `AliasesCardComponent`: eigenständig, da Alias-State lokal ist
-- `RemoteVersionsCardComponent`: eigenständig (Remote-Daten sind unabhängig)
+The actual HTTP logic lives exclusively in:
+- `App` (root): for actions with app-wide state impact
+- `AliasesCardComponent`: self-contained, as alias state is local
+- `RemoteVersionsCardComponent`: self-contained (remote data is independent)
 
 ## NvmApiService
 
 `apps/web/src/app/services/nvm-api.service.ts`
 
-**Injectable mit `providedIn: 'root'`** → Singleton, kein explizites Bereitstellen
-im AppModule nötig (es gibt keins – die App ist standalone).
+**Injectable with `providedIn: 'root'`** → singleton, no explicit provision
+in an AppModule needed (there is none – the app is standalone).
 
-Alle Methoden geben `Observable<T>` zurück mit `.pipe(catchError(...))`.
-Der Error-Handler extrahiert `err.error?.error ?? err.message` – so kommt die
-Fehlermeldung des Express-Backends direkt in der UI an.
+All methods return `Observable<T>` with `.pipe(catchError(...))`.
+The error handler extracts `err.error?.error ?? err.message` – this way the
+error message from the Express backend reaches the UI directly.
 
-**Proxy-Konfiguration:** `proxy.conf.json` leitet `/api` → `http://127.0.0.1:3789`
-während `ng serve`. Im Production-Build wird kein Proxy benötigt, da API und Frontend
-vom selben Origin ausgeliefert werden sollen.
+**Proxy configuration:** `proxy.conf.json` forwards `/api` → `http://127.0.0.1:3789`
+during `ng serve`. In a production build no proxy is needed since API and frontend
+would be served from the same origin.
 
-## InstallModalComponent – Warum OnChanges?
+## InstallModalComponent – Why OnChanges?
 
-Das Modal zeigt Fortschritt (running → success/error) und schließt sich nach 3 s
-automatisch bei Erfolg. Der Timer wird über `ngOnChanges` auf `state` gesteuert:
+The modal shows progress (running → success/error) and closes automatically after 3 s
+on success. The timer is managed via `ngOnChanges` on `state`:
 
 ```typescript
 ngOnChanges(changes: SimpleChanges): void {
@@ -99,34 +99,34 @@ ngOnChanges(changes: SimpleChanges): void {
 }
 ```
 
-**Warum nicht ein Signal + effect()?**
-`InstallModalState` ist ein diskriminiertes Union-Type (`null | { phase: ... }`).
-`ngOnChanges` reagiert direkt auf Referenzänderungen des `@Input()`-Signals aus der
-Root-Komponente und ist semantisch klarer als ein `effect()` für I/O-Management.
+**Why not a Signal + effect()?**
+`InstallModalState` is a discriminated union type (`null | { phase: ... }`).
+`ngOnChanges` reacts directly to reference changes of the `@Input()` signal from the
+root component and is semantically clearer than an `effect()` for I/O management.
 
-## App-Konfiguration (Standalone Bootstrap)
+## App Configuration (Standalone Bootstrap)
 
-`apps/web/src/app/app.config.ts` konfiguriert:
-- `provideHttpClient(withFetch())` – modernes fetch-API statt XMLHttpRequest
-- `provideRouter(routes)` – Routing (aktuell nur eine Route, vorbereitet für Erweiterungen)
+`apps/web/src/app/app.config.ts` configures:
+- `provideHttpClient(withFetch())` – modern fetch API instead of XMLHttpRequest
+- `provideRouter(routes)` – routing (currently one route, prepared for extensions)
 
-Es gibt kein `AppModule`. Angular 17 Standalone Components brauchen kein NgModule mehr.
+There is no `AppModule`. Angular 17 standalone components no longer need NgModule.
 
-## Komponenten-Besonderheiten
+## Component Highlights
 
 ### StatusCardComponent
-Pollt `GET /api/status` und zeigt nvm-Version + NVM_DIR.
-Zeigt "nicht verbunden" wenn der Express-Server nicht läuft.
+Polls `GET /api/status` and displays nvm version + NVM_DIR.
+Shows "not connected" when the Express server is not running.
 
 ### RemoteVersionsCardComponent
-Lädt `GET /api/versions/remote` (kann langsam sein – nodejs.org-Netzwerkanfrage).
-Wird deshalb lazy geladen (erst bei User-Interaktion, nicht beim App-Start).
+Loads `GET /api/versions/remote` (can be slow – nodejs.org network request).
+Therefore loaded lazily (only on user interaction, not on app start).
 
 ### AliasesCardComponent
-Besitzt lokalen State für Inline-Editing von Aliases.
-Nutzt `aliasesRefreshTrigger` als `@Input()` und ruft bei dessen Änderung
-(via `ngOnChanges`) neu die API ab.
+Holds local state for inline editing of aliases.
+Uses `aliasesRefreshTrigger` as `@Input()` and re-fetches from the API
+when it changes (via `ngOnChanges`).
 
 ### LogCardComponent
-Empfängt `LogEntry[]` und rendert sie als zeitgestempeltes Protokoll.
-Maximale Einträge: 20 (begrenzt in `App.addLog()` via `.slice(0, 19)`).
+Receives `LogEntry[]` and renders them as a timestamped log.
+Maximum entries: 20 (capped in `App.addLog()` via `.slice(0, 19)`).

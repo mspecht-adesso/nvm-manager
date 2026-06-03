@@ -1,17 +1,17 @@
 ---
-description: Angular Standalone-Architektur, Signals, HttpClient und SCSS-Konventionen für nvm-manager
+description: Angular standalone architecture, Signals, HttpClient and SCSS conventions for nvm-manager
 globs: apps/web/**/*.ts,apps/web/**/*.html,apps/web/**/*.scss
 alwaysApply: false
 ---
 
-# Angular Standalone-Regeln
+# Angular Standalone Rules
 
-## Komponenten
+## Components
 
-Immer `standalone: true`, nie `NgModule`:
+Always `standalone: true`, never `NgModule`:
 
 ```typescript
-// ✅ RICHTIG
+// ✅ CORRECT
 @Component({
   selector: 'app-version-card',
   standalone: true,
@@ -21,25 +21,25 @@ Immer `standalone: true`, nie `NgModule`:
 })
 export class VersionCardComponent {}
 
-// ❌ FALSCH – kein NgModule
+// ❌ WRONG – no NgModule
 @NgModule({ declarations: [VersionCardComponent] })
 ```
 
-## Signals (bevorzugt ab Angular 17+)
+## Signals (preferred since Angular 17+)
 
 ```typescript
-// Zustand als Signals
+// State as Signals
 readonly versions = signal<InstalledNodeVersion[]>([]);
 readonly isLoading = signal(false);
 readonly errorMessage = signal<string | null>(null);
 
-// Computed Values
+// Computed values
 readonly hasVersions = computed(() => this.versions().length > 0);
 ```
 
 ## HttpClient
 
-Immer typisiert, `inject()` statt Konstruktor-Injection bevorzugen:
+Always typed, prefer `inject()` over constructor injection:
 
 ```typescript
 private readonly http = inject(HttpClient);
@@ -49,13 +49,13 @@ getInstalledVersions(): Observable<InstalledVersionsResponse> {
 }
 ```
 
-## Fehlerbehandlung
+## Error Handling
 
 ```typescript
-// ❌ Fehler verschlucken
+// ❌ Swallowing errors
 catchError(() => EMPTY)
 
-// ✅ Fehler sichtbar machen
+// ✅ Making errors visible
 catchError((err: HttpErrorResponse) => {
   this.errorMessage.set(err.error?.message ?? err.message);
   return EMPTY;
@@ -64,13 +64,13 @@ catchError((err: HttpErrorResponse) => {
 
 ## SCSS
 
-- Variablen in `_variables.scss`, keine Magic Numbers in Komponenten
-- BEM-Namenskonvention für Klassen (`.card__title`, `.card--active`)
-- Keine externen UI-Bibliotheken (nur eigenes SCSS)
-- Mobile-first, aber primär Desktop-Fokus für lokales Tool
+- Variables in `_variables.scss`, no magic numbers in components
+- BEM naming convention for classes (`.card__title`, `.card--active`)
+- No external UI libraries (own SCSS only)
+- Mobile-first, but primarily desktop-focused for this local tool
 
-## Template-Regeln
+## Template Rules
 
-- `@if` / `@for` statt `*ngIf` / `*ngFor` (Angular 17+ Control Flow)
-- Kein Inline-Style in Templates
-- Buttons während laufender Aktionen per `[disabled]="isLoading()"` sperren
+- `@if` / `@for` instead of `*ngIf` / `*ngFor` (Angular 17+ control flow)
+- No inline styles in templates
+- Disable buttons during active operations with `[disabled]="isLoading()"`

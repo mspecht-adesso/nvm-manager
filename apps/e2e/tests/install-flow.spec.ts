@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Install-Flow E2E-Tests
+ * Install-Flow E2E Tests
  *
- * Diese Tests prüfen die Interaktion mit der Aktions-Card:
- * Eingabe einer Version, Auslösen von Installationen/Verwendungen usw.
+ * These tests verify the interaction with the action card:
+ * entering a version, triggering installs/uses, etc.
  *
- * Die Tests vermeiden echte nvm-Operationen wo möglich – sie prüfen nur
- * das UI-Verhalten (Modal öffnet sich, Log wird geschrieben, Buttons reagieren).
+ * Tests avoid real nvm operations where possible – they only verify
+ * UI behaviour (modal opens, log is written, buttons respond).
  */
 
 test.describe('Install-Modal', () => {

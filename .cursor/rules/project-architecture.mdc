@@ -1,52 +1,52 @@
 ---
-description: Kern-Architektur des nvm-manager Projekts – immer aktiv, gibt dem Agenten den strukturellen Kontext
+description: Core architecture of the nvm-manager project – always active, gives the agent structural context
 alwaysApply: true
 ---
 
-# nvm-manager – Architektur-Überblick
+# nvm-manager – Architecture Overview
 
-## Monorepo-Struktur
+## Monorepo Structure
 
 ```
-apps/api/   – Express REST-API   (Port 3789, bind: 127.0.0.1)
-apps/web/   – Angular 17+ SPA    (Port 4200, proxyt /api → 3789)
-apps/e2e/   – Playwright E2E-Tests
+apps/api/   – Express REST API   (port 3789, bind: 127.0.0.1)
+apps/web/   – Angular 17+ SPA    (port 4200, proxies /api → 3789)
+apps/e2e/   – Playwright E2E tests
 ```
 
-## Schlüsselentscheidungen
+## Key Decisions
 
-**nvm ist eine Shell-Funktion, kein Binary.**
-Daher startet das Backend für jeden nvm-Aufruf eine `bash -lc`-Subshell,
-lädt `nvm.sh` und führt den Befehl aus (`apps/api/src/nvm/nvm.service.ts`).
+**nvm is a shell function, not a binary.**
+The backend therefore spawns a `bash -c` subshell for every nvm call,
+sources `nvm.sh`, and executes the command (`apps/api/src/nvm/nvm.service.ts`).
 
-**Bind nur an 127.0.0.1 – nie an 0.0.0.0.**
-Das Backend führt Shell-Kommandos aus; Netzwerkexposition wäre ein Sicherheitsrisiko.
+**Bind to 127.0.0.1 only – never 0.0.0.0.**
+The backend executes shell commands; network exposure would be a security risk.
 
-**Keine Datenbank.**
-nvm selbst (Dateisystem unter `~/.nvm`) ist die einzige Quelle der Wahrheit.
-Die API fragt nvm bei jedem Request live ab.
+**No database.**
+nvm itself (filesystem under `~/.nvm`) is the single source of truth.
+The API queries nvm live on every request.
 
-**Angular Signals statt NgRx.**
-Der appweite State ist überschaubar (aktive Version, Log, Modal, Loading-Flags).
-Signals + computed() reichen vollständig ohne externe State-Management-Bibliothek.
+**Angular Signals instead of NgRx.**
+The app-wide state is manageable (active version, log, modal, loading flags).
+Signals + computed() are fully sufficient without an external state management library.
 
-**`nvm use` → intern `nvm alias default`.**
-`nvm use` ändert die Version nur im aktuellen Shell-Prozess (geht verloren).
-`nvm alias default` schreibt dauerhaft nach `~/.nvm/alias/default`.
+**`nvm use` → internally `nvm alias default`.**
+`nvm use` only changes the version for the current shell process (lost immediately).
+`nvm alias default` writes persistently to `~/.nvm/alias/default`.
 
-**Shell-Injection-Schutz zweistufig:**
-1. Whitelist-Regex-Validatoren in `nvm.types.ts` (vor dem Aufruf)
-2. Single-Quote-Escaping in `nvm.service.ts` (beim Aufruf)
+**Two-layered shell injection protection:**
+1. Whitelist regex validators in `nvm.types.ts` (before the call)
+2. Single-quote escaping in `nvm.service.ts` (at call time)
 
-## Dateiort-Schnellreferenz
+## File Location Quick Reference
 
-| Was | Wo |
+| What | Where |
 |-----|-----|
-| Express App-Factory | `apps/api/src/server.ts` |
-| nvm Shell-Wrapper | `apps/api/src/nvm/nvm.service.ts` |
-| Output-Parser | `apps/api/src/nvm/nvm.parser.ts` |
-| Typen + Validierung | `apps/api/src/nvm/nvm.types.ts` |
-| API-Routen | `apps/api/src/routes/nvm.routes.ts` |
-| Angular Root | `apps/web/src/app/app.ts` |
-| HTTP-Service | `apps/web/src/app/services/nvm-api.service.ts` |
-| Frontend-Typen | `apps/web/src/app/models/nvm.models.ts` |
+| Express app factory | `apps/api/src/server.ts` |
+| nvm shell wrapper | `apps/api/src/nvm/nvm.service.ts` |
+| Output parser | `apps/api/src/nvm/nvm.parser.ts` |
+| Types + validation | `apps/api/src/nvm/nvm.types.ts` |
+| API routes | `apps/api/src/routes/nvm.routes.ts` |
+| Angular root | `apps/web/src/app/app.ts` |
+| HTTP service | `apps/web/src/app/services/nvm-api.service.ts` |
+| Frontend types | `apps/web/src/app/models/nvm.models.ts` |

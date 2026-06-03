@@ -5,14 +5,14 @@ description: Expert guidance for testing the nvm-manager project. Covers Vitest 
 
 # Testing Expert – nvm-manager
 
-## Test-Strategie
+## Test Strategy
 
-| Ebene | Tool | Verzeichnis | Was testen |
-|-------|------|-------------|------------|
-| Unit (API) | Vitest | `apps/api/src/**/*.spec.ts` | Parser, Validierung, Services |
-| Integration (API) | Vitest + Supertest | `apps/api/src/routes/*.spec.ts` | HTTP-Routen, Status-Codes |
-| Unit (Angular) | Vitest + @testing-library/angular | `apps/web/src/**/*.spec.ts` | Komponenten, Services |
-| E2E | Playwright | `apps/e2e/` | User-Flows im Browser |
+| Level | Tool | Directory | What to test |
+|-------|------|-----------|--------------|
+| Unit (API) | Vitest | `apps/api/src/**/*.spec.ts` | Parsers, validators, services |
+| Integration (API) | Vitest + Supertest | `apps/api/src/routes/*.spec.ts` | HTTP routes, status codes |
+| Unit (Angular) | Vitest + @testing-library/angular | `apps/web/src/**/*.spec.ts` | Components, services |
+| E2E | Playwright | `apps/e2e/` | User flows in the browser |
 
 ## API – Setup
 
@@ -54,7 +54,7 @@ import { describe, it, expect } from 'vitest';
 import { parseInstalledVersions } from './nvm.parser.js';
 
 describe('parseInstalledVersions', () => {
-  it('parst aktive Default-Version', () => {
+  it('parses the active default version', () => {
     const stdout = '->     v22.11.0 (default)\n       v20.5.0\n       system';
     const result = parseInstalledVersions(stdout);
     expect(result).toHaveLength(2);
@@ -62,7 +62,7 @@ describe('parseInstalledVersions', () => {
     expect(result[1]).toMatchObject({ version: '20.5.0', active: false, default: false });
   });
 
-  it('gibt [] bei leerem stdout zurück', () => {
+  it('returns [] for empty stdout', () => {
     expect(parseInstalledVersions('')).toEqual([]);
   });
 });
@@ -76,22 +76,22 @@ import { isValidVersionInput } from './nvm.validator.js';
 
 describe('isValidVersionInput', () => {
   it.each(['22', '22.11', '22.11.0', 'node', 'stable', 'lts/*'])(
-    'akzeptiert "%s"', (v) => expect(isValidVersionInput(v)).toBe(true)
+    'accepts "%s"', (v) => expect(isValidVersionInput(v)).toBe(true)
   );
 
   it.each(['../etc', '; rm -rf', '', 42, null, 'lts/iron'])(
-    'lehnt "%s" ab', (v) => expect(isValidVersionInput(v)).toBe(false)
+    'rejects "%s"', (v) => expect(isValidVersionInput(v)).toBe(false)
   );
 });
 ```
 
-## API – Route-Integration (Supertest)
+## API – Route Integration (Supertest)
 
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 
-// App als Funktion exportieren (nicht app.listen() direkt in server.ts)
+// Export app as factory (do not call app.listen() directly in server.ts)
 import { createApp } from '../../server.js';
 import * as svc from '../nvm/nvm.service.js';
 
@@ -102,20 +102,20 @@ describe('POST /api/versions/install', () => {
 
   beforeEach(() => vi.clearAllMocks());
 
-  it('gibt 400 bei ungültiger Version', async () => {
+  it('returns 400 for an invalid version', async () => {
     const res = await request(app).post('/api/versions/install').send({ version: 'evil; rm -rf /' });
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
   });
 
-  it('gibt 200 bei gültiger Version', async () => {
+  it('returns 200 for a valid version', async () => {
     vi.mocked(svc.install).mockResolvedValue({ stdout: 'Now using node v22', stderr: '' });
     const res = await request(app).post('/api/versions/install').send({ version: '22' });
     expect(res.status).toBe(200);
     expect(res.body.stdout).toContain('v22');
   });
 
-  it('gibt 500 wenn nvm fehlschlägt', async () => {
+  it('returns 500 when nvm fails', async () => {
     vi.mocked(svc.install).mockRejectedValue(new Error('nvm: version not found'));
     const res = await request(app).post('/api/versions/install').send({ version: '999' });
     expect(res.status).toBe(500);
@@ -123,9 +123,9 @@ describe('POST /api/versions/install', () => {
 });
 ```
 
-**Wichtig:** `server.ts` muss `createApp()` und `startServer()` trennen damit Supertest ohne Port-Konflikt testen kann:
+**Important:** `server.ts` must separate `createApp()` and `startServer()` so Supertest can test without port conflicts:
 ```typescript
-export function createApp(): Express { /* alle middleware + routes */ return app; }
+export function createApp(): Express { /* all middleware + routes */ return app; }
 if (process.env.NODE_ENV !== 'test') { createApp().listen(3789, '127.0.0.1'); }
 ```
 
@@ -135,7 +135,7 @@ if (process.env.NODE_ENV !== 'test') { createApp().listen(3789, '127.0.0.1'); }
 npm install --save-dev vitest @vitest/browser @testing-library/angular jsdom --prefix apps/web
 ```
 
-## Angular – Component-Test
+## Angular – Component Test
 
 ```typescript
 import { render, screen } from '@testing-library/angular';
@@ -144,7 +144,7 @@ import { NvmApiService } from '../services/nvm-api.service';
 import { AppComponent } from './app';
 
 describe('AppComponent', () => {
-  it('zeigt nvm-Status an', async () => {
+  it('displays nvm status', async () => {
     const mockSvc = { getStatus: vi.fn().mockReturnValue(of({ ok: true, nvmVersion: '0.39.7' })) };
     await render(AppComponent, { providers: [{ provide: NvmApiService, useValue: mockSvc }] });
     expect(await screen.findByText(/0\.39\.7/)).toBeInTheDocument();
@@ -172,16 +172,16 @@ export default defineConfig({
 });
 ```
 
-Beispiel-Test:
+Example test:
 ```typescript
-test('zeigt Status-Card mit nvm-Version', async ({ page }) => {
+test('displays status card with nvm version', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('nvm Manager')).toBeVisible();
   await expect(page.locator('.status-card')).toContainText(/\d+\.\d+\.\d+/);
 });
 ```
 
-## Root-Scripts ergänzen
+## Add Root Scripts
 
 ```json
 "test": "npm run test --prefix apps/api",

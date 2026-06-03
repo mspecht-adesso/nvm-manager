@@ -1,32 +1,32 @@
 ---
-description: Sicherheitsregeln für nvm-Kommandoausführung – Shell-Injection-Prävention und Input-Validierung
+description: Security rules for nvm command execution – shell injection prevention and input validation
 alwaysApply: true
 ---
 
-# nvm-Sicherheitsregeln
+# nvm Security Rules
 
-## Erlaubte nvm-Aktionen (Whitelist)
+## Allowed nvm Actions (Whitelist)
 
-Nur diese nvm-Kommandos dürfen ausgeführt werden:
+Only these nvm commands may be executed:
 
-| Aktion | nvm-Kommando |
+| Action | nvm command |
 |--------|-------------|
 | Status | `nvm --version` |
-| Installierte anzeigen | `nvm ls` |
-| Remote LTS anzeigen | `nvm ls-remote --lts` |
-| Installieren | `nvm install <version>` |
-| Verwenden | `nvm use <version>` |
-| Default setzen | `nvm alias default <version>` |
-| Deinstallieren | `nvm uninstall <version>` |
+| List installed | `nvm ls` |
+| List remote LTS | `nvm ls-remote --lts` |
+| Install | `nvm install <version>` |
+| Use | `nvm use <version>` |
+| Set default | `nvm alias default <version>` |
+| Uninstall | `nvm uninstall <version>` |
 
-**Kein anderes Kommando darf ausgeführt werden.**
+**No other command may be executed.**
 
-## Versions-Validierung
+## Version Validation
 
-Vor jedem Aufruf mit Version-Parameter:
+Before every call with a version parameter:
 
 ```typescript
-// Erlaubte Formate
+// Allowed formats
 const VERSION_PATTERN = /^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/;
 
 export function isValidVersionInput(v: unknown): v is string {
@@ -34,27 +34,27 @@ export function isValidVersionInput(v: unknown): v is string {
 }
 ```
 
-Ablehnen mit HTTP 400 bei ungültiger Eingabe – kein Logging des Inputs (könnte Injection-Versuche beinhalten).
+Reject with HTTP 400 on invalid input – do not log the input (could contain injection attempts).
 
-## Shell-Injection-Prävention
+## Shell Injection Prevention
 
 ```typescript
-// ✅ Single-Quote-Escaping vor Shell-Übergabe
+// ✅ Single-quote escaping before passing to shell
 const safe = version.replace(/'/g, "'\\''");
 const cmd = `nvm install '${safe}'`;
 
-// ❌ Direkte String-Interpolation ohne Escaping
+// ❌ Direct string interpolation without escaping
 const cmd = `nvm install ${version}`;
 ```
 
-## Netzwerk-Bindung
+## Network Binding
 
-- Backend **nur** auf `127.0.0.1` lauschen (nie `0.0.0.0`)
-- CORS **nur** `http://localhost:4200`
-- Kein externer Zugriff möglich durch diese Konfiguration
+- Backend listens **only** on `127.0.0.1` (never `0.0.0.0`)
+- CORS **only** for `http://localhost:4200`
+- No external access possible with this configuration
 
-## Was niemals erlaubt ist
+## What is Never Allowed
 
-- Freie Shell-Kommandos aus dem Frontend (`/api/exec` o.ä.)
-- `eval()` oder dynamische Kommandokomposition aus User-Input
-- Weitergabe von `req.query` oder `req.body` ohne Validierung an Shell
+- Arbitrary shell commands from the frontend (`/api/exec` or similar)
+- `eval()` or dynamic command composition from user input
+- Passing `req.query` or `req.body` to the shell without validation

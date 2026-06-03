@@ -1,19 +1,19 @@
 #!/bin/bash
-# Post-edit hook: Gibt nach TypeScript-Datei-Änderungen einen Hinweis zur Typ-Prüfung aus.
+# Post-edit hook: provides a type-check reminder after TypeScript file changes.
 
 input=$(cat)
 file=$(echo "$input" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('path',''))" 2>/dev/null || echo "")
 
-# Nur bei TypeScript-Dateien im Projekt
+# Only for TypeScript, HTML and SCSS files in the project
 if echo "$file" | grep -qE "\.(ts|html|scss)$"; then
-  # Prüfe ob in apps/api/ oder apps/web/
+  # Check whether the file is in apps/api/ or apps/web/
   if echo "$file" | grep -q "apps/api/"; then
     echo "{
-      \"additional_context\": \"Datei im API-Verzeichnis geändert: ${file}. Stelle sicher dass alle TypeScript-Typen korrekt sind und kein 'any' verwendet wird. Prüfe insbesondere die Input-Validierung falls nvm-Kommandos betroffen sind.\"
+      \"additional_context\": \"File changed in API directory: ${file}. Make sure all TypeScript types are correct and no 'any' is used. Pay special attention to input validation if nvm commands are affected.\"
     }"
   elif echo "$file" | grep -q "apps/web/"; then
     echo "{
-      \"additional_context\": \"Datei im Angular-Verzeichnis geändert: ${file}. Stelle sicher dass Standalone-Architektur eingehalten wird und Signals korrekt verwendet werden.\"
+      \"additional_context\": \"File changed in Angular directory: ${file}. Make sure the standalone architecture is followed and Signals are used correctly.\"
     }"
   else
     echo '{ "additional_context": "" }'

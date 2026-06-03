@@ -1,0 +1,36 @@
+---
+description: All code comments must be written in English
+alwaysApply: true
+---
+
+# Code Comments Language
+
+All inline comments, block comments, and JSDoc/TSDoc comments in source code **must be written in English** – regardless of the spoken language used in the conversation.
+
+```typescript
+// ❌ BAD
+// Gibt die aktive Version zurück
+function getActiveVersion() { ... }
+
+// ✅ GOOD
+// Returns the currently active Node.js version
+function getActiveVersion() { ... }
+```
+
+```typescript
+// ❌ BAD
+/**
+ * Führt einen nvm-Befehl aus und gibt stdout zurück.
+ */
+async function runNvm(args: string[]): Promise<string> { ... }
+
+// ✅ GOOD
+/**
+ * Executes an nvm command and returns stdout.
+ */
+async function runNvm(args: string[]): Promise<string> { ... }
+```
+
+This rule applies to all file types: `.ts`, `.html`, `.scss`, `.json`, `.sh`, etc.
+
+User-facing UI text, documentation files (`.md`), and commit messages are **not** affected by this rule.

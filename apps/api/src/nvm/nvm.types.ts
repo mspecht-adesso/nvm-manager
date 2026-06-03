@@ -3,11 +3,11 @@ export type InstalledNodeVersion = {
   active: boolean;
   default: boolean;
   system: boolean;
-  /** true wenn der "stable"-Alias auf diese Version zeigt. */
+  /** true if the "stable" alias points to this version. */
   stable: boolean;
-  /** true wenn der "unstable"-Alias auf diese Version zeigt. */
+  /** true if the "unstable" alias points to this version. */
   unstable: boolean;
-  /** true wenn der "iojs"-Alias auf diese Version zeigt. */
+  /** true if the "iojs" alias points to this version. */
   iojs: boolean;
 };
 
@@ -19,13 +19,13 @@ export type InstalledVersionsResponse = {
 
 export type NvmAlias = {
   name: string;
-  /** Direktes Ziel des Alias, z.B. "lts/*", "v22.11.0", "stable". */
+  /** Direct target of the alias, e.g. "lts/*", "v22.11.0", "stable". */
   target: string;
-  /** Aufgelöste Node-Version, falls bekannt, sonst null. */
+  /** Resolved Node.js version if known, otherwise null. */
   resolved: string | null;
-  /** false für node/stable/unstable/lts/* – von nvm selbst verwaltet. */
+  /** false for node/stable/unstable/lts/* – managed by nvm itself. */
   editable: boolean;
-  /** false für default + alle eingebauten Aliases. */
+  /** false for default and all built-in aliases. */
   deletable: boolean;
 };
 
@@ -54,8 +54,8 @@ export type NvmStatus = {
 };
 
 /**
- * Repräsentiert einen Fehler bei der Ausführung eines nvm-Kommandos.
- * Enthält stdout/stderr für Debugging im Error-Middleware.
+ * Represents an error that occurred during execution of an nvm command.
+ * Contains stdout/stderr for debugging in the error middleware.
  */
 export class NvmError extends Error {
   constructor(
@@ -69,35 +69,35 @@ export class NvmError extends Error {
 }
 
 /**
- * Prüft, ob eine Version ein sicherer nvm-Eingabewert ist.
- * Erlaubt: node, stable, lts/*, oder Semver-Muster (Major, Major.Minor, Major.Minor.Patch).
- * Verhindert Shell-Injection durch striktes Whitelist-Regex.
+ * Checks whether a version string is a safe nvm input value.
+ * Allowed: node, stable, lts/*, or semver patterns (Major, Major.Minor, Major.Minor.Patch).
+ * Prevents shell injection via strict whitelist regex.
  */
 export function isValidVersionInput(v: unknown): v is string {
   return typeof v === 'string' && /^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/.test(v);
 }
 
 /**
- * Prüft, ob ein Alias-Name sicher ist.
- * Erlaubt: Buchstaben, Ziffern, Bindestrich, Unterstrich. Muss mit Buchstaben beginnen.
- * "default" ist eingeschlossen – kann gesetzt, aber nicht gelöscht werden.
+ * Checks whether an alias name is safe.
+ * Allowed: letters, digits, hyphens, underscores. Must start with a letter.
+ * "default" is included – can be set but not deleted.
  */
 export function isValidAliasName(v: unknown): v is string {
   return typeof v === 'string' && /^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/.test(v);
 }
 
 /**
- * Prüft, ob ein Alias-Ziel sicher ist.
- * Erlaubt: node, stable, unstable, lts/<codename>, lts/*, vX.Y.Z, X, X.Y, X.Y.Z.
+ * Checks whether an alias target is safe.
+ * Allowed: node, stable, unstable, lts/<codename>, lts/*, vX.Y.Z, X, X.Y, X.Y.Z.
  */
 export function isValidAliasTarget(v: unknown): v is string {
   return typeof v === 'string' && /^(node|stable|unstable|lts\/[\w.*-]+|v?\d+(\.\d+){0,2})$/.test(v);
 }
 
 /**
- * Prüft, ob ein LTS-Codename sicher ist (der Teil nach "lts/").
- * Erlaubt: Buchstaben, Ziffern, Bindestrich, Unterstrich, Sternchen.
- * Beispiele: iron, hydrogen, *, lts-2024.
+ * Checks whether an LTS codename is safe (the part after "lts/").
+ * Allowed: letters, digits, hyphens, underscores, asterisks.
+ * Examples: iron, hydrogen, *, lts-2024.
  */
 export function isValidLtsCodename(v: unknown): v is string {
   return typeof v === 'string' && /^[\w*-]+$/.test(v) && v.length >= 1 && v.length <= 30;

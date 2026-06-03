@@ -1,14 +1,14 @@
 ---
-description: Code-Formatierung mit Prettier und ESLint Flat Config für nvm-manager (TypeScript, Angular, SCSS)
+description: Code formatting with Prettier and ESLint Flat Config for nvm-manager (TypeScript, Angular, SCSS)
 globs: apps/**/*.ts,apps/**/*.html,apps/**/*.scss,*.json,*.mjs
 alwaysApply: false
 ---
 
-# Formatierungs-Konventionen
+# Formatting Conventions
 
-## Prettier-Konfiguration (`.prettierrc`)
+## Prettier Configuration (`.prettierrc`)
 
-Gilt für beide Apps (`apps/web/` und `apps/api/`):
+Applies to both apps (`apps/web/` and `apps/api/`):
 
 ```json
 {
@@ -81,7 +81,7 @@ export default tseslint.config(
 );
 ```
 
-## EditorConfig (`.editorconfig` im Root)
+## EditorConfig (`.editorconfig` in project root)
 
 ```ini
 root = true
@@ -98,9 +98,9 @@ insert_final_newline = true
 trim_trailing_whitespace = false
 ```
 
-## Npm-Scripts
+## Npm Scripts
 
-In beiden `package.json`s ergänzen:
+Add to both `package.json` files:
 
 ```json
 "scripts": {
@@ -111,7 +111,7 @@ In beiden `package.json`s ergänzen:
 }
 ```
 
-Im Root `package.json`:
+In the root `package.json`:
 
 ```json
 "lint": "npm run lint --prefix apps/api && npm run lint --prefix apps/web",

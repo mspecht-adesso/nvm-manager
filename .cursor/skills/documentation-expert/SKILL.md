@@ -5,27 +5,27 @@ description: Expert guidance for writing technical documentation and a user manu
 
 # Documentation Expert – nvm-manager
 
-## Zwei Dokumentations-Arten
+## Two Types of Documentation
 
-1. **Technische Doku** – TSDoc-Kommentare im Code, OpenAPI/Swagger für die REST-API
-2. **Benutzerhandbuch** – Markdown-Datei für Endanwender des nvm-manager-Tools
+1. **Technical docs** – TSDoc comments in code, OpenAPI/Swagger for the REST API
+2. **User handbook** – Markdown file for end users of the nvm-manager tool
 
 ---
 
-## TSDoc-Kommentare (TypeScript)
+## TSDoc Comments (TypeScript)
 
-Standard für TypeScript-Projekte. Nur bei nicht-offensichtlichen Funktionen kommentieren:
+Standard for TypeScript projects. Only comment non-obvious functions:
 
 ```typescript
 /**
- * Führt einen nvm-Befehl in einer isolierten bash-Subshell aus.
+ * Executes an nvm command in an isolated bash subshell.
  *
- * nvm ist eine Shell-Funktion und muss vor jeder Ausführung
- * über `nvm.sh` geladen werden.
+ * nvm is a shell function and must be sourced via `nvm.sh`
+ * before each execution.
  *
- * @param args - Validierte nvm-Argumente (z.B. `['install', '22']`)
- * @returns Stdout und Stderr der nvm-Ausgabe
- * @throws {NvmError} wenn nvm einen Nicht-Null Exit-Code zurückgibt
+ * @param args - Validated nvm arguments (e.g. `['install', '22']`)
+ * @returns stdout and stderr of the nvm output
+ * @throws {NvmError} when nvm returns a non-zero exit code
  *
  * @example
  * const { stdout } = await runNvm(['ls']);
@@ -33,32 +33,32 @@ Standard für TypeScript-Projekte. Nur bei nicht-offensichtlichen Funktionen kom
 export async function runNvm(args: string[]): Promise<{ stdout: string; stderr: string }> { ... }
 
 /**
- * Prüft ob der Eingabe-String eine gültige nvm-Versionsangabe ist.
+ * Checks whether the input string is a valid nvm version specifier.
  *
- * Erlaubte Formate: `node`, `stable`, `lts/*`, `22`, `22.11`, `22.11.0`
+ * Allowed formats: `node`, `stable`, `lts/*`, `22`, `22.11`, `22.11.0`
  *
- * @param v - Zu prüfender Wert (bewusst `unknown` für sichere Verwendung in Request-Handlern)
+ * @param v - Value to check (intentionally `unknown` for safe use in request handlers)
  */
 export function isValidVersionInput(v: unknown): v is string { ... }
 ```
 
-Angular-Services dokumentieren:
+Document Angular services:
 
 ```typescript
 /**
- * Service für die Kommunikation mit dem nvm-manager Express-Backend.
+ * Service for communicating with the nvm-manager Express backend.
  *
- * Alle Methoden geben Observables zurück. Fehler werden über
- * `catchError` behandelt und sind in `this.lastError` sichtbar.
+ * All methods return Observables. Errors are handled via
+ * `catchError` and are visible in `this.lastError`.
  */
 @Injectable({ providedIn: 'root' })
 export class NvmApiService { ... }
 ```
 
-**Regeln:**
-- Keine offensichtlichen Kommentare (`// incrementiert den Zähler`)
-- TSDoc bei: öffentlichen Service-Methoden, komplexer Logik, nicht-trivialen Typen
-- Inline-Kommentare `//` für nicht-offensichtliche Implementierungsdetails
+**Rules:**
+- No obvious comments (`// increments the counter`)
+- TSDoc on: public service methods, complex logic, non-trivial types
+- Inline `//` comments for non-obvious implementation details
 
 ---
 
@@ -79,7 +79,7 @@ export const swaggerSpec = swaggerJSDoc({
     info: {
       title: 'nvm-manager API',
       version: '1.0.0',
-      description: 'Lokale REST-API zur Verwaltung von Node.js-Versionen via nvm.',
+      description: 'Local REST API for managing Node.js versions via nvm.',
     },
     servers: [{ url: 'http://127.0.0.1:3789' }],
   },
@@ -87,7 +87,7 @@ export const swaggerSpec = swaggerJSDoc({
 });
 ```
 
-In `server.ts` einbinden:
+Mount in `server.ts`:
 
 ```typescript
 import swaggerUi from 'swagger-ui-express';
@@ -96,17 +96,17 @@ import { swaggerSpec } from './openapi.js';
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 ```
 
-JSDoc-Annotationen in Routes:
+JSDoc annotations in routes:
 
 ```typescript
 /**
  * @openapi
  * /api/versions/installed:
  *   get:
- *     summary: Listet alle installierten Node.js-Versionen
+ *     summary: Lists all installed Node.js versions
  *     responses:
  *       200:
- *         description: Erfolgreich
+ *         description: Success
  *         content:
  *           application/json:
  *             schema:
@@ -139,59 +139,59 @@ JSDoc-Annotationen in Routes:
 router.get('/installed', getInstalledHandler);
 ```
 
-Ergebnis: Interaktive API-Doku unter `http://127.0.0.1:3789/api/docs`
+Result: interactive API docs at `http://127.0.0.1:3789/api/docs`
 
 ---
 
-## Benutzerhandbuch (`docs/BENUTZERHANDBUCH.md`)
+## User Handbook (`docs/BENUTZERHANDBUCH.md`)
 
-Erstelle `docs/BENUTZERHANDBUCH.md` im Projekt-Root:
+Create `docs/BENUTZERHANDBUCH.md` in the project root:
 
 ```markdown
-# nvm Manager – Benutzerhandbuch
+# nvm Manager – User Handbook
 
-## Was ist nvm Manager?
+## What is nvm Manager?
 
-nvm Manager ist ein lokales Web-Tool für macOS und Linux, das die Verwaltung von
-Node.js-Versionen über nvm (Node Version Manager) per Browser-Oberfläche ermöglicht.
+nvm Manager is a local web tool for macOS and Linux that allows managing
+Node.js versions via nvm (Node Version Manager) through a browser interface.
 
-## Voraussetzungen
+## Prerequisites
 
-- macOS oder Linux
-- [nvm](https://github.com/nvm-sh/nvm) installiert (`nvm --version` gibt eine Version aus)
-- Node.js ≥ 18 und npm installiert
+- macOS or Linux
+- [nvm](https://github.com/nvm-sh/nvm) installed (`nvm --version` returns a version)
+- Node.js ≥ 18 and npm installed
 
-## Start
+## Getting Started
 
-1. Im Projektordner: `npm install && npm run dev`
-2. Browser öffnen: [http://localhost:4200](http://localhost:4200)
+1. In the project folder: `npm install && npm run dev`
+2. Open browser: [http://localhost:4200](http://localhost:4200)
 
-## Funktionen
+## Features
 
-### Status prüfen
+### Check Status
 ...
 
-### Version installieren
+### Install Version
 ...
 
-### Hinweis zu `nvm use`
-`nvm use` gilt nur für die Shell-Session des Backend-Prozesses...
+### Note on `nvm use`
+`nvm use` only applies to the shell session of the backend process...
 ```
 
-Vollständige Struktur des Handbuchs:
-- Einleitung + Was ist nvm Manager?
-- Voraussetzungen und Installation
-- Schritt-für-Schritt Quickstart
-- Jede Funktion mit Screenshot-Platzhalter und Beschreibung
-- Häufige Fehler und Lösungen (FAQ)
-- Sicherheitshinweise
-- Bekannte Einschränkungen (`nvm use`-Limitation)
+Full handbook structure:
+- Introduction + What is nvm Manager?
+- Prerequisites and installation
+- Step-by-step quickstart
+- Each feature with screenshot placeholder and description
+- Common errors and solutions (FAQ)
+- Security notes
+- Known limitations (`nvm use` limitation)
 
 ---
 
-## Dokumentations-Generierung
+## Documentation Generation
 
-Optionales Setup für automatische TypeScript-API-Docs mit TypeDoc:
+Optional setup for automatic TypeScript API docs with TypeDoc:
 
 ```bash
 npm install --save-dev typedoc --prefix apps/api
@@ -211,7 +211,7 @@ Script: `"docs": "typedoc"`
 
 ---
 
-## Weitere Ressourcen
+## Further Resources
 
-- Für API-Endpunkte: `http://127.0.0.1:3789/api/docs` (Swagger UI, nach Setup)
-- Für TypeScript-Typen: `apps/api/src/nvm/nvm.types.ts` und `apps/web/src/app/models/nvm.models.ts`
+- For API endpoints: `http://127.0.0.1:3789/api/docs` (Swagger UI, after setup)
+- For TypeScript types: `apps/api/src/nvm/nvm.types.ts` and `apps/web/src/app/models/nvm.models.ts`

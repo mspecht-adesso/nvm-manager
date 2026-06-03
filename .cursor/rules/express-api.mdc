@@ -1,15 +1,15 @@
 ---
-description: Express API-Konventionen, Fehlerbehandlung, Sicherheit und Route-Struktur für nvm-manager
+description: Express API conventions, error handling, security and route structure for nvm-manager
 globs: apps/api/**/*.ts
 alwaysApply: false
 ---
 
-# Express API-Regeln
+# Express API Rules
 
-## Route-Struktur
+## Route Structure
 
 ```typescript
-// ✅ Router pro Feature
+// ✅ One router per feature
 const router = Router();
 router.get('/installed', getInstalledHandler);
 router.post('/install', installHandler);
@@ -20,16 +20,16 @@ app.use('/api/versions', versionsRouter);
 app.use('/api', statusRouter);
 ```
 
-## Request-Handler-Muster
+## Request Handler Pattern
 
-Immer typisiert und mit try/catch:
+Always typed and wrapped in try/catch:
 
 ```typescript
 const installHandler: RequestHandler = async (req, res, next) => {
   try {
     const { version } = req.body as { version: unknown };
     if (!isValidVersionInput(version)) {
-      res.status(400).json({ error: 'Ungültige Versionseingabe' });
+      res.status(400).json({ error: 'Invalid version input' });
       return;
     }
     const result = await nvmService.install(version);
@@ -40,13 +40,13 @@ const installHandler: RequestHandler = async (req, res, next) => {
 };
 ```
 
-## Zentrales Error-Middleware
+## Central Error Middleware
 
-Am Ende von `server.ts` registrieren:
+Register at the end of `server.ts`:
 
 ```typescript
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const message = err instanceof Error ? err.message : 'Interner Fehler';
+  const message = err instanceof Error ? err.message : 'Internal server error';
   const detail = (err as Record<string, unknown>);
   res.status(500).json({
     error: message,
@@ -56,27 +56,27 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 ```
 
-## Sicherheit
+## Security
 
-- **Niemals** `req.body` direkt an Shell-Befehle weitergeben
-- Validation mit `isValidVersionInput()` vor jedem nvm-Aufruf
-- `execFile` (nicht `exec`) für Prozess-Ausführung
-- nvm-Argumente vor Shell-Injection schützen (single-quote escaping)
+- **Never** pass `req.body` directly to shell commands
+- Validate with `isValidVersionInput()` before every nvm call
+- Use `execFile` (not `exec`) for process execution
+- Protect nvm arguments against shell injection (single-quote escaping)
 
-## Antwortformat
+## Response Format
 
-Konsistente JSON-Responses:
+Consistent JSON responses:
 
 ```typescript
-// Erfolg
+// Success
 res.json({ stdout, stderr, versions? });
 
-// Fehler (400)
-res.status(400).json({ error: 'Beschreibender Fehlertext' });
+// Error (400)
+res.status(400).json({ error: 'Descriptive error message' });
 
-// Fehler (500) – via Error-Middleware
+// Error (500) – via error middleware
 ```
 
 ## Logging
 
-`morgan('dev')` für Entwicklung einbinden; kein `console.log` in Produktionspfaden.
+Include `morgan('dev')` for development; no `console.log` in production paths.

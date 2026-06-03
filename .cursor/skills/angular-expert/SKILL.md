@@ -5,17 +5,17 @@ description: Expert-level Angular 17+ guidance for nvm-manager. Covers standalon
 
 # Angular Expert – nvm-manager
 
-## Architektur-Prinzipien
+## Architecture Principles
 
-- **Standalone-only**: Kein NgModule. Alle Komponenten, Pipes und Direktiven mit `standalone: true`.
-- **Signal-first State**: `signal()`, `computed()`, `effect()` für lokalen Zustand. Kein Subject/BehaviorSubject für einfachen State.
-- **Inject-Funktion**: `inject()` statt Konstruktor-DI bevorzugen.
-- **Control Flow**: `@if`, `@for`, `@switch` (nicht `*ngIf`, `*ngFor`).
+- **Standalone-only**: No NgModule. All components, pipes and directives with `standalone: true`.
+- **Signal-first state**: `signal()`, `computed()`, `effect()` for local state. No Subject/BehaviorSubject for simple state.
+- **Inject function**: Prefer `inject()` over constructor DI.
+- **Control flow**: `@if`, `@for`, `@switch` (not `*ngIf`, `*ngFor`).
 
-## Signals-Muster
+## Signals Patterns
 
 ```typescript
-// Lokaler Zustand
+// Local state
 readonly versions = signal<InstalledNodeVersion[]>([]);
 readonly isLoading = signal(false);
 readonly error = signal<string | null>(null);
@@ -25,15 +25,15 @@ readonly activeVersion = computed(() =>
   this.versions().find(v => v.active)
 );
 
-// Side effects (z.B. Auto-Reload nach Änderung)
+// Side effects (e.g. auto-reload after change)
 effect(() => {
   if (this.versions().length > 0) {
-    console.log('Versionen geladen:', this.versions().length);
+    console.log('Versions loaded:', this.versions().length);
   }
 });
 ```
 
-## HttpClient-Patterns
+## HttpClient Patterns
 
 ```typescript
 private readonly http = inject(HttpClient);
@@ -53,21 +53,21 @@ private handleError(err: HttpErrorResponse): Observable<never> {
 }
 ```
 
-## Template-Muster (nvm-manager spezifisch)
+## Template Patterns (nvm-manager specific)
 
 ```html
-<!-- Loading-State mit Deaktivierung -->
+<!-- Loading state with disabled button -->
 <button [disabled]="isLoading()" (click)="install()">
-  @if (isLoading()) { Installiere ... } @else { Installieren }
+  @if (isLoading()) { Installing... } @else { Install }
 </button>
 
-<!-- Versions-Tabelle -->
+<!-- Versions table -->
 @if (hasVersions()) {
   <table>
     @for (v of versions(); track v.version) {
       <tr [class.active]="v.active">
         <td>{{ v.version }}</td>
-        <td>{{ v.active ? 'Aktiv' : '' }}</td>
+        <td>{{ v.active ? 'Active' : '' }}</td>
         <td>{{ v.default ? 'Default' : '' }}</td>
       </tr>
     }
@@ -75,19 +75,19 @@ private handleError(err: HttpErrorResponse): Observable<never> {
 }
 ```
 
-## SCSS-Architektur
+## SCSS Architecture
 
 ```
 src/
-├── styles.scss         # Global imports, CSS-Reset
-├── _variables.scss     # Farben, Spacing, Breakpoints
+├── styles.scss         # Global imports, CSS reset
+├── _variables.scss     # Colors, spacing, breakpoints
 └── app/
     └── components/
         └── version-card/
-            └── version-card.component.scss  # BEM-Scope
+            └── version-card.component.scss  # BEM scope
 ```
 
-Variablen-Beispiel:
+Variables example:
 ```scss
 // _variables.scss
 $color-primary: #4caf50;
@@ -97,10 +97,10 @@ $spacing-md: 1rem;
 $border-radius: 6px;
 ```
 
-## Routing (zukunftssicher)
+## Routing (future-proof)
 
 ```typescript
-// app.routes.ts – lazy-loading bereit für spätere Features
+// app.routes.ts – lazy-loading ready for future features
 export const routes: Routes = [
   { path: '', component: DashboardComponent },
   {
@@ -110,24 +110,24 @@ export const routes: Routes = [
 ];
 ```
 
-## Service-Architektur
+## Service Architecture
 
 Services in `apps/web/src/app/services/`:
-- `nvm-api.service.ts` – HTTP-Kommunikation zum Backend
-- Kein State in Services im MVP; State gehört zur Komponente via Signals
+- `nvm-api.service.ts` – HTTP communication with the backend
+- No state in services in the MVP; state belongs to the component via Signals
 
-## Fehler-UX
+## Error UX
 
 ```typescript
-// In der Komponente
+// In the component
 protected onError(message: string): void {
   this.error.set(message);
-  // Optional: Auto-clear nach 5s
+  // Optional: auto-clear after 5s
   setTimeout(() => this.error.set(null), 5000);
 }
 ```
 
-## Weitere Ressourcen
+## Further Resources
 
-- Für SCSS-Konventionen: siehe Rule `angular-standalone.mdc`
-- Für Typen: `apps/web/src/app/models/nvm.models.ts`
+- For SCSS conventions: see rule `angular-standalone.mdc`
+- For types: `apps/web/src/app/models/nvm.models.ts`

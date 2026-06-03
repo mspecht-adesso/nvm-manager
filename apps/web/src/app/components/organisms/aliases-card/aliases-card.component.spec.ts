@@ -124,7 +124,7 @@ describe('AliasesCardComponent', () => {
 
   it('setzt editingAlias und editAliasTarget beim Bearbeiten', async () => {
     const { comp } = await setup();
-    // Installierte Versionen setzen, damit startEdit die aufgelöste Version vorselektiert
+    // Set installed versions so that startEdit pre-selects the resolved version
     comp.installedVersions = [
       { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
     ];

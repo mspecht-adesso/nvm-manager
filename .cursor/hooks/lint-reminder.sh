@@ -1,35 +1,35 @@
 #!/bin/bash
-# Lint-Reminder-Hook: Gibt nach TypeScript-Änderungen Hinweise zu Lint-Checks.
+# Lint reminder hook: provides lint check hints after TypeScript file changes.
 
 input=$(cat)
 file=$(echo "$input" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('path',''))" 2>/dev/null || echo "")
 
-# Nur bei TypeScript-Dateien
+# Only for TypeScript files
 if ! echo "$file" | grep -qE "\.ts$"; then
   echo '{ "additional_context": "" }'
   exit 0
 fi
 
-# Test-Dateien: Vitest-spezifische Hinweise
+# Test files: Vitest-specific hints
 if echo "$file" | grep -qE "\.spec\.ts$|\.test\.ts$"; then
   echo '{
-    "additional_context": "Testdatei geändert. Stelle sicher: (1) describe/it-Texte sind auf Deutsch, (2) vi.mock() statt manuellem Stubbing, (3) afterEach/beforeEach räumt Mocks auf mit vi.clearAllMocks()."
+    "additional_context": "Test file changed. Make sure: (1) describe/it labels are in English, (2) vi.mock() instead of manual stubbing, (3) afterEach/beforeEach cleans up mocks with vi.clearAllMocks()."
   }'
   exit 0
 fi
 
-# API-Dateien: Backend-Lint-Hinweise
+# API files: backend lint hints
 if echo "$file" | grep -q "apps/api/"; then
   echo '{
-    "additional_context": "TypeScript-Datei im API geändert. Lint-Hinweise: Kein '\''any'\'', alle Promises awaiten oder void-casts verwenden (@typescript-eslint/no-floating-promises), explizite Rückgabetypen bei public functions, kein console.log in Handlern."
+    "additional_context": "TypeScript file in API changed. Lint hints: no '\''any'\'', await all Promises or use void-casts (@typescript-eslint/no-floating-promises), explicit return types on public functions, no console.log in handlers."
   }'
   exit 0
 fi
 
-# Angular-Dateien: Frontend-Lint-Hinweise
+# Angular files: frontend lint hints
 if echo "$file" | grep -q "apps/web/"; then
   echo '{
-    "additional_context": "Angular TypeScript-Datei geändert. Lint-Hinweise: standalone: true bei Komponenten (@angular-eslint/prefer-standalone), Signals statt BehaviorSubject, @if/@for statt *ngIf/*ngFor, keine any-Typen in HttpClient-Aufrufen."
+    "additional_context": "Angular TypeScript file changed. Lint hints: standalone: true on components (@angular-eslint/prefer-standalone), Signals instead of BehaviorSubject, @if/@for instead of *ngIf/*ngFor, no any types in HttpClient calls."
   }'
   exit 0
 fi

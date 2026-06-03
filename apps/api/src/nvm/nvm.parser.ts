@@ -1,28 +1,28 @@
 import type { InstalledNodeVersion, NvmAlias, RemoteNodeVersion } from './nvm.types.js';
 
-// Entfernt ANSI-Escape-Sequenzen (Farbcodes) aus einem String.
+// Strips ANSI escape sequences (color codes) from a string.
 const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
 
 /**
- * Parst die stdout-Ausgabe von `nvm ls` in strukturierte Versionsobjekte.
+ * Parses the stdout output of `nvm ls` into structured version objects.
  *
- * Installierte Versionen stehen immer am Zeilenanfang (ggf. mit führenden
- * Leerzeichen und optionalem `->` für die aktive Version):
+ * Installed versions always appear at the start of a line (optionally with
+ * leading whitespace and an optional `->` marker for the active version):
  *   ->     v22.11.0 (default)
  *          v20.18.0
  *          v18.20.7
  *
- * Alias-/Zusammenfassungszeilen wie
+ * Alias/summary lines such as
  *   default -> v22.11.0 (-> v22.11.0)
  *   node -> stable (-> v22.11.0)
  *   lts/iron -> v20.19.1 (-> N/A)
- * werden bewusst ignoriert.
+ * are intentionally ignored.
  */
 /**
- * Parst die stdout-Ausgabe von `nvm alias` in strukturierte Alias-Objekte.
+ * Parses the stdout output of `nvm alias` into structured alias objects.
  *
- * Format jeder Zeile: <name> -> <target> [(-> <resolved>)] [(default)]
- * Beispiele:
+ * Each line format: <name> -> <target> [(-> <resolved>)] [(default)]
+ * Examples:
  *   default -> lts/* (-> v22.20.0)
  *   node -> stable (-> v22.20.0) (default)
  *   lts/iron -> v20.19.1 (-> N/A)
@@ -63,15 +63,15 @@ export function parseAliases(stdout: string): NvmAlias[] {
 }
 
 /**
- * Parst die stdout-Ausgabe von `nvm ls-remote` in strukturierte Versionsobjekte.
+ * Parses the stdout output of `nvm ls-remote` into structured version objects.
  *
- * `nvm ls-remote` liefert LTS-Codenames inline, z.B.:
+ * `nvm ls-remote` includes LTS codenames inline, e.g.:
  *   v24.15.0   (LTS: Krypton)
  *   v24.16.0   (Latest LTS: Krypton)
  *   v25.0.0
  *
- * Ein einzelner Call reicht – kein separater `--lts`-Aufruf nötig.
- * Liefert alle Versionen in absteigender Reihenfolge (neueste zuerst).
+ * A single call is sufficient – no separate `--lts` call needed.
+ * Returns all versions in descending order (newest first).
  */
 export function parseRemoteVersions(stdout: string): RemoteNodeVersion[] {
   const versions: RemoteNodeVersion[] = [];
@@ -96,7 +96,7 @@ export function parseInstalledVersions(stdout: string): InstalledNodeVersion[] {
   return stdout
     .split('\n')
     .map((line) => line.replace(ANSI_ESCAPE, ''))
-    // Nur echte Versionszeilen: optional Whitespace, optional "->", Whitespace, dann "vX.Y.Z"
+    // Only real version lines: optional whitespace, optional "->", whitespace, then "vX.Y.Z"
     .filter((line) => /^\s*(->)?\s*v\d+\.\d+\.\d+/.test(line))
     .map((line) => ({
       version: (/v(\d+\.\d+\.\d+)/.exec(line) ?? [])[1] ?? '',

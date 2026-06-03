@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Smoke Tests – prüfen das Grundgerüst der App ohne nvm-Befehle auszulösen.
- * Die Tests setzen voraus, dass API (Port 3789) und Web (Port 4201) laufen.
+ * Smoke tests – verify the basic app scaffold without triggering any nvm commands.
+ * Requires API (port 3789) and web (port 4201) to be running.
  */
 
 test.describe('App-Layout', () => {
@@ -95,7 +95,7 @@ test.describe('Log-Card', () => {
   test('zeigt Platzhalter wenn keine Aktionen ausgeführt wurden', async ({ page }) => {
     await page.goto('/');
     const logCard = page.locator('app-log-card');
-    // Entweder Platzhaltertext oder Log-Einträge – beides ist gültig
+    // Either placeholder text or log entries – both are valid
     await expect(logCard).toBeVisible();
   });
 });
