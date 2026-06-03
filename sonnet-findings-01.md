@@ -47,8 +47,8 @@ Component-SCSS-Dateien neu deklariert (`app.scss`, `card.component.scss`).
 
 ### 3.1 Shared Partial anlegen
 
-- [ ] Datei `apps/web/src/styles/_variables.scss` anlegen
-- [ ] Alle SCSS-Variablen aus `styles.scss` (Zeilen 1–9) dorthin auslagern
+- [x] Datei `apps/web/src/styles/_variables.scss` anlegen
+- [x] Alle SCSS-Variablen aus `styles.scss` (Zeilen 1–9) dorthin auslagern
 
 ```scss
 // _variables.scss
@@ -63,7 +63,7 @@ $border-radius-sm: 4px;
 
 ### 3.2 `angular.json` anpassen
 
-- [ ] `stylePreprocessorOptions` in der `build`-Konfiguration ergänzen:
+- [x] `stylePreprocessorOptions` in der `build`-Konfiguration ergänzen:
 
 ```json
 "stylePreprocessorOptions": {
@@ -73,9 +73,9 @@ $border-radius-sm: 4px;
 
 ### 3.3 Component-Dateien bereinigen
 
-- [ ] Duplizierte Variable-Deklarationen aus `apps/web/src/app/app.scss` entfernen → `@use 'variables' as *`
-- [ ] Duplizierte Variable-Deklarationen aus `apps/web/src/app/components/molecules/card/card.component.scss` entfernen → `@use 'variables' as *`
-- [ ] Alle weiteren Component-SCSS-Dateien auf lokale Redeklarat­ionen prüfen und bereinigen
+- [x] Duplizierte Variable-Deklarationen aus `apps/web/src/app/app.scss` entfernen → `@use '../styles/variables' as *`
+- [x] Duplizierte Variable-Deklarationen aus `apps/web/src/app/components/molecules/card/card.component.scss` entfernen → `@use '../../../../styles/variables' as *`
+- [x] Alle weiteren Component-SCSS-Dateien auf lokale Redeklarat­ionen prüfen und bereinigen
 
 ---
 
@@ -316,7 +316,7 @@ export const appConfig: ApplicationConfig = {
 |---------|-------------|---------|--------|
 | 1 | index.html fixen | XS | erledigt |
 | 2 | withFetch() | XS | erledigt |
-| 3 | SCSS _variables.scss | S | offen |
+| 3 | SCSS _variables.scss | S | erledigt |
 | 4 | Signal Inputs/Outputs | M | offen |
 | 5 | OnPush auf alle Components | M | offen |
 | 6 | OnChanges → effect() | S | offen |

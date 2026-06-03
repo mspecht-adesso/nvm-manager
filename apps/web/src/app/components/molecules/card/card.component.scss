@@ -1,6 +1,4 @@
-$spacing-md: 1rem;
-$spacing-lg: 1.5rem;
-$border-radius: 8px;
+@use '../../../../styles/variables' as *;
 
 .card {
   background: var(--color-surface);
