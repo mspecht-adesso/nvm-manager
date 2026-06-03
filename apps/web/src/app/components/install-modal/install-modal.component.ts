@@ -1,4 +1,4 @@
-import { Component, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
 import type { InstallModalState } from '../../models/nvm.models';
 
 @Component({
@@ -6,6 +6,7 @@ import type { InstallModalState } from '../../models/nvm.models';
   standalone: true,
   templateUrl: './install-modal.component.html',
   styleUrl: './install-modal.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InstallModalComponent {
   readonly state = input<InstallModalState>(null);

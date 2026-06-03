@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal, computed, inject } from '@angular/core';
 import { NvmApiService } from './services/nvm-api.service';
 import { InstallModalComponent } from './components/install-modal/install-modal.component';
 import { AppHeaderComponent } from './components/organisms/app-header/app-header.component';
@@ -34,6 +34,7 @@ import type {
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App implements OnInit {
   private readonly nvmApi = inject(NvmApiService);

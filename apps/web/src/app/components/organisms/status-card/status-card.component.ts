@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, output, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, output, signal, computed, inject } from '@angular/core';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
@@ -10,6 +10,7 @@ import type { NvmStatus } from '../../../models/nvm.models';
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './status-card.component.html',
   styleUrl: './status-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatusCardComponent implements OnInit, OnDestroy {
   private readonly nvmApi = inject(NvmApiService);

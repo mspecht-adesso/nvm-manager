@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { SpinnerComponent } from '../spinner/spinner.component';
 
 @Component({
@@ -11,6 +11,7 @@ import { SpinnerComponent } from '../spinner/spinner.component';
       <span>{{ message() }}</span>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadingStateComponent {
   readonly message = input.required<string>();

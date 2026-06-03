@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
@@ -11,6 +11,7 @@ import type { InstalledNodeVersion, RemoteNodeVersion, RemoteVersionsResponse, L
   imports: [FormsModule, CardComponent, LoadingStateComponent],
   templateUrl: './remote-versions-card.component.html',
   styleUrl: './remote-versions-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RemoteVersionsCardComponent {
   private readonly nvmApi = inject(NvmApiService);

@@ -1,4 +1,4 @@
-import { Component, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardComponent } from '../../molecules/card/card.component';
 
@@ -8,6 +8,7 @@ import { CardComponent } from '../../molecules/card/card.component';
   imports: [FormsModule, CardComponent],
   templateUrl: './action-card.component.html',
   styleUrl: './action-card.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActionCardComponent {
   readonly isLoading = input(false);

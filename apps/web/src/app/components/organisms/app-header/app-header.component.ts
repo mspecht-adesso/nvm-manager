@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
 import { ThemeService } from '../../../services/theme.service';
 
@@ -7,6 +7,7 @@ import { ThemeService } from '../../../services/theme.service';
   standalone: true,
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppHeaderComponent {
   readonly activeVersion = input<InstalledNodeVersion | undefined>(undefined);

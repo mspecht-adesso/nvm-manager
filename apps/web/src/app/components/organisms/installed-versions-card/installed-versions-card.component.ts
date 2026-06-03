@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
@@ -8,6 +8,7 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
   standalone: true,
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './installed-versions-card.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InstalledVersionsCardComponent {
   readonly versions = input<InstalledNodeVersion[]>([]);

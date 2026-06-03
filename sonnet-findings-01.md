@@ -132,19 +132,19 @@ OnPush verhindert unnötige Default-CD-Zyklen in der gesamten Component-Tree.
 
 ### Betroffene Dateien
 
-- [ ] `app.ts` — `changeDetection: ChangeDetectionStrategy.OnPush` im `@Component`-Dekorator
-- [ ] `install-modal.component.ts`
-- [ ] `app-header.component.ts`
-- [ ] `app-footer.component.ts`
-- [ ] `status-card.component.ts`
-- [ ] `action-card.component.ts`
-- [ ] `installed-versions-card.component.ts`
-- [ ] `aliases-card.component.ts`
-- [ ] `remote-versions-card.component.ts`
-- [ ] `log-card.component.ts`
-- [ ] `card.component.ts`
-- [ ] `loading-state.component.ts`
-- [ ] `spinner.component.ts`
+- [x] `app.ts` — `changeDetection: ChangeDetectionStrategy.OnPush` im `@Component`-Dekorator
+- [x] `install-modal.component.ts`
+- [x] `app-header.component.ts`
+- [x] `app-footer.component.ts`
+- [x] `status-card.component.ts`
+- [x] `action-card.component.ts`
+- [x] `installed-versions-card.component.ts`
+- [x] `aliases-card.component.ts`
+- [x] `remote-versions-card.component.ts`
+- [x] `log-card.component.ts`
+- [x] `card.component.ts`
+- [x] `loading-state.component.ts`
+- [x] `spinner.component.ts`
 
 ### Import
 
@@ -318,7 +318,7 @@ export const appConfig: ApplicationConfig = {
 | 2 | withFetch() | XS | erledigt |
 | 3 | SCSS _variables.scss | S | erledigt |
 | 4 | Signal Inputs/Outputs | M | erledigt |
-| 5 | OnPush auf alle Components | M | offen |
+| 5 | OnPush auf alle Components | M | erledigt |
 | 6 | OnChanges → effect() | S | erledigt (mit Schritt 4) |
 | 7 | NvmStateService | L | offen |
 | 8 | confirm() → Custom-Modal | M | offen |
