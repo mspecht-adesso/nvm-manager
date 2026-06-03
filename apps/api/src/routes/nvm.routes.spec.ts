@@ -9,6 +9,7 @@ import * as parser from '../nvm/nvm.parser.js';
 import { createApp } from '../server.js';
 import { NvmError } from '../nvm/nvm.types.js';
 
+
 const app = createApp();
 
 const INSTALLED_STDOUT = '->     v22.11.0 (default)\n       v20.5.0';
@@ -17,6 +18,8 @@ const REMOTE_STDOUT = '   v22.0.0   (Latest LTS: Jod)';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(svc.fetchNvmLatestVersion).mockResolvedValue(null);
+  vi.mocked(svc.openNvmDir).mockResolvedValue(undefined);
 });
 
 // ── GET /api/status ────────────────────────────────────────────────────────────
@@ -31,12 +34,70 @@ describe('GET /api/status', () => {
     expect(res.body.nvmVersion).toBe('0.39.7');
   });
 
+  it('enthält nvmLatestVersion wenn GitHub-Abfrage erfolgreich', async () => {
+    vi.mocked(svc.runNvm).mockResolvedValue({ stdout: '0.39.7\n', stderr: '' });
+    vi.mocked(svc.fetchNvmLatestVersion).mockResolvedValue('0.40.4');
+
+    const res = await request(app).get('/api/status');
+    expect(res.status).toBe(200);
+    expect(res.body.nvmLatestVersion).toBe('0.40.4');
+  });
+
+  it('enthält kein nvmLatestVersion wenn GitHub-Abfrage fehlschlägt', async () => {
+    vi.mocked(svc.runNvm).mockResolvedValue({ stdout: '0.39.7\n', stderr: '' });
+    vi.mocked(svc.fetchNvmLatestVersion).mockResolvedValue(null);
+
+    const res = await request(app).get('/api/status');
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('nvmLatestVersion');
+  });
+
   it('gibt ok: false zurück wenn nvm nicht erreichbar', async () => {
     vi.mocked(svc.runNvm).mockRejectedValue(new NvmError('nvm not found', '', ''));
 
     const res = await request(app).get('/api/status');
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(false);
+    expect(res.body).toHaveProperty('error');
+  });
+});
+
+// ── POST /api/nvm/update ──────────────────────────────────────────────────────
+
+describe('POST /api/nvm/update', () => {
+  it('gibt 200 zurück wenn nvm upgrade erfolgreich', async () => {
+    vi.mocked(svc.updateNvm).mockResolvedValue({ stdout: 'nvm upgraded to v0.40.4', stderr: '' });
+
+    const res = await request(app).post('/api/nvm/update');
+    expect(res.status).toBe(200);
+    expect(res.body.stdout).toContain('upgraded');
+  });
+
+  it('gibt 500 zurück wenn nvm upgrade fehlschlägt', async () => {
+    vi.mocked(svc.updateNvm).mockRejectedValue(new NvmError('upgrade failed', '', 'stderr'));
+
+    const res = await request(app).post('/api/nvm/update');
+    expect(res.status).toBe(500);
+    expect(res.body).toHaveProperty('error');
+  });
+});
+
+// ── POST /api/nvm/open-dir ────────────────────────────────────────────────────
+
+describe('POST /api/nvm/open-dir', () => {
+  it('gibt 200 zurück wenn Ordner erfolgreich geöffnet', async () => {
+    vi.mocked(svc.openNvmDir).mockResolvedValue(undefined);
+
+    const res = await request(app).post('/api/nvm/open-dir');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('gibt 500 zurück wenn Ordner nicht geöffnet werden kann', async () => {
+    vi.mocked(svc.openNvmDir).mockRejectedValue(new Error('open failed: No such file'));
+
+    const res = await request(app).post('/api/nvm/open-dir');
+    expect(res.status).toBe(500);
     expect(res.body).toHaveProperty('error');
   });
 });

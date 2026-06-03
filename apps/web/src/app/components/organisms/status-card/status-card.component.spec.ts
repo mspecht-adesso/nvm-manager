@@ -8,6 +8,7 @@ import { of, throwError } from 'rxjs';
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getStatus: vi.fn().mockReturnValue(of({ ok: true, nvmVersion: '0.39.7', nvmDir: '/home/.nvm' })),
+    openNvmDir: vi.fn().mockReturnValue(of({ ok: true })),
     ...overrides,
   };
 }
@@ -82,5 +83,94 @@ describe('StatusCardComponent', () => {
     fixture.detectChanges();
     expect(comp.loading()).toBe(true);
     resolveStatus({ ok: true });
+  });
+
+  it('updateAvailable ist false wenn nvmLatestVersion fehlt', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(comp.updateAvailable()).toBe(false);
+  });
+
+  it('updateAvailable ist false wenn Version identisch', async () => {
+    const { fixture, comp } = await setup({
+      getStatus: vi.fn().mockReturnValue(
+        of({ ok: true, nvmVersion: '0.40.4', nvmLatestVersion: '0.40.4', nvmDir: '/home/.nvm' }),
+      ),
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(comp.updateAvailable()).toBe(false);
+  });
+
+  it('updateAvailable ist true wenn neuere Version verfügbar', async () => {
+    const { fixture, comp } = await setup({
+      getStatus: vi.fn().mockReturnValue(
+        of({ ok: true, nvmVersion: '0.39.3', nvmLatestVersion: '0.40.4', nvmDir: '/home/.nvm' }),
+      ),
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(comp.updateAvailable()).toBe(true);
+  });
+
+  it('emittiert nvmUpdate-Event mit Zielversion beim Klick', async () => {
+    const { fixture, comp } = await setup({
+      getStatus: vi.fn().mockReturnValue(
+        of({ ok: true, nvmVersion: '0.39.3', nvmLatestVersion: '0.40.4', nvmDir: '/home/.nvm' }),
+      ),
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let emittedVersion: string | undefined;
+    comp.nvmUpdate.subscribe((v: string) => (emittedVersion = v));
+    comp.onNvmUpdate();
+
+    expect(emittedVersion).toBe('0.40.4');
+  });
+
+  it('emittiert "latest" als Fallback wenn nvmLatestVersion nicht gesetzt', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let emittedVersion: string | undefined;
+    comp.nvmUpdate.subscribe((v: string) => (emittedVersion = v));
+    comp.onNvmUpdate();
+
+    expect(emittedVersion).toBe('latest');
+  });
+
+  describe('openDir()', () => {
+    it('ruft openNvmDir auf und setzt openingDir zurück auf false', async () => {
+      const { fixture, comp, mockSvc } = await setup();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      comp.openDir();
+      await fixture.whenStable();
+
+      expect(mockSvc.openNvmDir).toHaveBeenCalledOnce();
+      expect(comp.openingDir()).toBe(false);
+      expect(comp.openDirError()).toBeNull();
+    });
+
+    it('setzt openDirError bei Fehler', async () => {
+      const { fixture, comp } = await setup({
+        openNvmDir: vi.fn().mockReturnValue(throwError(() => new Error('open fehlgeschlagen'))),
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      comp.openDir();
+      await fixture.whenStable();
+
+      expect(comp.openingDir()).toBe(false);
+      expect(comp.openDirError()).toBe('open fehlgeschlagen');
+    });
   });
 });

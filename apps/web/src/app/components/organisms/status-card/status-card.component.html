@@ -1,7 +1,7 @@
 <app-card>
   <span card-title>Status</span>
   <button card-actions class="btn btn--sm btn--ghost" (click)="load()" [disabled]="loading()">
-    @if (loading()) { Lade... } @else { Aktualisieren }
+    @if (loading()) { Lade... } @else { Neu laden }
   </button>
 
   @if (loading()) {
@@ -17,13 +17,44 @@
       @if (status()!.nvmVersion) {
         <div class="status-item">
           <span class="status-item__label">nvm Version</span>
-          <code class="code-inline">{{ status()!.nvmVersion }}</code>
+          <div class="status-item__value-group">
+            <code class="code-inline">{{ status()!.nvmVersion }}</code>
+            @if (status()!.nvmLatestVersion) {
+              <span class="status-item__latest">
+                Aktuell: <code class="code-inline">{{ status()!.nvmLatestVersion }}</code>
+              </span>
+            }
+            @if (updateAvailable()) {
+              <button class="btn btn--sm btn--primary" (click)="onNvmUpdate()">
+                Aktualisieren
+              </button>
+            }
+          </div>
         </div>
       }
       @if (status()!.nvmDir) {
         <div class="status-item">
           <span class="status-item__label">NVM_DIR</span>
-          <code class="code-inline">{{ status()!.nvmDir }}</code>
+          <div class="status-item__value-group">
+            <code class="code-inline">{{ status()!.nvmDir }}</code>
+            <button
+              class="btn btn--sm btn--ghost btn--icon"
+              (click)="openDir()"
+              [disabled]="openingDir()"
+              title="Ordner im Dateimanager öffnen"
+            >
+              @if (openingDir()) {
+                <span class="btn-icon-spinner"></span>
+              } @else {
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              }
+            </button>
+            @if (openDirError()) {
+              <span class="status-item__open-error">{{ openDirError() }}</span>
+            }
+          </div>
         </div>
       }
       @if (status()!.error) {

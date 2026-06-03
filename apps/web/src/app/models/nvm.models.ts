@@ -15,6 +15,7 @@ export type RemoteVersionsResponse = NvmCommandResult & {
 export type NvmStatus = {
   ok: boolean;
   nvmVersion?: string;
+  nvmLatestVersion?: string;
   nvmDir?: string;
   error?: string;
 };
@@ -46,7 +47,7 @@ export type AliasesResponse = NvmCommandResult & {
 };
 
 export type InstallModalState = {
-  action: 'install' | 'use' | 'uninstall';
+  action: 'install' | 'use' | 'uninstall' | 'nvm-update';
   phase: 'running' | 'success' | 'error';
   version: string;
   errorMessage?: string;

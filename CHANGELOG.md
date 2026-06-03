@@ -14,6 +14,22 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Hinzugefügt
 
+- **NVM_DIR im Dateimanager öffnen** – Neben dem NVM_DIR-Pfad in der Status-Card erscheint jetzt ein Ordner-Icon-Button. Ein Klick öffnet das Verzeichnis direkt im Finder (macOS) bzw. Dateimanager (Linux) via `POST /api/nvm/open-dir`
+  - `openNvmDir()` – neue Funktion in `nvm.service.ts`; verwendet `open` auf macOS, `xdg-open` auf Linux; kein User-Input – nur der serverseitig konfigurierte `NVM_DIR`-Pfad wird übergeben
+  - `POST /api/nvm/open-dir` – neuer API-Endpunkt in `server.ts`
+  - `NvmApiService.openNvmDir()` – neue HTTP-Methode
+  - `StatusCardComponent` – `openingDir = signal(false)`, `openDirError = signal<string | null>(null)` mit automatischem 5-Sekunden-Clear; `openDir()`-Methode; `ngOnDestroy` räumt Timer auf
+
+- **nvm selbst aktualisieren** – Die Status-Card zeigt jetzt neben der installierten nvm-Version auch die neueste verfügbare Version (abgerufen von der GitHub-Releases-API). Wenn eine neuere Version verfügbar ist, erscheint ein „Aktualisieren"-Button, der `nvm upgrade` via `POST /api/nvm/update` auslöst und das Ergebnis im Fortschritts-Modal anzeigt
+  - `fetchNvmLatestVersion()` – neue Funktion in `nvm.service.ts`, ruft die GitHub-API mit 5-Sekunden-Timeout ab; gibt `null` zurück wenn nicht erreichbar
+  - `updateNvm()` – neue Funktion in `nvm.service.ts`: ermittelt Zielversion via GitHub-API, führt dann `git fetch --tags origin && git checkout <version>` im NVM_DIR aus (git-Methode statt `nvm upgrade`, das in v0.39.x nicht existiert)
+  - `POST /api/nvm/update` – neuer API-Endpunkt in `server.ts`
+  - `GET /api/status` liefert jetzt optional `nvmLatestVersion` (nur wenn GitHub-Abfrage erfolgreich)
+  - `StatusCardComponent` – neuer `@Output() nvmUpdate: EventEmitter<string>` emittiert die Zielversion; `updateAvailable` als `computed()`-Signal
+  - `InstallModalState` – action-Typ um `'nvm-update'` erweitert; alle drei Phasen (running / success / error) mit nvm-spezifischen Texten im Modal
+  - `NvmApiService.updateNvm()` – neue HTTP-Methode
+  - `NvmStatus` – neues optionales Feld `nvmLatestVersion`
+
 - **Light-/Dark-Mode-Umschalter** – Der Header enthält jetzt einen runden Toggle-Button (☾/☀), mit dem zwischen hellem und dunklem UI-Theme gewechselt werden kann
   - Theme wird in `localStorage` gespeichert und beim nächsten Start automatisch wiederhergestellt
   - Beim allerersten Aufruf wird die System-Präferenz des Betriebssystems (`prefers-color-scheme`) erkannt und übernommen
@@ -37,6 +53,10 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Tests
 
+- `nvm.routes.spec.ts` – 6 neue Tests: `POST /api/nvm/update` (Erfolg, Fehler), `GET /api/status` mit `nvmLatestVersion` (vorhanden, fehlende GitHub-Antwort), `POST /api/nvm/open-dir` (Erfolg, Fehler)
+- `status-card.component.spec.ts` – 6 neue Tests: `updateAvailable`-Signal (false ohne Version, false bei gleicher Version, true bei neuerer Version), `nvmUpdate`-Event mit Zielversion, `openDir()` (Erfolg und Fehler)
+- `install-modal.component.spec.ts` – 4 neue Tests: `getErrorInstructions` für `nvm-update`-Aktion (Netzwerkfehler, upgrade-Fehler, unbekannter Fehler, kein Fehler)
+- `app.spec.ts` – 3 neue Tests: Modal öffnet sich beim Start von `onNvmUpdate`, Modal auf success nach erfolgreichem Update, Modal auf error bei Fehler
 - `theme.service.spec.ts` – 9 neue Tests: localStorage-Persistierung, System-Präferenz-Erkennung, Fallback auf `light`, Toggle-Verhalten, `data-theme`-Attribut-Setzung
 - `app-header.component.spec.ts` – 7 neue Tests: Toggle-Button sichtbar, Mond-/Sonnen-Symbol je nach Modus, `toggle()`-Aufruf bei Klick, `aria-label`-Korrektheit, reaktive Icon-Aktualisierung nach Toggle
 

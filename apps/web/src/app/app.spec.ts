@@ -25,6 +25,7 @@ function mockNvmApiService(overrides: Partial<InstanceType<typeof NvmApiService>
     setAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     deleteAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     getRemoteVersions: vi.fn().mockReturnValue(of({ stdout: '', stderr: '', versions: [] })),
+    updateNvm: vi.fn().mockReturnValue(of({ stdout: 'nvm upgraded', stderr: '' })),
     ...overrides,
   };
 }
@@ -178,5 +179,71 @@ describe('App', () => {
     }
 
     expect(comp.log().length).toBeLessThanOrEqual(20);
+  });
+
+  it('öffnet Modal mit nvm-update-Action beim Start von onNvmUpdate', async () => {
+    const { Subject } = await import('rxjs');
+    const subject = new Subject<{ stdout: string; stderr: string }>();
+    const mockSvc = mockNvmApiService({
+      updateNvm: vi.fn().mockReturnValue(subject.asObservable()),
+    });
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: NvmApiService, useValue: mockSvc },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(App);
+    const comp = fixture.componentInstance;
+    comp.onNvmUpdate('0.40.4');
+
+    expect(comp.installModal()).toMatchObject({ action: 'nvm-update', phase: 'running', version: '0.40.4' });
+    subject.complete();
+  });
+
+  it('setzt Modal auf success nach erfolgreichem nvm-Update', async () => {
+    const mockSvc = mockNvmApiService();
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: NvmApiService, useValue: mockSvc },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(App);
+    const comp = fixture.componentInstance;
+    comp.onNvmUpdate('0.40.4');
+    await fixture.whenStable();
+
+    expect(comp.installModal()).toMatchObject({ action: 'nvm-update', phase: 'success', version: '0.40.4' });
+    expect(comp.isLoading()).toBe(false);
+  });
+
+  it('setzt Modal auf error bei fehlgeschlagenem nvm-Update', async () => {
+    const mockSvc = mockNvmApiService({
+      updateNvm: vi.fn().mockReturnValue(throwError(() => new Error('upgrade failed'))),
+    });
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: NvmApiService, useValue: mockSvc },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(App);
+    const comp = fixture.componentInstance;
+    comp.onNvmUpdate('0.40.4');
+    await fixture.whenStable();
+
+    expect(comp.installModal()).toMatchObject({ action: 'nvm-update', phase: 'error' });
+    const log = comp.log();
+    expect(log.some((e) => e.type === 'error')).toBe(true);
   });
 });

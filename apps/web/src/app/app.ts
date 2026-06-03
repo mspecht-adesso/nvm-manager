@@ -158,6 +158,24 @@ export class App implements OnInit {
     });
   }
 
+  onNvmUpdate(targetVersion: string): void {
+    this.isLoading.set(true);
+    this.installModal.set({ action: 'nvm-update', phase: 'running', version: targetVersion });
+    this.addLog(`Aktualisiere nvm auf ${targetVersion} ...`, 'info');
+    this.nvmApi.updateNvm().subscribe({
+      next: () => {
+        this.addLog(`nvm wurde auf ${targetVersion} aktualisiert.`, 'success');
+        this.isLoading.set(false);
+        this.installModal.set({ action: 'nvm-update', phase: 'success', version: targetVersion });
+      },
+      error: (err: Error) => {
+        this.addLog(`Fehler beim Aktualisieren von nvm: ${err.message}`, 'error');
+        this.isLoading.set(false);
+        this.installModal.set({ action: 'nvm-update', phase: 'error', version: targetVersion, errorMessage: err.message });
+      },
+    });
+  }
+
   closeInstallModal(): void {
     this.installModal.set(null);
   }

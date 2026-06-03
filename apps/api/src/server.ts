@@ -3,17 +3,21 @@ import type { ErrorRequestHandler, RequestHandler, Express } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import versionsRouter from './routes/nvm.routes.js';
-import { runNvm } from './nvm/nvm.service.js';
+import { runNvm, updateNvm, fetchNvmLatestVersion, openNvmDir } from './nvm/nvm.service.js';
 import { NvmError } from './nvm/nvm.types.js';
 
 const statusHandler: RequestHandler = async (_req, res, next) => {
   try {
     const nvmDir = process.env['NVM_DIR'] ?? `${process.env['HOME']}/.nvm`;
-    const { stdout } = await runNvm(['--version']);
+    const [{ stdout }, nvmLatestVersion] = await Promise.all([
+      runNvm(['--version']),
+      fetchNvmLatestVersion(),
+    ]);
     res.json({
       ok: true,
       nvmVersion: stdout.trim(),
       nvmDir,
+      ...(nvmLatestVersion ? { nvmLatestVersion } : {}),
     });
   } catch (err) {
     if (err instanceof NvmError) {
@@ -23,6 +27,24 @@ const statusHandler: RequestHandler = async (_req, res, next) => {
       });
       return;
     }
+    next(err);
+  }
+};
+
+const nvmUpdateHandler: RequestHandler = async (_req, res, next) => {
+  try {
+    const result = await updateNvm();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const openDirHandler: RequestHandler = async (_req, res, next) => {
+  try {
+    await openNvmDir();
+    res.json({ ok: true });
+  } catch (err) {
     next(err);
   }
 };
@@ -50,6 +72,8 @@ export function createApp(): Express {
   );
 
   app.get('/api/status', statusHandler);
+  app.post('/api/nvm/update', nvmUpdateHandler);
+  app.post('/api/nvm/open-dir', openDirHandler);
   app.use('/api/versions', versionsRouter);
   app.use(errorMiddleware);
 

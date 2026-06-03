@@ -183,3 +183,82 @@ export async function setLtsAliasFile(codename: string, version: string): Promis
 export async function deleteLtsAliasFile(codename: string): Promise<void> {
   await unlink(path.join(NVM_DIR, 'alias', 'lts', codename));
 }
+
+/**
+ * Aktualisiert nvm auf die neueste verfügbare Version.
+ *
+ * Methode: git fetch + git checkout im NVM_DIR-Verzeichnis.
+ * `nvm upgrade` ist kein stabiles, versionsübergreifendes nvm-Kommando –
+ * der git-Weg ist die offizielle, zuverlässige Upgrade-Methode laut nvm-Dokumentation.
+ *
+ * 1. Ruft fetchNvmLatestVersion() auf, um die Zielversion zu ermitteln.
+ * 2. Führt `git fetch --tags origin` im NVM_DIR aus.
+ * 3. Checkt die Zielversion via `git checkout` aus.
+ * Timeout: 3 Minuten.
+ */
+export async function updateNvm(): Promise<{ stdout: string; stderr: string }> {
+  const nvmDir = process.env['NVM_DIR'] ?? `${process.env['HOME']}/.nvm`;
+
+  const latestVersion = await fetchNvmLatestVersion();
+  if (!latestVersion) {
+    throw new NvmError(
+      'Konnte die neueste nvm-Version nicht ermitteln. Prüfe die Internetverbindung.',
+      '',
+      '',
+    );
+  }
+
+  const version = `v${latestVersion.replace(/^v/, '')}`;
+  const safeDir = nvmDir.replace(/'/g, "'\\''");
+  const cmd = `set -e; cd '${safeDir}'; git fetch --tags origin; git checkout '${version}'`;
+
+  return new Promise((resolve, reject) => {
+    execFile(
+      'bash',
+      ['-c', cmd],
+      { timeout: 180_000, maxBuffer: 10 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(new NvmError(error.message, stdout, stderr));
+          return;
+        }
+        resolve({ stdout: stdout || `nvm erfolgreich auf ${version} aktualisiert.`, stderr });
+      },
+    );
+  });
+}
+
+/**
+ * Öffnet das NVM_DIR-Verzeichnis im nativen Dateimanager.
+ * Verwendet `open` auf macOS und `xdg-open` auf Linux.
+ * Der Pfad kommt ausschließlich aus der Server-Umgebung (kein User-Input).
+ */
+export function openNvmDir(): Promise<void> {
+  const nvmDir = process.env['NVM_DIR'] ?? `${process.env['HOME']}/.nvm`;
+  const cmd = process.platform === 'darwin' ? 'open' : 'xdg-open';
+
+  return new Promise((resolve, reject) => {
+    execFile(cmd, [nvmDir], { timeout: 10_000 }, (error) => {
+      if (error) reject(new Error(error.message));
+      else resolve();
+    });
+  });
+}
+
+/**
+ * Fragt die neueste nvm-Version von der GitHub-Releases-API ab.
+ * Timeout: 5 Sekunden. Gibt `null` zurück wenn die Abfrage fehlschlägt.
+ */
+export async function fetchNvmLatestVersion(): Promise<string | null> {
+  try {
+    const response = await fetch('https://api.github.com/repos/nvm-sh/nvm/releases/latest', {
+      headers: { 'User-Agent': 'nvm-manager/1.0' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { tag_name?: string };
+    return data.tag_name?.replace(/^v/, '') ?? null;
+  } catch {
+    return null;
+  }
+}

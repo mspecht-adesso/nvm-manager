@@ -93,6 +93,18 @@ export class NvmApiService {
       .pipe(catchError(this.handleError));
   }
 
+  updateNvm(): Observable<NvmCommandResult> {
+    return this.http
+      .post<NvmCommandResult>(`${this.baseUrl}/nvm/update`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  openNvmDir(): Observable<{ ok: boolean }> {
+    return this.http
+      .post<{ ok: boolean }>(`${this.baseUrl}/nvm/open-dir`, {})
+      .pipe(catchError(this.handleError));
+  }
+
   private handleError(err: HttpErrorResponse): Observable<never> {
     const message = err.error?.error ?? err.message;
     return throwError(() => new Error(message));

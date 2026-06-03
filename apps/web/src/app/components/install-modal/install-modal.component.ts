@@ -34,8 +34,21 @@ export class InstallModalComponent implements OnChanges, OnDestroy {
     clearTimeout(this.autoCloseTimer);
   }
 
-  getErrorInstructions(action: 'install' | 'use' | 'uninstall', message: string | undefined): string {
+  getErrorInstructions(action: 'install' | 'use' | 'uninstall' | 'nvm-update', message: string | undefined): string {
     if (!message) return 'Überprüfe den Log-Bereich für weitere Details.';
+
+    if (action === 'nvm-update') {
+      if (message.includes('ETIMEDOUT') || message.includes('ENOTFOUND') || message.includes('network') || message.includes('Internetverbindung')) {
+        return 'Prüfe deine Internetverbindung und versuche es erneut.';
+      }
+      if (message.includes('not a git repository') || message.includes('not a git repo')) {
+        return 'Das NVM_DIR-Verzeichnis ist kein Git-Repository. Führe die Aktualisierung manuell durch: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash';
+      }
+      if (message.includes('git') || message.includes('fetch') || message.includes('checkout')) {
+        return 'Git-Fehler beim Aktualisieren. Stelle sicher, dass git installiert ist und eine Internetverbindung besteht.';
+      }
+      return 'Überprüfe den Log-Bereich für weitere Details oder führe die Aktualisierung manuell durch: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash';
+    }
 
     if (action === 'use') {
       if (message.includes('not installed') || message.includes('not found')) {

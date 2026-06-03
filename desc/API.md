@@ -70,16 +70,20 @@ die rohe Shell-Ausgabe.
 
 ### `GET /api/status`
 
-Prüft, ob nvm verfügbar ist und gibt die installierte Version zurück.
+Prüft, ob nvm verfügbar ist und gibt die installierte Version zurück. Ruft parallel
+die GitHub-Releases-API ab, um die neueste verfügbare nvm-Version zu ermitteln.
 
 **Response 200:**
 ```json
 {
   "ok": true,
-  "nvmVersion": "0.40.1",
+  "nvmVersion": "0.39.3",
+  "nvmLatestVersion": "0.40.4",
   "nvmDir": "/Users/username/.nvm"
 }
 ```
+
+> `nvmLatestVersion` ist nur vorhanden wenn die GitHub-Abfrage erfolgreich war (Timeout: 5 s).
 
 **Response 200 (nvm nicht gefunden):**
 ```json
@@ -90,9 +94,76 @@ Prüft, ob nvm verfügbar ist und gibt die installierte Version zurück.
 ```
 
 **Implementierung:** `server.ts → statusHandler`
-Ruft `runNvm(['--version'])` auf. Schlägt das fehl (nvm nicht installiert), wird
-`ok: false` mit der Fehlermeldung zurückgegeben – kein HTTP-500-Fehler, da dies
-ein erwarteter Zustand ist.
+Ruft `runNvm(['--version'])` und `fetchNvmLatestVersion()` parallel auf.
+Schlägt der nvm-Aufruf fehl (nvm nicht installiert), wird `ok: false` zurückgegeben –
+kein HTTP-500-Fehler, da dies ein erwarteter Zustand ist.
+
+---
+
+### `POST /api/nvm/update`
+
+Aktualisiert nvm auf die neueste verfügbare Version via `nvm upgrade`.
+
+**Request:** kein Body erforderlich
+
+**Response 200:**
+```json
+{
+  "stdout": "Downloading nvm from git to '/Users/username/.nvm'\n...",
+  "stderr": ""
+}
+```
+
+**Response 500:**
+```json
+{
+  "error": "nvm upgrade failed",
+  "stdout": "",
+  "stderr": "..."
+}
+```
+
+**Implementierung:** `server.ts → nvmUpdateHandler`
+Ruft `updateNvm()` auf. Die Funktion:
+1. Ermittelt die Zielversion via `fetchNvmLatestVersion()` (GitHub API).
+2. Führt `git fetch --tags origin && git checkout <version>` im `NVM_DIR` aus.
+
+> **Warum git statt `nvm upgrade`?** `nvm upgrade` ist kein stabiles, versionsübergreifendes
+> Kommando – in nvm v0.39.x und früheren Versionen existiert es nicht. Der git-Weg ist die
+> offizielle Upgrade-Methode laut nvm-Dokumentation und funktioniert für alle Versionen,
+> bei denen nvm über das Install-Script (= git clone) eingerichtet wurde.
+
+Timeout: 3 Minuten.
+
+---
+
+### `POST /api/nvm/open-dir`
+
+Öffnet das `NVM_DIR`-Verzeichnis im nativen Dateimanager des Systems.
+
+**Request:** kein Body erforderlich
+
+**Response 200:**
+```json
+{ "ok": true }
+```
+
+**Response 500:**
+```json
+{
+  "error": "open failed: No such file or directory",
+  "stdout": "",
+  "stderr": ""
+}
+```
+
+**Implementierung:** `server.ts → openDirHandler` → `nvm.service.ts → openNvmDir()`
+Ermittelt `NVM_DIR` aus `process.env`, wählt dann plattformabhängig den Befehl:
+- **macOS:** `open <NVM_DIR>`
+- **Linux:** `xdg-open <NVM_DIR>`
+
+Kein User-Input wird an die Shell übergeben – ausschließlich der serverseitig
+konfigurierte Pfad wird geöffnet.
 
 ---
 

@@ -143,5 +143,35 @@ describe('InstallModalComponent', () => {
       const result = comp.getErrorInstructions('install', 'Unbekannter Fehler');
       expect(result).toContain('Log-Bereich');
     });
+
+    it('erkennt Netzwerkfehler bei nvm-update-Aktion', async () => {
+      const { comp } = await setup();
+      const result = comp.getErrorInstructions('nvm-update', 'ETIMEDOUT connect');
+      expect(result).toContain('Internetverbindung');
+    });
+
+    it('erkennt "not a git repository"-Fehler bei nvm-update-Aktion', async () => {
+      const { comp } = await setup();
+      const result = comp.getErrorInstructions('nvm-update', 'fatal: not a git repository');
+      expect(result).toContain('manuell');
+    });
+
+    it('erkennt git-Fehler bei nvm-update-Aktion', async () => {
+      const { comp } = await setup();
+      const result = comp.getErrorInstructions('nvm-update', 'git fetch failed');
+      expect(result).toContain('git');
+    });
+
+    it('gibt generischen Text mit manueller Anleitung bei unbekanntem nvm-update-Fehler zurück', async () => {
+      const { comp } = await setup();
+      const result = comp.getErrorInstructions('nvm-update', 'Unbekannter Fehler');
+      expect(result).toContain('manuell');
+    });
+
+    it('gibt Fallback-Text ohne Fehlermeldung bei nvm-update zurück', async () => {
+      const { comp } = await setup();
+      const result = comp.getErrorInstructions('nvm-update', undefined);
+      expect(result).toContain('Log-Bereich');
+    });
   });
 });

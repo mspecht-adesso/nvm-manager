@@ -105,12 +105,31 @@ Die Oberfläche gliedert sich in folgende Bereiche:
 Die **Status-Card** zeigt beim Start automatisch:
 
 - **API erreichbar**: Grüner/roter Indikator
-- **nvm-Version**: z.B. `0.39.7`
-- **NVM_DIR**: Pfad zur nvm-Installation (z.B. `/Users/name/.nvm`)
+- **nvm-Version**: z.B. `0.39.3`, daneben die neueste verfügbare Version (z.B. `Aktuell: 0.40.4`)
+- **NVM_DIR**: Pfad zur nvm-Installation (z.B. `/Users/name/.nvm`) – mit einem Ordner-Icon-Button (📁) zum Öffnen des Verzeichnisses im Finder (macOS) bzw. Dateimanager (Linux)
 
 Der Header zeigt zudem die aktuell aktive Node.js-Version als Badge an (z.B. `Aktiv: v22.11.0`) sowie den Theme-Toggle-Button (☾/☀).
 
 Falls die API nicht erreichbar ist, stellen Sie sicher dass das Backend läuft (`npm run dev:api`).
+
+#### NVM_DIR im Dateimanager öffnen
+
+Klicken Sie auf das Ordner-Symbol (📁) neben dem NVM_DIR-Pfad, um das Verzeichnis direkt im Finder (macOS) oder Ihrem Standard-Dateimanager (Linux) zu öffnen. So können Sie Alias-Dateien, installierte Versionen und weitere nvm-Konfigurationsdateien direkt einsehen.
+
+---
+
+### nvm selbst aktualisieren
+
+Wenn eine neuere nvm-Version verfügbar ist, erscheint in der **Status-Card** neben der installierten Version ein **„Aktualisieren"-Button**.
+
+1. Klicken Sie auf **Aktualisieren** in der Zeile „nvm Version".
+2. Ein Modal öffnet sich und zeigt den Fortschritt an.
+3. Nach erfolgreichem Update schließt das Modal automatisch.
+4. Laden Sie die Seite neu, damit die aktualisierte nvm-Version im Status erscheint.
+
+> **Hinweis:** Das Update erfolgt via git (`git fetch && git checkout <version>` im NVM_DIR).
+> Eine aktive Internetverbindung und eine nvm-Installation via git (Standard) sind erforderlich.
+> Der Vorgang dauert typischerweise wenige Sekunden.
 
 ---
 

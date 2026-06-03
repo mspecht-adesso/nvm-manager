@@ -375,16 +375,34 @@ reaktiv aus `themeService.theme()` zu lesen.
 ### `StatusCardComponent` – nvm-Status
 
 **Selector:** `app-status-card`
-**Eigener State:** `status = signal<NvmStatus | null>(null)`, `loading = signal(false)`
+**Eigener State:**
+- `status = signal<NvmStatus | null>(null)` – nvm-Status inkl. aktueller und neuester Version
+- `loading = signal(false)`
+- `openingDir = signal(false)` – Lade-Zustand für „Ordner öffnen"-Aktion
+- `openDirError = signal<string | null>(null)` – Fehlermeldung, auto-cleared nach 5 s
+- `updateAvailable = computed(...)` – `true` wenn `nvmVersion !== nvmLatestVersion`
+
+**Output:** `nvmUpdate: EventEmitter<string>` – emittiert die Zielversion wenn der Update-Button geklickt wird
 
 Lädt in `ngOnInit()` automatisch via `NvmApiService.getStatus()`.
-Zeigt nvm-Version, NVM_DIR und Verbindungsstatus an. Hat eine eigene `load()`-Methode
-für manuelles Neuladen.
+Zeigt nvm-Version, NVM_DIR und Verbindungsstatus an. Wenn `nvmLatestVersion` vorhanden
+und von `nvmVersion` verschieden ist, wird ein „Aktualisieren"-Button eingeblendet.
+Klick auf diesen Button emittiert `nvmUpdate` mit der Zielversion nach oben an `App`.
+
+Neben dem NVM_DIR-Pfad befindet sich ein Icon-Button (Ordner-Symbol), der via
+`POST /api/nvm/open-dir` den Ordner im nativen Dateimanager öffnet (Finder auf macOS,
+xdg-open auf Linux). Der Button ist vollständig in der Komponente selbst abgewickelt –
+kein Event nach außen, da kein Modal benötigt wird.
+
+Hat eine eigene `load()`-Methode für manuelles Neuladen des Status. `ngOnDestroy`
+räumt den Error-Auto-Clear-Timer auf.
 
 **Warum eigenständig?**
 Der Status ist unabhängig vom Rest der Anwendung und ändert sich nicht durch
-Benutzeraktionen. Er wird einmalig beim Start geladen und kann manuell aktualisiert
-werden – kein Grund, ihn in der Root-Komponente zu halten.
+normale Benutzeraktionen. Er wird einmalig beim Start geladen und kann manuell
+aktualisiert werden – kein Grund, ihn in der Root-Komponente zu halten.
+Das nvm-Update wird hingegen über den `nvmUpdate`-Output nach oben delegiert,
+da die Root-Komponente das globale Modal steuert.
 
 ---
 
@@ -559,7 +577,7 @@ Max. 20 Einträge (begrenzt in `App.addLog()` via `.slice(0, 19)`).
 
 ```typescript
 type InstallModalState =
-  | { action: 'install' | 'use' | 'uninstall'; phase: 'running' | 'success' | 'error'; version: string; errorMessage?: string }
+  | { action: 'install' | 'use' | 'uninstall' | 'nvm-update'; phase: 'running' | 'success' | 'error'; version: string; errorMessage?: string }
   | null;
 ```
 
@@ -568,7 +586,7 @@ Drei Phasen:
 - `success` – Erfolgsmeldung, **Auto-Close nach 3 Sekunden**
 - `error` – Fehlermeldung + intelligente Hilfetext-Generierung + aufklappbare technische Details + Schließen-Button
 
-Alle drei `action`-Werte haben jeweils eigene Texte für jede Phase (z.B. „Installation läuft" / „Deinstallation läuft" / „Version wird aktiviert").
+Alle vier `action`-Werte haben jeweils eigene Texte für jede Phase (z.B. „Installation läuft" / „Deinstallation läuft" / „Version wird aktiviert" / „nvm wird aktualisiert").
 
 **Auto-Close-Mechanismus via `OnChanges`:**
 
@@ -602,6 +620,8 @@ Die Methode analysiert `action` und `errorMessage` und gibt kontextbezogene Hilf
 | `use` | `not installed`/`not found` | Zuerst installieren |
 | `uninstall` | `not installed`/`not found` | Bereits deinstalliert, Liste neu laden |
 | `uninstall` | `currently active`/`in use` | Erst zu anderer Version wechseln |
+| `nvm-update` | `ETIMEDOUT`/`ENOTFOUND` | Netzwerk-Hinweis |
+| `nvm-update` | `upgrade`/`not found` | Manuelle Upgrade-Anleitung mit `curl` |
 
 ---
 

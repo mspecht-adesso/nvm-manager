@@ -3,7 +3,7 @@
 <app-app-header [activeVersion]="activeVersion()" />
 
 <main class="main">
-  <app-status-card />
+  <app-status-card (nvmUpdate)="onNvmUpdate($event)" />
 
   <app-action-card
     [isLoading]="isLoading()"
