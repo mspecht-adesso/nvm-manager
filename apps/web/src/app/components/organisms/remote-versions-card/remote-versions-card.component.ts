@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, inject } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { InstalledNodeVersion, RemoteNodeVersion, RemoteVersionsResponse, LogEvent } from '../../../models/nvm.models';
+import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-remote-versions-card',
@@ -22,9 +23,31 @@ export class RemoteVersionsCardComponent {
   readonly install = output<string>();
   readonly logged = output<LogEvent>();
 
-  readonly remoteVersions = signal<RemoteNodeVersion[]>([]);
   readonly remoteSearch = signal('');
-  readonly loading = signal(false);
+
+  // Lazy: the resource stays idle until the user triggers loading the first time.
+  private readonly shouldLoad = signal(false);
+  private readonly remoteResource = rxResource({
+    params: () => (this.shouldLoad() ? true : undefined),
+    stream: () => this.nvmApi.getRemoteVersions(),
+  });
+
+  readonly remoteVersions = computed(() =>
+    this.remoteResource.hasValue() ? (this.remoteResource.value()?.versions ?? []) : [],
+  );
+  readonly loading = this.remoteResource.isLoading;
+
+  constructor() {
+    effect(() => {
+      const err = this.remoteResource.error();
+      if (err) {
+        this.logged.emit({
+          message: 'Fehler beim Laden der Remote-Versionen: ' + (err as Error).message,
+          type: 'error',
+        });
+      }
+    });
+  }
 
   readonly filteredVersions = computed(() => {
     const installedSet = new Set(this.installedVersions().map((v) => v.version));
@@ -44,17 +67,10 @@ export class RemoteVersionsCardComponent {
   });
 
   load(): void {
-    this.loading.set(true);
-    this.remoteVersions.set([]);
-    this.nvmApi.getRemoteVersions().subscribe({
-      next: (res: RemoteVersionsResponse) => {
-        this.remoteVersions.set(res.versions);
-        this.loading.set(false);
-      },
-      error: (err: Error) => {
-        this.logged.emit({ message: 'Fehler beim Laden der Remote-Versionen: ' + err.message, type: 'error' });
-        this.loading.set(false);
-      },
-    });
+    if (this.shouldLoad()) {
+      this.remoteResource.reload();
+    } else {
+      this.shouldLoad.set(true);
+    }
   }
 }

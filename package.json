@@ -12,6 +12,8 @@
     "test:web": "npm --prefix apps/web run test",
     "test:e2e": "npm --prefix apps/e2e run test",
     "test": "npm run test:api && npm run test:web",
+    "lint:web": "npm --prefix apps/web run lint",
+    "lint": "npm run lint:web",
     "docs:build": "node scripts/build-docs.mjs"
   },
   "devDependencies": {

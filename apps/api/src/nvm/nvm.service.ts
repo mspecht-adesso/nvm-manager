@@ -28,6 +28,59 @@ function escapeArgs(args: string[]): string {
 }
 
 /**
+ * In-memory override for the currently active Node.js version.
+ *
+ * The server process determines the "active" version from its own PATH
+ * (see runNvmLsFast). That PATH never changes at runtime, so a `nvm use`
+ * triggered through the UI would otherwise never be reflected in the
+ * installed-versions response. This override stores the version the user
+ * last switched to so the active marker (and thus the header) updates.
+ *
+ * Stores the raw user input (e.g. "22", "22.14.0", "lts/*"); it is resolved
+ * to a concrete installed version directory on each read in runNvmLsFast.
+ */
+let activeVersionOverride: string | null = null;
+
+/**
+ * Records the version the user just switched to via `nvm use`.
+ * Pass null to clear the override and fall back to PATH-based detection.
+ */
+export function setActiveVersionOverride(version: string | null): void {
+  activeVersionOverride = version;
+}
+
+/**
+ * Resolves a (possibly partial) version input to a concrete installed
+ * version directory name ("vX.Y.Z").
+ *
+ * - Numeric inputs ("22", "22.14", "v22.14.0") match on version-segment
+ *   boundaries; the highest matching installed version wins.
+ * - Alias keywords (node/stable/unstable/iojs/default/lts/...) are resolved
+ *   via the alias files.
+ *
+ * `versionDirs` must be sorted ascending. Returns null if nothing matches.
+ */
+async function resolveVersionToDir(input: string, versionDirs: string[]): Promise<string | null> {
+  const numeric = /^v?(\d+(?:\.\d+){0,2})$/.exec(input);
+  if (numeric) {
+    const inputSegs = numeric[1].split('.');
+    let match: string | null = null;
+    for (const dir of versionDirs) {
+      const dirSegs = dir.slice(1).split('.');
+      if (inputSegs.every((seg, i) => seg === dirSegs[i])) {
+        match = dir; // keep the highest match (versionDirs is ascending)
+      }
+    }
+    return match;
+  }
+
+  const aliasValue = input === 'default' ? await readAliasFile('default') : input;
+  if (!aliasValue) return null;
+  const resolved = await resolveAlias(aliasValue);
+  return resolved && versionDirs.includes(resolved) ? resolved : null;
+}
+
+/**
  * Executes a single nvm command and returns stdout/stderr.
  * Timeout: 3 minutes (to accommodate nvm install).
  */
@@ -134,10 +187,22 @@ export async function runNvmLsFast(): Promise<InstalledVersionsResponse> {
     iojsAlias ? resolveAlias(iojsAlias) : null,
   ]);
 
-  // Active version: determined from the PATH of the running Node.js process
+  // Active version: by default determined from the PATH of the running
+  // Node.js process. If the user switched versions through the UI, the
+  // override takes precedence so the active marker reflects that choice.
   const pathEnv = process.env['PATH'] ?? '';
   const activeMatch = /\.nvm\/versions\/node\/(v[\d.]+)\/bin/.exec(pathEnv);
-  const activeVersion = activeMatch?.[1] ?? null;
+  let activeVersion = activeMatch?.[1] ?? null;
+
+  if (activeVersionOverride) {
+    const resolved = await resolveVersionToDir(activeVersionOverride, versionDirs);
+    if (resolved) {
+      activeVersion = resolved;
+    } else {
+      // Override no longer matches an installed version (e.g. uninstalled).
+      activeVersionOverride = null;
+    }
+  }
 
   const versions: InstalledNodeVersion[] = versionDirs.map((dir) => ({
     version: dir.slice(1),

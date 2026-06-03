@@ -24,6 +24,12 @@
             nvm wird auf Version <code class="ver">{{ s.version }}</code> aktualisiert.<br>
             Dies kann einen Moment dauern – bitte warten.
           </p>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title">Default wird gesetzt</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> wird als Default gesetzt.<br>
+            Bitte warten …
+          </p>
         } @else {
           <h2 class="modal__title">Version wird aktiviert</h2>
           <p class="modal__body">
@@ -52,6 +58,11 @@
           <p class="modal__body">
             nvm wurde erfolgreich auf Version <code class="ver">{{ s.version }}</code> aktualisiert.
           </p>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title">Default gesetzt</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> ist jetzt die Default-Version.
+          </p>
         } @else {
           <h2 class="modal__title">Version aktiviert</h2>
           <p class="modal__body">
@@ -79,6 +90,11 @@
           <h2 class="modal__title">nvm-Aktualisierung fehlgeschlagen</h2>
           <p class="modal__body">
             nvm konnte nicht auf Version <code class="ver">{{ s.version }}</code> aktualisiert werden.
+          </p>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title">Default setzen fehlgeschlagen</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> konnte nicht als Default gesetzt werden.
           </p>
         } @else {
           <h2 class="modal__title">Aktivierung fehlgeschlagen</h2>

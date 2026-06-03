@@ -6,7 +6,7 @@ vi.mock('node:fs/promises');
 
 import * as childProcess from 'node:child_process';
 import * as fs from 'node:fs/promises';
-import { runNvm, runNvmLsFast, spawnNvm } from './nvm.service.js';
+import { runNvm, runNvmLsFast, spawnNvm, setActiveVersionOverride } from './nvm.service.js';
 
 // ── runNvm ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +98,40 @@ describe('runNvmLsFast', () => {
 
     const result = await runNvmLsFast();
     expect(result.versions).toHaveLength(0);
+  });
+
+  it('markiert die per Override gesetzte Version als aktiv', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue(['v20.5.0', 'v22.11.0'] as never);
+    vi.mocked(fs.readFile).mockResolvedValue('v22.11.0\n' as never);
+
+    setActiveVersionOverride('20.5.0');
+    const result = await runNvmLsFast();
+    setActiveVersionOverride(null);
+
+    expect(result.versions.find((v) => v.version === '20.5.0')?.active).toBe(true);
+    expect(result.versions.find((v) => v.version === '22.11.0')?.active).toBe(false);
+  });
+
+  it('löst eine partielle Version (Major) auf die höchste installierte auf', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue(['v22.11.0', 'v22.14.0'] as never);
+    vi.mocked(fs.readFile).mockResolvedValue('v22.11.0\n' as never);
+
+    setActiveVersionOverride('22');
+    const result = await runNvmLsFast();
+    setActiveVersionOverride(null);
+
+    expect(result.versions.find((v) => v.version === '22.14.0')?.active).toBe(true);
+  });
+
+  it('ignoriert einen Override, dessen Version nicht installiert ist', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue(['v22.11.0'] as never);
+    vi.mocked(fs.readFile).mockResolvedValue('v22.11.0\n' as never);
+
+    setActiveVersionOverride('18.0.0');
+    const result = await runNvmLsFast();
+    setActiveVersionOverride(null);
+
+    expect(result.versions.every((v) => !v.active)).toBe(true);
   });
 });
 

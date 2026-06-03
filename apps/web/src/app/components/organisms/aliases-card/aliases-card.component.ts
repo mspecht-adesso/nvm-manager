@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit, effect, input, output, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, inject } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '../../../models/nvm.models';
+import type { NvmAlias, LogEvent, InstalledNodeVersion, InstallModalState } from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-aliases-card',
@@ -13,7 +14,7 @@ import type { NvmAlias, AliasesResponse, LogEvent, InstalledNodeVersion } from '
   styleUrl: './aliases-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AliasesCardComponent implements OnInit {
+export class AliasesCardComponent {
   private readonly nvmApi = inject(NvmApiService);
 
   readonly refreshTrigger = input(0);
@@ -21,9 +22,18 @@ export class AliasesCardComponent implements OnInit {
 
   readonly logged = output<LogEvent>();
   readonly aliasChanged = output<void>();
+  readonly modalStateChange = output<InstallModalState>();
 
-  readonly aliases = signal<NvmAlias[]>([]);
-  readonly loading = signal(false);
+  // The resource reloads automatically whenever `refreshTrigger` changes.
+  private readonly aliasesResource = rxResource({
+    params: () => this.refreshTrigger(),
+    stream: () => this.nvmApi.getAliases(),
+  });
+
+  readonly aliases = computed(() =>
+    this.aliasesResource.hasValue() ? (this.aliasesResource.value()?.aliases ?? []) : [],
+  );
+  readonly loading = this.aliasesResource.isLoading;
   readonly editingAlias = signal<string | null>(null);
   readonly editingLtsAlias = signal<string | null>(null);
   readonly confirmPendingAlias = signal<string | null>(null);
@@ -35,26 +45,18 @@ export class AliasesCardComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      if (this.refreshTrigger() > 0) this.load();
+      const err = this.aliasesResource.error();
+      if (err) {
+        this.logged.emit({
+          message: 'Fehler beim Laden der Aliases: ' + (err as Error).message,
+          type: 'error',
+        });
+      }
     });
-  }
-
-  ngOnInit(): void {
-    this.load();
   }
 
   load(): void {
-    this.loading.set(true);
-    this.nvmApi.getAliases().subscribe({
-      next: (res: AliasesResponse) => {
-        this.aliases.set(res.aliases);
-        this.loading.set(false);
-      },
-      error: (err: Error) => {
-        this.logged.emit({ message: 'Fehler beim Laden der Aliases: ' + err.message, type: 'error' });
-        this.loading.set(false);
-      },
-    });
+    this.aliasesResource.reload();
   }
 
   startEdit(alias: NvmAlias): void {
@@ -72,6 +74,11 @@ export class AliasesCardComponent implements OnInit {
   saveAlias(name: string): void {
     const target = this.editAliasTarget.trim();
     if (!target) return;
+    // Beim Default-Alias erhält der Nutzer zusätzlich ein Modal mit dem Fortschritt.
+    const withModal = name === 'default';
+    if (withModal) {
+      this.modalStateChange.emit({ action: 'default', phase: 'running', version: target });
+    }
     this.nvmApi.setAlias(name, target).subscribe({
       next: () => {
         this.logged.emit({ message: `Alias '${name}' → '${target}' gesetzt.`, type: 'success' });
@@ -79,9 +86,15 @@ export class AliasesCardComponent implements OnInit {
         this.editAliasTarget = '';
         this.load();
         this.aliasChanged.emit();
+        if (withModal) {
+          this.modalStateChange.emit({ action: 'default', phase: 'success', version: target });
+        }
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Setzen des Alias '${name}': ${err.message}`, type: 'error' });
+        if (withModal) {
+          this.modalStateChange.emit({ action: 'default', phase: 'error', version: target, errorMessage: err.message });
+        }
       },
     });
   }

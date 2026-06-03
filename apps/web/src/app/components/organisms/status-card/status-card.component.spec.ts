@@ -57,15 +57,15 @@ describe('StatusCardComponent', () => {
     expect(comp.loading()).toBe(false);
   });
 
-  it('setzt status.ok auf false bei Fehler', async () => {
+  it('setzt statusError bei Fehler', async () => {
     const { fixture, comp } = await setup({
       getStatus: vi.fn().mockReturnValue(throwError(() => new Error('Verbindungsfehler'))),
     });
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(comp.status()?.ok).toBe(false);
-    expect(comp.status()?.error).toBe('Verbindungsfehler');
+    expect(comp.status()).toBeUndefined();
+    expect(comp.statusError()).toBe('Verbindungsfehler');
     expect(comp.loading()).toBe(false);
   });
 

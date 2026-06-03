@@ -44,10 +44,12 @@ describe('App', () => {
     expect(comp).toBeTruthy();
   });
 
-  it('ruft loadInstalledVersions beim Start auf', async () => {
+  it('triggert keinen manuellen Initial-Load (rxResource lädt selbst)', async () => {
     const { fixture, stateMock } = await setup();
     fixture.detectChanges();
-    expect(stateMock.loadInstalledVersions).toHaveBeenCalledOnce();
+    // Die installierten Versionen werden im NvmStateService via rxResource
+    // automatisch geladen – die App-Komponente stößt nichts manuell an.
+    expect(stateMock.loadInstalledVersions).not.toHaveBeenCalled();
   });
 
   it('stellt den NvmStateService bereit', async () => {

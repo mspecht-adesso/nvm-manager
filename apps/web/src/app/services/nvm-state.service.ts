@@ -1,8 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { NvmApiService } from './nvm-api.service';
 import type {
-  InstalledNodeVersion,
-  InstalledVersionsResponse,
   InstallModalState,
   LogEntry,
   LogEvent,
@@ -15,28 +14,38 @@ export class NvmStateService {
 
   readonly log = signal<LogEntry[]>([]);
   readonly isLoading = signal(false);
-  readonly installedVersions = signal<InstalledNodeVersion[]>([]);
-  readonly installedRaw = signal('');
-  readonly installedLoading = signal(false);
   readonly installModal = signal<InstallModalState>(null);
   readonly prefillVersion = signal('');
   readonly aliasesRefreshTrigger = signal(0);
 
+  private readonly installedResource = rxResource({
+    stream: () => this.nvmApi.getInstalledVersions(),
+  });
+
+  readonly installedVersions = computed(() =>
+    this.installedResource.hasValue() ? (this.installedResource.value()?.versions ?? []) : [],
+  );
+  readonly installedRaw = computed(() =>
+    this.installedResource.hasValue() ? (this.installedResource.value()?.stdout ?? '') : '',
+  );
+  readonly installedLoading = this.installedResource.isLoading;
+
   readonly activeVersion = computed(() => this.installedVersions().find((v) => v.active));
 
-  loadInstalledVersions(): void {
-    this.installedLoading.set(true);
-    this.nvmApi.getInstalledVersions().subscribe({
-      next: (res: InstalledVersionsResponse) => {
-        this.installedVersions.set(res.versions);
-        this.installedRaw.set(res.stdout);
-        this.installedLoading.set(false);
-      },
-      error: (err: Error) => {
-        this.addLog('Fehler beim Laden der installierten Versionen: ' + err.message, 'error');
-        this.installedLoading.set(false);
-      },
+  constructor() {
+    effect(() => {
+      const err = this.installedResource.error();
+      if (err) {
+        this.addLog(
+          'Fehler beim Laden der installierten Versionen: ' + (err as Error).message,
+          'error',
+        );
+      }
     });
+  }
+
+  loadInstalledVersions(): void {
+    this.installedResource.reload();
   }
 
   onInstall(version: string): void {

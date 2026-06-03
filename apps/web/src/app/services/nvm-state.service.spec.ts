@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { ApplicationRef } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { NvmStateService } from './nvm-state.service';
 import { NvmApiService } from './nvm-api.service';
@@ -43,6 +44,11 @@ describe('NvmStateService', () => {
     service = TestBed.inject(NvmStateService);
   }
 
+  /** Lets the auto-loading rxResource (and its effects) settle. */
+  async function flush() {
+    await TestBed.inject(ApplicationRef).whenStable();
+  }
+
   describe('Initialzustand', () => {
     it('log ist leer', () => {
       setup();
@@ -70,48 +76,51 @@ describe('NvmStateService', () => {
     });
   });
 
-  describe('loadInstalledVersions', () => {
-    it('setzt installedVersions nach erfolgreichem Laden', () => {
+  describe('loadInstalledVersions (rxResource)', () => {
+    it('setzt installedVersions nach erfolgreichem Laden', async () => {
       setup();
-      service.loadInstalledVersions();
+      await flush();
       expect(service.installedVersions()).toHaveLength(2);
       expect(service.installedVersions()[0].version).toBe('22.11.0');
     });
 
-    it('setzt installedRaw nach erfolgreichem Laden', () => {
+    it('setzt installedRaw nach erfolgreichem Laden', async () => {
       setup();
-      service.loadInstalledVersions();
+      await flush();
       expect(service.installedRaw()).toBe('-> v22.11.0 (default)');
     });
 
-    it('berechnet activeVersion nach dem Laden', () => {
+    it('berechnet activeVersion nach dem Laden', async () => {
       setup();
-      service.loadInstalledVersions();
+      await flush();
       expect(service.activeVersion()?.version).toBe('22.11.0');
     });
 
-    it('installedLoading wird während des Ladens true gesetzt und danach false', () => {
-      const states: boolean[] = [];
+    it('installedLoading ist false nach abgeschlossenem Laden', async () => {
       setup();
-      TestBed.runInInjectionContext(() => {
-        const loadingStates: boolean[] = [];
-        service.loadInstalledVersions();
-        loadingStates.push(service.installedLoading());
-        states.push(...loadingStates);
-      });
+      await flush();
       expect(service.installedLoading()).toBe(false);
     });
 
-    it('schreibt Fehler ins Log wenn API fehlschlägt', () => {
-      setup({ getInstalledVersions: vi.fn().mockReturnValue(throwError(() => new Error('Netzwerkfehler'))) });
+    it('reload() löst einen erneuten Abruf aus', async () => {
+      setup();
+      await flush();
+      expect(apiMock.getInstalledVersions).toHaveBeenCalledTimes(1);
       service.loadInstalledVersions();
+      await flush();
+      expect(apiMock.getInstalledVersions).toHaveBeenCalledTimes(2);
+    });
+
+    it('schreibt Fehler ins Log wenn API fehlschlägt', async () => {
+      setup({ getInstalledVersions: vi.fn().mockReturnValue(throwError(() => new Error('Netzwerkfehler'))) });
+      await flush();
       expect(service.log().length).toBeGreaterThan(0);
       expect(service.log()[0].type).toBe('error');
     });
 
-    it('installedLoading ist false nach Fehler', () => {
+    it('installedLoading ist false nach Fehler', async () => {
       setup({ getInstalledVersions: vi.fn().mockReturnValue(throwError(() => new Error('err'))) });
-      service.loadInstalledVersions();
+      await flush();
       expect(service.installedLoading()).toBe(false);
     });
   });
@@ -272,20 +281,25 @@ describe('NvmStateService', () => {
   });
 
   describe('activeVersion (computed)', () => {
-    it('gibt undefined zurück wenn keine aktive Version vorhanden', () => {
-      setup();
-      service.installedVersions.set([
-        { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
-      ]);
+    it('gibt undefined zurück wenn keine aktive Version vorhanden', async () => {
+      setup({
+        getInstalledVersions: vi.fn().mockReturnValue(
+          of({
+            stdout: '',
+            stderr: '',
+            versions: [
+              { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
+            ],
+          }),
+        ),
+      });
+      await flush();
       expect(service.activeVersion()).toBeUndefined();
     });
 
-    it('gibt die aktive Version zurück', () => {
+    it('gibt die aktive Version zurück', async () => {
       setup();
-      service.installedVersions.set([
-        { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
-        { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
-      ]);
+      await flush();
       expect(service.activeVersion()?.version).toBe('22.11.0');
     });
   });

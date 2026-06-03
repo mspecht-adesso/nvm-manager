@@ -4,7 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AliasesCardComponent } from './aliases-card.component';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
-import type { NvmAlias, LogEvent } from '../../../models/nvm.models';
+import type { NvmAlias, LogEvent, InstallModalState } from '../../../models/nvm.models';
 
 const ALIAS_DEFAULT: NvmAlias = {
   name: 'default',
@@ -20,14 +20,6 @@ const ALIAS_CUSTOM: NvmAlias = {
   editable: true,
   deletable: true,
 };
-const ALIAS_BUILTIN: NvmAlias = {
-  name: 'node',
-  target: 'stable',
-  resolved: 'v22.11.0',
-  editable: false,
-  deletable: false,
-};
-
 const ALIASES_RESPONSE = { stdout: '', stderr: '', aliases: [ALIAS_DEFAULT, ALIAS_CUSTOM] };
 
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
@@ -167,6 +159,54 @@ describe('AliasesCardComponent', () => {
     comp.saveAlias('default');
 
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
+  });
+
+  it('zeigt das Modal (running → success) beim Speichern des default-Alias', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_DEFAULT);
+    comp.editAliasTarget = '20.5.0';
+    comp.saveAlias('default');
+    await fixture.whenStable();
+
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({ action: 'default', phase: 'running', version: '20.5.0' });
+    expect(modalStates[1]).toEqual({ action: 'default', phase: 'success', version: '20.5.0' });
+  });
+
+  it('zeigt das Modal mit phase: error wenn das Speichern des default-Alias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_DEFAULT);
+    comp.editAliasTarget = '20.5.0';
+    comp.saveAlias('default');
+    await fixture.whenStable();
+
+    expect(modalStates[0]?.phase).toBe('running');
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
+  });
+
+  it('zeigt kein Modal beim Speichern eines nicht-default Alias', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_CUSTOM);
+    comp.editAliasTarget = '18.18.0';
+    comp.saveAlias('my-project');
+    await fixture.whenStable();
+
+    expect(modalStates).toHaveLength(0);
   });
 
   it('emittiert Fehler-Log wenn saveAlias fehlschlägt', async () => {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NvmStateService } from './services/nvm-state.service';
 import { InstallModalComponent } from './components/install-modal/install-modal.component';
 import { AppHeaderComponent } from './components/organisms/app-header/app-header.component';
@@ -28,10 +28,6 @@ import { AppFooterComponent } from './components/organisms/app-footer/app-footer
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App implements OnInit {
+export class App {
   protected readonly state = inject(NvmStateService);
-
-  ngOnInit(): void {
-    this.state.loadInstalledVersions();
-  }
 }

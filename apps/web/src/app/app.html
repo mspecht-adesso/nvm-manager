@@ -29,6 +29,7 @@
     [installedVersions]="state.installedVersions()"
     (logged)="state.onLogged($event)"
     (aliasChanged)="state.loadInstalledVersions()"
+    (modalStateChange)="state.installModal.set($event)"
   />
 
   <app-remote-versions-card
