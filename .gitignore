@@ -26,3 +26,8 @@ Thumbs.db
 
 # Blog (lokale Entwürfe, nicht im Repository)
 blog/
+
+# Generated HTML docs (built via npm run docs:build)
+docs.html
+docs/*.html
+desc/*.html

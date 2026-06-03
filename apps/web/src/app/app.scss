@@ -5,7 +5,7 @@ $spacing-xl: 2rem;
 .main {
   max-width: 960px;
   margin: $spacing-xl auto;
-  padding: 0 $spacing-lg;
+  padding: 0 $spacing-lg 3rem;
   display: flex;
   flex-direction: column;
   gap: $spacing-lg;

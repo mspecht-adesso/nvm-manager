@@ -11,9 +11,11 @@
     "test:api:coverage": "npm --prefix apps/api run test:coverage",
     "test:web": "npm --prefix apps/web run test",
     "test:e2e": "npm --prefix apps/e2e run test",
-    "test": "npm run test:api && npm run test:web"
+    "test": "npm run test:api && npm run test:web",
+    "docs:build": "node scripts/build-docs.mjs"
   },
   "devDependencies": {
-    "concurrently": "latest"
+    "concurrently": "latest",
+    "marked": "^18.0.4"
   }
 }

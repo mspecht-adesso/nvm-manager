@@ -8,6 +8,7 @@ import { InstalledVersionsCardComponent } from './components/organisms/installed
 import { AliasesCardComponent } from './components/organisms/aliases-card/aliases-card.component';
 import { RemoteVersionsCardComponent } from './components/organisms/remote-versions-card/remote-versions-card.component';
 import { LogCardComponent } from './components/organisms/log-card/log-card.component';
+import { AppFooterComponent } from './components/organisms/app-footer/app-footer.component';
 import type {
   InstalledNodeVersion,
   InstalledVersionsResponse,
@@ -29,6 +30,7 @@ import type {
     AliasesCardComponent,
     RemoteVersionsCardComponent,
     LogCardComponent,
+    AppFooterComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
