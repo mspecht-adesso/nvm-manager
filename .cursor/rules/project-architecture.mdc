@@ -1,0 +1,52 @@
+---
+description: Kern-Architektur des nvm-manager Projekts – immer aktiv, gibt dem Agenten den strukturellen Kontext
+alwaysApply: true
+---
+
+# nvm-manager – Architektur-Überblick
+
+## Monorepo-Struktur
+
+```
+apps/api/   – Express REST-API   (Port 3789, bind: 127.0.0.1)
+apps/web/   – Angular 17+ SPA    (Port 4200, proxyt /api → 3789)
+apps/e2e/   – Playwright E2E-Tests
+```
+
+## Schlüsselentscheidungen
+
+**nvm ist eine Shell-Funktion, kein Binary.**
+Daher startet das Backend für jeden nvm-Aufruf eine `bash -lc`-Subshell,
+lädt `nvm.sh` und führt den Befehl aus (`apps/api/src/nvm/nvm.service.ts`).
+
+**Bind nur an 127.0.0.1 – nie an 0.0.0.0.**
+Das Backend führt Shell-Kommandos aus; Netzwerkexposition wäre ein Sicherheitsrisiko.
+
+**Keine Datenbank.**
+nvm selbst (Dateisystem unter `~/.nvm`) ist die einzige Quelle der Wahrheit.
+Die API fragt nvm bei jedem Request live ab.
+
+**Angular Signals statt NgRx.**
+Der appweite State ist überschaubar (aktive Version, Log, Modal, Loading-Flags).
+Signals + computed() reichen vollständig ohne externe State-Management-Bibliothek.
+
+**`nvm use` → intern `nvm alias default`.**
+`nvm use` ändert die Version nur im aktuellen Shell-Prozess (geht verloren).
+`nvm alias default` schreibt dauerhaft nach `~/.nvm/alias/default`.
+
+**Shell-Injection-Schutz zweistufig:**
+1. Whitelist-Regex-Validatoren in `nvm.types.ts` (vor dem Aufruf)
+2. Single-Quote-Escaping in `nvm.service.ts` (beim Aufruf)
+
+## Dateiort-Schnellreferenz
+
+| Was | Wo |
+|-----|-----|
+| Express App-Factory | `apps/api/src/server.ts` |
+| nvm Shell-Wrapper | `apps/api/src/nvm/nvm.service.ts` |
+| Output-Parser | `apps/api/src/nvm/nvm.parser.ts` |
+| Typen + Validierung | `apps/api/src/nvm/nvm.types.ts` |
+| API-Routen | `apps/api/src/routes/nvm.routes.ts` |
+| Angular Root | `apps/web/src/app/app.ts` |
+| HTTP-Service | `apps/web/src/app/services/nvm-api.service.ts` |
+| Frontend-Typen | `apps/web/src/app/models/nvm.models.ts` |
