@@ -30,8 +30,8 @@ Datei: `apps/web/src/index.html`
 
 Datei: `apps/web/src/app/app.config.ts`
 
-- [ ] Import `withFetch` aus `@angular/common/http` hinzufügen
-- [ ] `provideHttpClient()` → `provideHttpClient(withFetch())`
+- [x] Import `withFetch` aus `@angular/common/http` hinzufügen
+- [x] `provideHttpClient()` → `provideHttpClient(withFetch())`
 
 Hintergrund: Angular 17.3+ unterstützt die native Fetch API als HttpClient-Backend.
 Kleineres Bundle, besseres SSR-Handling, kein XHR mehr.
@@ -315,7 +315,7 @@ export const appConfig: ApplicationConfig = {
 | Schritt | Beschreibung | Aufwand | Status |
 |---------|-------------|---------|--------|
 | 1 | index.html fixen | XS | erledigt |
-| 2 | withFetch() | XS | offen |
+| 2 | withFetch() | XS | erledigt |
 | 3 | SCSS _variables.scss | S | offen |
 | 4 | Signal Inputs/Outputs | M | offen |
 | 5 | OnPush auf alle Components | M | offen |
