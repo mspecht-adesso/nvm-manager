@@ -44,7 +44,8 @@ apps/web/src/
     ├── models/
     │   └── nvm.models.ts           ← Alle TypeScript-Typen
     ├── services/
-    │   └── nvm-api.service.ts      ← HTTP-Service (einzige API-Kommunikation)
+    │   ├── nvm-api.service.ts      ← HTTP-Service (einzige API-Kommunikation)
+    │   └── theme.service.ts        ← Light-/Dark-Mode-Verwaltung (Signal + localStorage)
     └── components/
         ├── atoms/
         │   ├── spinner/            ← CSS-Spinner
@@ -222,6 +223,40 @@ und die Dropdown-Inhalte wieder mit dem aktuellen Zustand überein.
 
 ---
 
+## ThemeService
+
+**Datei:** `apps/web/src/app/services/theme.service.ts`
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class ThemeService {
+  readonly theme = signal<'light' | 'dark'>(this.resolveInitialTheme());
+  toggle(): void { ... }
+}
+```
+
+Verwaltet das UI-Theme der Anwendung:
+
+- **`theme`** – Signal mit dem aktuellen Theme (`'light'` | `'dark'`)
+- **`toggle()`** – wechselt das Theme und schreibt die Wahl in `localStorage`
+- **Initialisierung** – liest zuerst `localStorage`; fällt auf `prefers-color-scheme`
+  zurück; Default ist `'light'`
+- **Anwendung** – ein `effect()` setzt `data-theme` auf `<html>`, sodass alle
+  CSS Custom Properties in `:root` / `[data-theme="dark"]` reaktiv greifen
+
+**Warum `data-theme`-Attribut statt CSS-Klasse?**
+Das Attribut-Selector-Pattern `[data-theme="dark"]` macht die Absicht expliziter
+als eine generische `.dark`-Klasse und vermeidet potenzielle Konflikte mit
+externen CSS-Bibliotheken.
+
+**CSS-Architektur:**
+`styles.scss` definiert in `:root` alle farbrelevanten Tokens als CSS Custom
+Properties (`--color-primary`, `--color-surface` usw.). `[data-theme="dark"]`
+überschreibt diese mit Dunkelton-Werten. Alle Komponenten-SCSS-Dateien nutzen
+ausschließlich `var(--color-*)` – keine hartcodierten Hex-Werte mehr.
+
+---
+
 ## NvmApiService
 
 **Datei:** `apps/web/src/app/services/nvm-api.service.ts`
@@ -330,8 +365,10 @@ private addLog(message: string, type: LogEntry['type']): void {
 **Selector:** `app-app-header`
 **Input:** `activeVersion: InstalledNodeVersion | undefined`
 
-Reines Anzeigelement – zeigt den App-Titel und die aktuell aktive Node-Version.
-Kein eigener State, keine eigenen HTTP-Aufrufe.
+Zeigt den App-Titel, die aktuell aktive Node-Version und den Theme-Toggle-Button.
+Kein eigener State, keine eigenen HTTP-Aufrufe. Injiziert den `ThemeService`, um
+den Toggle-Button an `themeService.toggle()` zu binden und das aktuelle Symbol
+reaktiv aus `themeService.theme()` zu lesen.
 
 ---
 

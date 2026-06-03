@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
+import { ThemeService } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-app-header',
@@ -9,4 +10,6 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
 })
 export class AppHeaderComponent {
   @Input() activeVersion: InstalledNodeVersion | undefined = undefined;
+
+  readonly themeService = inject(ThemeService);
 }

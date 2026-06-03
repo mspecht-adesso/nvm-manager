@@ -10,6 +10,38 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.5.0] – 2026-06-03
+
+### Hinzugefügt
+
+- **Light-/Dark-Mode-Umschalter** – Der Header enthält jetzt einen runden Toggle-Button (☾/☀), mit dem zwischen hellem und dunklem UI-Theme gewechselt werden kann
+  - Theme wird in `localStorage` gespeichert und beim nächsten Start automatisch wiederhergestellt
+  - Beim allerersten Aufruf wird die System-Präferenz des Betriebssystems (`prefers-color-scheme`) erkannt und übernommen
+  - Barrierefreiheit: `aria-label` am Button beschreibt die jeweilige Aktion
+  - Sanfter CSS-Übergang beim Themenwechsel (`transition` auf `background` und `color`)
+
+- **`ThemeService`** (`apps/web/src/app/services/theme.service.ts`)
+  - Signal-basierter Service mit `theme: Signal<'light' | 'dark'>` und `toggle()`-Methode
+  - Setzt `data-theme`-Attribut auf `<html>` über einen `effect()`, sodass CSS Custom Properties reaktiv greifen
+
+### Geändert
+
+- **CSS-Architektur auf CSS Custom Properties umgestellt** – alle Farbwerte wurden aus SCSS-Variablen in CSS Custom Properties überführt; dadurch ist Theme-Switching ohne JavaScript-Klassenmanipulation möglich:
+  - `:root` definiert 40+ semantische Tokens (Primärfarbe, Oberflächen, Rahmen, Text, Badges, Log-Einträge, Modal, Notices usw.)
+  - `[data-theme="dark"]` überschreibt alle farbrelevanten Tokens mit angepassten Dunkelton-Werten
+  - SCSS-Variablen bleiben für statische Layout-Werte (Spacing, Border-Radius)
+
+- **`AppHeaderComponent`** – neuer `header__right`-Container für Badge und Toggle-Button; `themeService` via `inject()` eingebunden
+
+- Alle Komponenten-SCSS-Dateien (`card`, `install-modal`, `log-card`, `status-card`, `aliases-card`, `action-card`, `app-header`) nutzen jetzt ausschließlich `var(--color-*)` statt hartcodierter Hex-Werte
+
+### Tests
+
+- `theme.service.spec.ts` – 9 neue Tests: localStorage-Persistierung, System-Präferenz-Erkennung, Fallback auf `light`, Toggle-Verhalten, `data-theme`-Attribut-Setzung
+- `app-header.component.spec.ts` – 7 neue Tests: Toggle-Button sichtbar, Mond-/Sonnen-Symbol je nach Modus, `toggle()`-Aufruf bei Klick, `aria-label`-Korrektheit, reaktive Icon-Aktualisierung nach Toggle
+
+---
+
 ## [0.4.0] – 2026-06-03
 
 ### Hinzugefügt
@@ -226,7 +258,8 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.1...v0.2.2

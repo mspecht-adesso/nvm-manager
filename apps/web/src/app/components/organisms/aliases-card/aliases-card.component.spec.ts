@@ -124,10 +124,14 @@ describe('AliasesCardComponent', () => {
 
   it('setzt editingAlias und editAliasTarget beim Bearbeiten', async () => {
     const { comp } = await setup();
+    // Installierte Versionen setzen, damit startEdit die aufgelöste Version vorselektiert
+    comp.installedVersions = [
+      { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
+    ];
     comp.startEdit(ALIAS_DEFAULT);
 
     expect(comp.editingAlias()).toBe('default');
-    expect(comp.editAliasTarget).toBe('lts/*');
+    expect(comp.editAliasTarget).toBe('22.11.0');
   });
 
   it('setzt editingAlias zurück beim Abbrechen', async () => {

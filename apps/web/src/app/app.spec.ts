@@ -11,7 +11,7 @@ function mockNvmApiService(overrides: Partial<InstanceType<typeof NvmApiService>
     stdout: '',
     stderr: '',
     versions: [
-      { version: '22.11.0', active: true, default: true, system: false },
+      { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
     ],
   };
   return {

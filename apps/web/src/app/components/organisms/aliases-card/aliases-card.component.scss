@@ -1,14 +1,10 @@
-$color-text: #1e293b;
-$color-border: #e2e8f0;
-$color-primary: #2563eb;
-$color-surface: #ffffff;
 $spacing-xs: 0.25rem;
 $spacing-sm: 0.5rem;
 $spacing-md: 1rem;
 $border-radius-sm: 4px;
 
 .alias-form {
-  border-top: 1px solid $color-border;
+  border-top: 1px solid var(--color-border);
   padding-top: $spacing-md;
   display: flex;
   flex-direction: column;
@@ -18,7 +14,7 @@ $border-radius-sm: 4px;
     margin: 0;
     font-size: 0.875rem;
     font-weight: 600;
-    color: $color-text;
+    color: var(--color-text);
   }
 
   &__fields {
@@ -32,18 +28,18 @@ $border-radius-sm: 4px;
 .select {
   &--inline {
     padding: 0.2rem 0.4rem;
-    border: 1px solid $color-primary;
+    border: 1px solid var(--color-primary);
     border-radius: $border-radius-sm;
     font-size: 0.8rem;
-    color: $color-text;
-    background: $color-surface;
+    color: var(--color-text);
+    background: var(--color-select-bg);
     cursor: pointer;
     min-width: 120px;
     max-width: 200px;
 
     &:focus {
       outline: none;
-      box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
   }
 }

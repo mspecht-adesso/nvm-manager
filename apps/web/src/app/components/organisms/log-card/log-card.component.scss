@@ -20,9 +20,9 @@ $border-radius-sm: 4px;
   font-size: 0.8rem;
   line-height: 1.5;
 
-  &--success { background: #f0fdf4; color: #166534; }
-  &--error { background: #fef2f2; color: #991b1b; }
-  &--info { background: #f0f9ff; color: #0c4a6e; }
+  &--success { background: var(--color-log-success-bg); color: var(--color-log-success-text); }
+  &--error   { background: var(--color-log-error-bg);   color: var(--color-log-error-text);   }
+  &--info    { background: var(--color-log-info-bg);    color: var(--color-log-info-text);    }
 
   &__time {
     flex-shrink: 0;

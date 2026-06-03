@@ -3,8 +3,8 @@ import { InstalledVersionsCardComponent } from './installed-versions-card.compon
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
 
 const VERSIONS: InstalledNodeVersion[] = [
-  { version: '22.11.0', active: true, default: true, system: false },
-  { version: '20.5.0', active: false, default: false, system: false },
+  { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
+  { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
 ];
 
 describe('InstalledVersionsCardComponent', () => {

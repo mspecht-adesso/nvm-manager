@@ -12,7 +12,7 @@ const REMOTE_VERSIONS = Array.from({ length: 40 }, (_, i) => ({
 }));
 
 const INSTALLED: InstalledNodeVersion[] = [
-  { version: '22.0.0', active: true, default: true, system: false },
+  { version: '22.0.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
 ];
 
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {

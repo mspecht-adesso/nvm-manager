@@ -14,6 +14,7 @@
 6. [Häufige Fehler und Lösungen](#häufige-fehler-und-lösungen)
 7. [Sicherheitshinweise](#sicherheitshinweise)
 8. [Bekannte Einschränkungen](#bekannte-einschränkungen)
+9. [Dark Mode / Light Mode](#dark-mode--light-mode)
 
 ---
 
@@ -78,9 +79,9 @@ npm run dev:web
 Die Oberfläche gliedert sich in folgende Bereiche:
 
 ```
-┌─────────────────────────────────────┐
-│   nvm Manager         Aktiv: v22.x  │  ← Header mit aktiver Versionsanzeige
-├─────────────────────────────────────┤
+┌──────────────────────────────────────────┐
+│   nvm Manager    Aktiv: v22.x    ☾ / ☀  │  ← Header mit Versionsanzeige und Theme-Toggle
+├──────────────────────────────────────────┤
 │  Status                             │  ← API-Status, nvm-Version, NVM_DIR
 ├─────────────────────────────────────┤
 │  Aktion                             │  ← Eingabefeld + Aktions-Buttons
@@ -107,7 +108,7 @@ Die **Status-Card** zeigt beim Start automatisch:
 - **nvm-Version**: z.B. `0.39.7`
 - **NVM_DIR**: Pfad zur nvm-Installation (z.B. `/Users/name/.nvm`)
 
-Der Header zeigt zudem die aktuell aktive Node.js-Version als Badge an (z.B. `Aktiv: v22.11.0`).
+Der Header zeigt zudem die aktuell aktive Node.js-Version als Badge an (z.B. `Aktiv: v22.11.0`) sowie den Theme-Toggle-Button (☾/☀).
 
 Falls die API nicht erreichbar ist, stellen Sie sicher dass das Backend läuft (`npm run dev:api`).
 
@@ -379,6 +380,31 @@ gelesen. Bei sehr ungewöhnlichen nvm-Konfigurationen kann die Liste unvollstän
 ### Keine `.nvmrc`-Unterstützung
 
 Die Verwaltung von `.nvmrc`-Dateien pro Projekt ist für eine spätere Version geplant.
+
+---
+
+---
+
+## Dark Mode / Light Mode
+
+nvm Manager unterstützt ein helles und ein dunkles Farbschema.
+
+### Theme wechseln
+
+Klicken Sie im Header rechts oben auf den runden Toggle-Button:
+
+| Symbol | Bedeutung |
+|--------|-----------|
+| ☾ | Aktuell heller Modus – Klick wechselt zu dunkel |
+| ☀ | Aktuell dunkler Modus – Klick wechselt zu hell |
+
+### Automatische Erkennung
+
+Beim allerersten Aufruf erkennt nvm Manager automatisch die Systemeinstellung Ihres Betriebssystems (`Einstellungen → Erscheinungsbild → Dunkel/Hell`) und übernimmt diese als Starteinstellung.
+
+### Gespeicherte Einstellung
+
+Ihre Themewahl wird im Browser-Speicher (`localStorage`) gespeichert und beim nächsten Öffnen automatisch wiederhergestellt – ohne dass Sie erneut wechseln müssen.
 
 ---
 

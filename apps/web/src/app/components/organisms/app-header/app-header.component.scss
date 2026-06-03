@@ -1,11 +1,10 @@
-$color-primary: #2563eb;
 $spacing-xs: 0.25rem;
 $spacing-sm: 0.5rem;
 $spacing-md: 1rem;
 $spacing-xl: 2rem;
 
 .header {
-  background: $color-primary;
+  background: var(--color-primary);
   color: #fff;
   padding: $spacing-md $spacing-xl;
   position: sticky;
@@ -36,6 +35,12 @@ $spacing-xl: 2rem;
     font-size: 1.25rem;
   }
 
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
   &__active-badge {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.35);
@@ -44,5 +49,36 @@ $spacing-xl: 2rem;
     font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
+  }
+
+  &__theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    padding: 0;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.8);
+      outline-offset: 2px;
+    }
+  }
+
+  &__theme-icon {
+    font-size: 1rem;
+    line-height: 1;
+    color: #fff;
   }
 }

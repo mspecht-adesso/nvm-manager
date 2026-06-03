@@ -3,8 +3,22 @@
     <h1 class="header__title">
       <span class="header__icon">&#9881;</span> nvm Manager
     </h1>
-    @if (activeVersion) {
-      <span class="header__active-badge">Aktiv: v{{ activeVersion.version }}</span>
-    }
+    <div class="header__right">
+      @if (activeVersion) {
+        <span class="header__active-badge">Aktiv: v{{ activeVersion.version }}</span>
+      }
+      <button
+        class="header__theme-toggle"
+        (click)="themeService.toggle()"
+        [attr.aria-label]="themeService.theme() === 'dark' ? 'Zum hellen Modus wechseln' : 'Zum dunklen Modus wechseln'"
+        [title]="themeService.theme() === 'dark' ? 'Zum hellen Modus wechseln' : 'Zum dunklen Modus wechseln'"
+      >
+        @if (themeService.theme() === 'dark') {
+          <span class="header__theme-icon" aria-hidden="true">&#9728;</span>
+        } @else {
+          <span class="header__theme-icon" aria-hidden="true">&#9790;</span>
+        }
+      </button>
+    </div>
   </div>
 </header>
