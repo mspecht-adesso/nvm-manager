@@ -1,44 +1,44 @@
-<app-install-modal [state]="installModal()" (closed)="closeInstallModal()" />
+<app-install-modal [state]="state.installModal()" (closed)="state.closeInstallModal()" />
 
-<app-app-header [activeVersion]="activeVersion()" />
+<app-app-header [activeVersion]="state.activeVersion()" />
 
 <main class="main">
-  <app-status-card (nvmUpdate)="onNvmUpdate($event)" />
+  <app-status-card (nvmUpdate)="state.onNvmUpdate($event)" />
 
   <app-action-card
-    [isLoading]="isLoading()"
-    [prefillVersion]="prefillVersion()"
-    (install)="onInstall($event)"
-    (use)="onUse($event)"
-    (setDefault)="onSetDefault($event)"
-    (uninstall)="onUninstall($event)"
+    [isLoading]="state.isLoading()"
+    [prefillVersion]="state.prefillVersion()"
+    (install)="state.onInstall($event)"
+    (use)="state.onUse($event)"
+    (setDefault)="state.onSetDefault($event)"
+    (uninstall)="state.onUninstall($event)"
   />
 
   <app-installed-versions-card
-    [versions]="installedVersions()"
-    [raw]="installedRaw()"
-    [loading]="installedLoading()"
-    [isLoading]="isLoading()"
-    (useVersion)="onUseFromList($event)"
-    (uninstallVersion)="onUninstall($event)"
-    (refresh)="loadInstalledVersions()"
+    [versions]="state.installedVersions()"
+    [raw]="state.installedRaw()"
+    [loading]="state.installedLoading()"
+    [isLoading]="state.isLoading()"
+    (useVersion)="state.onUseFromList($event)"
+    (uninstallVersion)="state.onUninstall($event)"
+    (refresh)="state.loadInstalledVersions()"
   />
 
   <app-aliases-card
-    [refreshTrigger]="aliasesRefreshTrigger()"
-    [installedVersions]="installedVersions()"
-    (logged)="onLogged($event)"
-    (aliasChanged)="loadInstalledVersions()"
+    [refreshTrigger]="state.aliasesRefreshTrigger()"
+    [installedVersions]="state.installedVersions()"
+    (logged)="state.onLogged($event)"
+    (aliasChanged)="state.loadInstalledVersions()"
   />
 
   <app-remote-versions-card
-    [installedVersions]="installedVersions()"
-    [isLoading]="isLoading()"
-    (install)="onInstall($event)"
-    (logged)="onLogged($event)"
+    [installedVersions]="state.installedVersions()"
+    [isLoading]="state.isLoading()"
+    (install)="state.onInstall($event)"
+    (logged)="state.onLogged($event)"
   />
 
-  <app-log-card [log]="log()" />
+  <app-log-card [log]="state.log()" />
 </main>
 
 <app-app-footer />

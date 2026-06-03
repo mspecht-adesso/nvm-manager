@@ -226,20 +226,20 @@ Ziel: State und Aktionen in einen `NvmStateService` auslagern. `app.ts` wird zum
 
 ### 7.1 `NvmStateService` anlegen
 
-- [ ] Datei `apps/web/src/app/services/nvm-state.service.ts` anlegen
-- [ ] Alle Signals aus `app.ts` in den Service verschieben:
+- [x] Datei `apps/web/src/app/services/nvm-state.service.ts` anlegen
+- [x] Alle Signals aus `app.ts` in den Service verschieben:
   - `log`, `isLoading`, `installedVersions`, `installedRaw`, `installedLoading`,
     `installModal`, `prefillVersion`, `aliasesRefreshTrigger`, `activeVersion`
-- [ ] Alle Methoden aus `app.ts` in den Service verschieben:
+- [x] Alle Methoden aus `app.ts` in den Service verschieben:
   - `loadInstalledVersions`, `onInstall`, `onUseFromList`, `onUse`, `onSetDefault`,
     `onUninstall`, `onNvmUpdate`, `closeInstallModal`, `onLogged`, `addLog`
-- [ ] `NvmApiService` per `inject()` in den neuen Service einbinden
+- [x] `NvmApiService` per `inject()` in den neuen Service einbinden
 
 ### 7.2 `app.ts` vereinfachen
 
-- [ ] Alle ausgelagerten Signals und Methoden durch `inject(NvmStateService)` ersetzen
-- [ ] Template auf `state.installedVersions()`, `state.onInstall($event)` etc. umschreiben
-- [ ] Nicht mehr benötigte Imports entfernen
+- [x] Alle ausgelagerten Signals und Methoden durch `inject(NvmStateService)` ersetzen
+- [x] Template auf `state.installedVersions()`, `state.onInstall($event)` etc. umschreiben
+- [x] Nicht mehr benötigte Imports entfernen
 
 ### 7.3 Tests anpassen
 
@@ -320,6 +320,6 @@ export const appConfig: ApplicationConfig = {
 | 4 | Signal Inputs/Outputs | M | erledigt |
 | 5 | OnPush auf alle Components | M | erledigt |
 | 6 | OnChanges → effect() | S | erledigt (mit Schritt 4) |
-| 7 | NvmStateService | L | offen |
+| 7 | NvmStateService | L | erledigt |
 | 8 | confirm() → Custom-Modal | M | offen |
 | 9 | Zoneless (optional) | XL | zurückgestellt |
