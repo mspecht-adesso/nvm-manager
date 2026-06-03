@@ -8,7 +8,8 @@
         id="versionInput"
         class="input"
         type="text"
-        [(ngModel)]="versionInput"
+        [ngModel]="versionInput()"
+        (ngModelChange)="versionInput.set($event)"
         placeholder="z.B. 22, 22.11, lts/*, node"
         [disabled]="isLoading()"
       />

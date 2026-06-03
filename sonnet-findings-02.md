@@ -73,10 +73,10 @@ Betroffen (nur **GET**-Reads — Mutationen bleiben imperativ):
 Der `prefillVersion`-`effect()` schreibt in das lokale `versionInput`. Genau dieses
 „abgeleiteter, aber überschreibbarer Zustand"-Muster ist der Anwendungsfall für `linkedSignal()`.
 
-- [ ] `versionInput` von Plain-Property auf `linkedSignal` umstellen (Quelle: `prefillVersion`)
-- [ ] Template-`ngModel` an das Signal anbinden
-- [ ] `effect()` + Konstruktor entfernen
-- [ ] Tests anpassen
+- [x] `versionInput` von Plain-Property auf `linkedSignal` umgestellt (Quelle: `prefillVersion`, Fallback `previous?.value || '22'`)
+- [x] Template auf `[ngModel]="versionInput()"` + `(ngModelChange)="versionInput.set($event)"` umgestellt
+- [x] `effect()` + Konstruktor entfernt
+- [x] Tests angepasst (Signal-Zugriff `()`/`.set()`), inkl. neuem Test „manuelle Eingabe bleibt erhalten"
 
 > Der `refreshTrigger`-`effect()` in `aliases-card` bleibt — er löst einen Reload aus
 > (legitimer Seiteneffekt) und wird ggf. durch Schritt 2 (reaktiver httpResource) abgelöst.
@@ -119,7 +119,7 @@ Funktioniert nur, weil `this` nicht genutzt wird — fragil.
 |---------|-------------|------|---------|--------|
 | 1 | ESLint + angular-eslint | 1 | M | erledigt |
 | 2 | rxResource() Migration | 1 | L | erledigt |
-| 3 | linkedSignal() action-card | 2 | S | offen |
+| 3 | linkedSignal() action-card | 2 | S | erledigt |
 | 4 | Error-Interceptor + ErrorHandler | 2 | M | offen |
 | 5 | handleError absichern | 2 | XS | offen |
 | 6 | Accessibility | 3 | M | offen |

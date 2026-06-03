@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardComponent } from '../../molecules/card/card.component';
 
@@ -19,32 +19,30 @@ export class ActionCardComponent {
   readonly setDefault = output<string>();
   readonly uninstall = output<string>();
 
-  versionInput = '22';
-
-  constructor() {
-    effect(() => {
-      const v = this.prefillVersion();
-      if (v) this.versionInput = v;
-    });
-  }
+  // Derived from `prefillVersion` but locally overridable (user typing).
+  // A non-empty prefill overwrites the field; otherwise the previous value is kept.
+  readonly versionInput = linkedSignal<string, string>({
+    source: this.prefillVersion,
+    computation: (prefill, previous) => prefill || previous?.value || '22',
+  });
 
   onInstall(): void {
-    const v = this.versionInput.trim();
+    const v = this.versionInput().trim();
     if (v) this.install.emit(v);
   }
 
   onUse(): void {
-    const v = this.versionInput.trim();
+    const v = this.versionInput().trim();
     if (v) this.use.emit(v);
   }
 
   onSetDefault(): void {
-    const v = this.versionInput.trim();
+    const v = this.versionInput().trim();
     if (v) this.setDefault.emit(v);
   }
 
   onUninstall(): void {
-    const v = this.versionInput.trim();
+    const v = this.versionInput().trim();
     if (v) this.uninstall.emit(v);
   }
 }
