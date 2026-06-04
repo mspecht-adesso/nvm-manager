@@ -169,16 +169,16 @@
 
   <div class="summary-grid">
     <div class="stat-card">
-      <div class="stat-value" style="color:var(--green)">12</div>
-      <div class="stat-label">Cursor Rules (5 immer aktiv, 7 dateiabhängig)</div>
+      <div class="stat-value" style="color:var(--green)">13</div>
+      <div class="stat-label">Cursor Rules (6 immer aktiv, 7 dateiabhängig)</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color:#a78bfa">9</div>
+      <div class="stat-value" style="color:#a78bfa">10</div>
       <div class="stat-label">Expert Skills (.cursor/skills/)</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" style="color:var(--accent-light)">4</div>
-      <div class="stat-label">Hook-Events (4 Scripts + 3 Prompt-Hooks)</div>
+      <div class="stat-value" style="color:var(--accent-light)">5</div>
+      <div class="stat-label">Hook-Events (6 Scripts + 3 Prompt-Hooks)</div>
     </div>
     <div class="stat-card">
       <div class="stat-value" style="color:var(--yellow)">AA</div>
@@ -327,6 +327,11 @@
         <td><span class="scope">apps/web/**/*.ts<br>apps/web/**/*.html<br>apps/api/**/*.ts</span></td>
         <td>Angular: <code>ChangeDetectionStrategy.OnPush</code> auf allen Komponenten, stabiles <code>track</code> in <code>@for</code>, keine Funktionsaufrufe in Templates, <code>rxResource()</code> für HTTP-Ressourcen, Lazy Loading. Node.js: kein Blocking-I/O, <code>execFile</code> statt <code>exec</code>, <code>maxBuffer</code> + Timeout-Werte</td>
       </tr>
+      <tr>
+        <td><code>definition-of-done.mdc</code> <span style="font-size:0.68rem;color:var(--text-dim);">neu</span></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Verifikations-Gate vor Abschluss: Build/Lint/Test wirklich ausführen (nicht behaupten), kein <code>any</code>, TSDoc/<code>@openapi</code> auf neuem Code, Versionseingaben validiert, WCAG 2.1 AA, CHANGELOG aktualisiert. Fehlschläge müssen explizit benannt werden</td>
+      </tr>
     </tbody>
   </table>
 
@@ -465,7 +470,22 @@
         <li>Komponente wächst auf &gt; 200 Zeilen</li>
         <li>Logik ist in mehreren Komponenten dupliziert</li>
         <li>Datei umbenennen oder verschieben ohne Import-Brüche</li>
-        <li>Code-Review vor einem PR</li>
+      </ul>
+    </div>
+
+    <div class="skill-card" style="border-color:rgba(6,182,212,0.3);">
+      <div class="skill-card-name" style="color:var(--accent-light);">code-review-expert <span style="font-size:0.68rem;font-weight:400;color:var(--text-dim);">neu</span></div>
+      <div class="skill-card-desc">
+        Strukturiertes Review eines Diffs oder PRs mit Schweregrad-Einstufung
+        (🔴 Critical / 🟡 Suggestion / 🟢 Nice-to-have). Fokus auf Security der
+        nvm-Shell-Ausführung, Angular/A11y, Express-Handler und Test-Coverage.
+        Mit Output-Template inkl. <code>file:line</code>-Referenzen.
+      </div>
+      <ul class="skill-triggers">
+        <li>„Schau dir meine Änderungen an" / Code-Review anfordern</li>
+        <li>Pull Request oder <code>git diff</code> bewerten</li>
+        <li>Staged Changes vor dem Commit prüfen</li>
+        <li>Security-Review von API-Änderungen</li>
       </ul>
     </div>
 
@@ -560,6 +580,29 @@
                 Fügt bei allen anderen Package-Operationen einen Reminder ein:
                 Caret-Range prüfen, <code>knip</code> laufen lassen, <code>npm audit</code> ausführen.
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hook-card">
+      <div class="hook-card-header">
+        <span class="hook-event">beforeReadFile</span>
+        <span class="hook-type-badge">Script</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);">neu</span>
+      </div>
+      <div class="hook-card-body">
+        <div class="hook-script-item">
+          <div class="hook-dot" style="background:var(--accent);"></div>
+          <div>
+            <div class="hook-script-name" style="color:var(--accent-light);">protect-secrets.sh</div>
+            <div class="hook-script-desc">
+              Läuft, bevor der Agent eine Datei liest. Erkennt sensible Dateien
+              (<code>.env</code>, <code>*.pem</code>, <code>*.key</code>, <code>id_rsa</code>,
+              <code>credentials</code>, <code>secrets.*</code>) und fragt um Bestätigung,
+              bevor deren Inhalt in den Modell-Kontext geladen wird. Schützt vor versehentlicher
+              Secret-Exposition – kritisch für ein sicherheitssensibles lokales Tool.
             </div>
           </div>
         </div>
@@ -686,7 +729,7 @@
     <br>
     <span class="sf-event">Rules geladen</span>
     <span class="sf-arrow"> ──► </span>
-    <span class="sf-action">4× alwaysApply (immer) + Glob-Rules für geöffnete Dateien</span>
+    <span class="sf-action">6× alwaysApply (immer) + Glob-Rules für geöffnete Dateien</span>
     <br>
     <span class="sf-arrow">        ↓</span>
     <br>
@@ -701,6 +744,12 @@
     <span class="sf-action">beforeShellExecution: security-check.sh prüft Muster</span>
     <br>
     <span class="sf-indent sf-note">npm install/add  → npm-guard.sh: @latest blockiert · knip/audit reminder</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Datei gelesen</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">beforeReadFile: protect-secrets.sh prüft auf sensible Dateien</span>
     <br>
     <span class="sf-arrow">        ↓</span>
     <br>
@@ -784,10 +833,28 @@
         <td class="col-hook">–</td>
       </tr>
       <tr>
-        <td>Refactoring / Code-Review</td>
+        <td>Refactoring</td>
         <td class="col-rule"><code>project-conventions</code>, <code>performance</code></td>
         <td class="col-skill"><code>refactoring-expert</code></td>
         <td class="col-hook"><code>stop</code>: Lint + Tests + Commit-Format</td>
+      </tr>
+      <tr>
+        <td>Code-Review / PR-Prüfung</td>
+        <td class="col-rule"><code>definition-of-done</code>, <code>nvm-security</code></td>
+        <td class="col-skill"><code>code-review-expert</code></td>
+        <td class="col-hook"><code>protect-secrets</code> (beim Lesen)</td>
+      </tr>
+      <tr>
+        <td>Sensible Datei lesen (.env, Keys)</td>
+        <td class="col-rule"><code>nvm-security</code></td>
+        <td class="col-skill">–</td>
+        <td class="col-hook"><code>protect-secrets</code>: fragt um Bestätigung</td>
+      </tr>
+      <tr>
+        <td>Aufgabe abschließen / verifizieren</td>
+        <td class="col-rule"><code>definition-of-done</code></td>
+        <td class="col-skill">–</td>
+        <td class="col-hook"><code>stop</code>: Qualitäts-Checkliste</td>
       </tr>
       <tr>
         <td>Dependency hinzufügen</td>
@@ -821,7 +888,8 @@
 ├── hooks.json                    ← Hook-Konfiguration (version: 1)
 ├── hooks/
 │   ├── security-check.sh         ← beforeShellExecution (allg. Sicherheit)
-│   ├── npm-guard.sh              ← beforeShellExecution (@latest blockieren) ★
+│   ├── npm-guard.sh              ← beforeShellExecution (@latest blockieren)
+│   ├── protect-secrets.sh        ← beforeReadFile (.env/Keys schützen) ★ neu
 │   ├── post-edit-notify.sh       ← afterFileEdit (allgemein)
 │   ├── lint-reminder.sh          ← afterFileEdit (.ts + .html)
 │   └── a11y-check.sh             ← afterFileEdit (.html – A11y-Grep-Scan)
@@ -830,14 +898,15 @@
 │   ├── project-architecture.mdc  ← alwaysApply
 │   ├── nvm-security.mdc          ← alwaysApply
 │   ├── comments-english.mdc      ← alwaysApply
-│   ├── commit-conventions.mdc    ← alwaysApply  ★
+│   ├── commit-conventions.mdc    ← alwaysApply
+│   ├── definition-of-done.mdc    ← alwaysApply  ★ neu
 │   ├── angular-standalone.mdc    ← apps/web/**
 │   ├── express-api.mdc           ← apps/api/**
 │   ├── nodejs-typescript.mdc     ← apps/api/**
 │   ├── testing.mdc               ← **/*.spec.ts etc.
 │   ├── formatting.mdc            ← apps/**/*.ts, .html, .scss
 │   ├── a11y.mdc                  ← apps/web/**/*.html, .ts
-│   └── performance.mdc           ← apps/web/**/*.ts, .html · apps/api/**/*.ts  ★
+│   └── performance.mdc           ← apps/web/**/*.ts, .html · apps/api/**/*.ts
 └── skills/
     ├── project-explainer/SKILL.md
     ├── angular-expert/SKILL.md
@@ -848,8 +917,9 @@
     ├── a11y-expert/
     │   ├── SKILL.md
     │   └── CHECKLIST.md          ← komponentenweise WCAG-2.1-AA-Prüfliste
-    ├── debugging-expert/SKILL.md  ★
-    └── refactoring-expert/SKILL.md  ★</pre>
+    ├── debugging-expert/SKILL.md
+    ├── refactoring-expert/SKILL.md
+    └── code-review-expert/SKILL.md  ★ neu</pre>
 
 </main>
 

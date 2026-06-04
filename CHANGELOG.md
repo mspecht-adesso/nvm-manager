@@ -10,6 +10,72 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.7.0] – 2026-06-04
+
+### Hinzugefügt
+
+- **HTML-Dokumentation** (`desc/`) – die technischen Markdown-Unterlagen liegen jetzt zusätzlich als eigenständige, durchsuchbare HTML-Lernunterlagen vor:
+  - `index.html` – Einstiegsseite mit empfohlenem Lernpfad (Backend → API → Frontend) und Dokumenten-Übersicht
+  - `BACKEND.html`, `API.html`, `FRONTEND.html` – die drei Kerndokumente
+  - `BACKEND-changes.html`, `API-changes.html`, `FRONTEND-changes.html` – Refactoring-Dokumentation der beiden Review-Runden, gegliedert nach Schicht
+  - `README.html` – Übersicht, Lernpfad und Glossar
+  - `styles.css` / `styles-docs.css` – gemeinsames Light-/Dark-Mode-Stylesheet (WCAG-AA-konforme Kontraste, Theme-Umschalter mit `localStorage`-Persistierung und `prefers-color-scheme`-Erkennung)
+
+- **`AI-SETUP.html`** – neue Dokumentationsseite, die das agentic-AI-Entwicklungs-Setup (Cursor Rules, Skills und Hooks) erklärt: Konzept, vollständige Übersichtstabellen, Session-Flow-Diagramm und Werkzeug-Zuordnung nach Aufgabentyp
+
+- **Ausbau des Cursor-AI-Setups** (`.cursor/`)
+  - Neue Rules: `a11y.mdc` (WCAG 2.1 AA für Angular-Templates), `performance.mdc` (OnPush, stabiles `track`, keine Funktionsaufrufe in Templates, `execFile`/`maxBuffer`/Timeout), `commit-conventions.mdc` (Conventional Commits) und `definition-of-done.mdc` (Verifikations-Gate vor Abschluss)
+  - Neue Skills: `a11y-expert` (inkl. komponentenweiser `CHECKLIST.md`), `debugging-expert`, `refactoring-expert` und `code-review-expert`
+  - Neue Hooks: `npm-guard.sh` (blockiert `@latest`, erinnert an `knip`/`npm audit`), `protect-secrets.sh` (fragt vor dem Lesen von `.env`/Keys), `a11y-check.sh` (statischer A11y-Grep-Scan für Templates)
+  - Erweiterte Hooks: `lint-reminder.sh` um HTML-/a11y-Hinweise, `sessionStart`-Kontext und `stop`-Qualitätscheckliste um A11y-, Performance- und Commit-Format-Prüfungen ergänzt
+
+### Geändert
+
+- `README.md` korrigiert (Frontend-Port `4201`, aktualisierte Funktions- und Sicherheitsbeschreibung)
+
+---
+
+## [0.6.0] – 2026-06-03
+
+> Angular-21-Modernisierung in zwei Best-Practice-Review-Runden (`sonnet-findings-01.md` + `sonnet-findings-02.md`) – 15 Änderungspakete, am Ende 200 Tests grün und 0 Lint-Fehler.
+
+### Hinzugefügt
+
+- **`NvmStateService`** (`apps/web/src/app/services/nvm-state.service.ts`) – die „God Component" `app.ts` wurde aufgelöst: sämtliche State-Signals (`log`, `isLoading`, `installedVersions`, `installedRaw`, `installModal`, `prefillVersion`, `activeVersion` u. a.) und Aktions-Methoden (`onInstall`, `onUse`, `onSetDefault`, `onUninstall`, `onNvmUpdate`, …) leben jetzt im Service; `app.ts` ist ein reiner Layout-Container
+- **ESLint mit angular-eslint (Flat Config)** – `apps/web/eslint.config.mjs` mit TS- und Template-Regeln (`tsRecommended`, `templateRecommended`, `templateAccessibility`, `prefer-standalone`, `prefer-on-push-component-change-detection`); `lint`/`lint:fix`-Scripts in `apps/web` und Root
+- **Zentrales Error-Handling** – funktionaler `httpErrorInterceptor` (`core/http-error.interceptor.ts`) normalisiert `HttpErrorResponse` → `Error`; `GlobalErrorHandler` (`core/global-error-handler.ts`) als `ErrorHandler` registriert (Safety-Net + zentrales Logging)
+- **Geteiltes SCSS-Partial** `apps/web/src/styles/_variables.scss` (Spacing-/Border-Radius-Tokens) mit `stylePreprocessorOptions.includePaths` in `angular.json`
+- **Accessibility-Verbesserungen**
+  - `install-modal`: Fokus-Management (Fokus auf Schließen-Button beim Öffnen via `effect()` + `viewChild`, Fokus-Wiederherstellung beim Schließen), `Escape` schließt (außer während `phase === 'running'`), `role="dialog"`/`aria-modal`/`aria-labelledby`/`tabindex="-1"`
+  - `log-card`: `role="log"` + `aria-live="polite"` + `aria-relevant="additions"`
+  - `aliases-card`: `role="alert"` am Inline-Confirm-Prompt
+
+### Geändert
+
+- **Signal Inputs/Outputs** – alle Komponenten von `@Input()`/`@Output()`/`EventEmitter` auf `input()`/`input.required()`/`output()` migriert (integriert sich direkt ins Signals-Modell)
+- **`ChangeDetectionStrategy.OnPush`** auf allen 13 Komponenten aktiviert
+- **Zoneless Change Detection** – `provideZonelessChangeDetection()` in `app.config.ts` (stabile Angular-21-API); `zone.js` war bereits nicht im Bundle
+- **`provideHttpClient(withFetch())`** – native Fetch API als HttpClient-Backend (kleineres Bundle, besseres SSR-Handling)
+- **Datenabruf auf `rxResource()` umgestellt** – alle GET-Reads (`status-card`, `remote-versions-card`, `nvm-state.service`, `aliases-card`) deklarativ und signal-basiert; `NvmApiService` bleibt als `stream`-Loader; Werte über `hasValue()` abgesichert; Mutationen (`install`/`use`/`uninstall`/`setAlias`/`updateNvm`) bleiben bewusst imperativ
+- **`OnChanges` → `effect()`** in `install-modal` (Auto-Close-Timer mit `onCleanup`); `OnChanges`/`SimpleChanges`/`OnDestroy` entfernt
+- **`action-card`: `effect()` → `linkedSignal()`** – `versionInput` als ableitbarer, aber überschreibbarer Zustand (Quelle `prefillVersion`); manuelle Eingaben bleiben erhalten
+- **`confirm()` durch Signal-gesteuertes Inline-Confirm ersetzt** in `aliases-card` (`confirmPendingAlias`-Signal, „Ja, löschen"/„Abbrechen" im Template)
+- **`index.html`** – `<title>` auf „nvm Manager", `lang="de"`
+- **Selektoren bereinigt** – `app-app-header`/`app-app-footer` → `app-header`/`app-footer`
+- **Eigene SCSS-Dateien** für `installed-versions-card` (Tabellen-Styles) und `spinner` (aus `styles.scss` ausgelagert)
+
+### Behoben
+
+- **`handleError`-Methodenreferenz entfernt** – die fragile `catchError(this.handleError)`-Übergabe in `nvm-api.service.ts` entfällt; die Normalisierung übernimmt jetzt der zentrale `httpErrorInterceptor`, der Service besteht nur noch aus schlanken HTTP-Aufrufen
+
+### Tests
+
+- ESLint-Fehler behoben (OnPush an Test-Host-Komponente, ungenutzte Konstante) → 0 Lint-Fehler
+- Tests an Signal-Inputs, `rxResource` (async `flush()` via `ApplicationRef.whenStable()`), `linkedSignal` und das neue Error-Handling angepasst
+- `nvm-state.service.spec.ts` neu angelegt; dedizierte Specs für `httpErrorInterceptor`, `GlobalErrorHandler` und `app-footer`; A11y-Tests (Escape-Verhalten, aria-Attribute, Fokus) → **200 Tests grün**
+
+---
+
 ## [0.5.0] – 2026-06-03
 
 ### Hinzugefügt
@@ -278,7 +344,9 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/mspecht-adesso/nvm-manager/compare/v0.2.2...v0.3.0
