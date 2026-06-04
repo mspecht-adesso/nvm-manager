@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend – Angular Modernisierung | nvm-manager Changes</title>
+  <script>(function(){var t=localStorage.getItem('nvm-ui-theme'),d=window.matchMedia('(prefers-color-scheme: light)').matches;if(t==='light'||(t===null&&d))document.documentElement.setAttribute('data-theme','light');})()</script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-frontend">
+
+<button id="theme-btn" onclick="(function(){var h=document.documentElement,c=h.getAttribute('data-theme')==='light';h.setAttribute('data-theme',c?'':'light');localStorage.setItem('nvm-ui-theme',c?'dark':'light');document.getElementById('theme-btn').textContent=c?'☀ Hell':'☾ Dunkel';})()" aria-label="Farbschema wechseln">☀ Hell</button>
+<script>document.getElementById('theme-btn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'☾ Dunkel':'☀ Hell';</script>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tag">Frontend Changes</div>
+    <h1>Angular Modernisierung</h1>
+    <p class="header-meta">
+      nvm-manager · Angular 21.2 · apps/web/ ·
+      <a href="FRONTEND.md">→ FRONTEND.md</a> ·
+      <a href="FRONTEND-changes.md">→ Markdown-Version</a>
+    </p>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-value">15</div>
+      <div class="stat-label">Änderungspakete (alle erledigt)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">200</div>
+      <div class="stat-label">Tests grün nach Abschluss</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Lint-Fehler / offene Punkte</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">2</div>
+      <div class="stat-label">Review-Runden (Findings 01 + 02)</div>
+    </div>
+  </div>
+
+  <nav>
+    <h2>Inhaltsverzeichnis</h2>
+    <ol>
+      <li><a href="#s1-1">1.1 index.html</a></li>
+      <li><a href="#s1-2">1.2 withFetch()</a></li>
+      <li><a href="#s1-3">1.3 SCSS Variablen</a></li>
+      <li><a href="#s1-4">1.4 Signal Inputs</a></li>
+      <li><a href="#s1-5">1.5 OnPush</a></li>
+      <li><a href="#s1-6">1.6 effect()</a></li>
+      <li><a href="#s1-7">1.7 NvmStateService</a></li>
+      <li><a href="#s1-8">1.8 confirm() Modal</a></li>
+      <li><a href="#s1-9">1.9 Zoneless</a></li>
+      <li><a href="#s2-1">2.1 ESLint</a></li>
+      <li><a href="#s2-2">2.2 rxResource()</a></li>
+      <li><a href="#s2-3">2.3 linkedSignal()</a></li>
+      <li><a href="#s2-4">2.4 ErrorHandler</a></li>
+      <li><a href="#s2-5">2.5 handleError</a></li>
+      <li><a href="#s2-6">2.6 Accessibility</a></li>
+    </ol>
+  </nav>
+
+  <!-- ═══ TEIL 1 ═══ -->
+  <div class="part-header">
+    <span class="part-label">Teil 1</span>
+    <h2>Angular Best-Practice <small style="color:var(--text-muted);font-size:0.8em;font-weight:400">(sonnet-findings-01.md)</small></h2>
+  </div>
+
+  <div class="change-block" id="s1-1">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.1 – <code>index.html</code> fixen</span>
+      <span class="badge badge-xs">XS</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">apps/web/src/index.html</span>
+    </div>
+    <table>
+      <thead><tr><th>Vorher</th><th>Nachher</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;title&gt;Web&lt;/title&gt;</code></td><td><code>&lt;title&gt;nvm Manager&lt;/title&gt;</code></td></tr>
+        <tr><td><code>lang="en"</code></td><td><code>lang="de"</code></td></tr>
+      </tbody>
+    </table>
+    <p>Der Scaffold-Titel blieb unverändert und die Sprachdeklaration passte nicht zu den deutschen UI-Texten. Beides beeinflusst Screenreader, Browser-Verlauf und SEO.</p>
+  </div>
+
+  <div class="change-block" id="s1-2">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.2 – <code>provideHttpClient(withFetch())</code></span>
+      <span class="badge badge-xs">XS</span>
+      <span class="badge badge-impact-l">Low Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">app.config.ts</span>
+    </div>
+    <div class="diff-grid">
+      <div><div class="diff-label before">Vorher</div><pre><code>provideHttpClient()</code></pre></div>
+      <div><div class="diff-label after">Nachher</div><pre><code>provideHttpClient(withFetch())</code></pre></div>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:1rem 0;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: XMLHttpRequest (XHR) vs. native Fetch API</div>
+      <p style="margin-bottom:0.6rem;font-size:0.87rem;"><strong>XMLHttpRequest</strong> ist die ursprüngliche Browser-API für HTTP-Anfragen – eingeführt um 2000 für die damals revolutionären AJAX-Techniken. Sie arbeitet über Event-Callbacks und einen Zustandsautomaten (<code>.readyState</code> 0–4). Angular nutzte XHR bislang intern im <code>HttpClient</code>.</p>
+      <p style="margin-bottom:0.75rem;font-size:0.87rem;"><strong>Die native Fetch API</strong> wurde 2015 als moderner Ersatz standardisiert und ist heute in jedem Browser sowie in Node.js (ab v18) nativ verfügbar. Ihr Kernprinzip:</p>
+      <pre><code>// Fetch API direkt (ohne Angular)
+const response = await fetch('/api/status');  // gibt ein Promise zurück
+const data     = await response.json();        // Body-Parsing ebenfalls async</code></pre>
+      <ul style="margin-top:0.75rem;padding-left:1.4rem;font-size:0.85rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li><strong>Promise-basiert</strong> statt callback-gesteuert – direkte <code>async/await</code>-Unterstützung</li>
+        <li><strong>Streams-fähig</strong> – Antwort-Body kann als <code>ReadableStream</code> konsumiert werden</li>
+        <li><strong>Abortierbar</strong> per <code>AbortController</code> – saubere Ressourcenfreigabe ohne Hacks</li>
+        <li><strong>Standardkonform</strong> – identisches Verhalten in Browser und Node.js (SSR)</li>
+      </ul>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Warum <code>withFetch()</code> aktivieren?</p>
+    <p style="margin-bottom:0.75rem;">Angular 17.3 führte <code>withFetch()</code> als optionalen Schalter ein, um Breaking Changes für bestehende Apps zu vermeiden. Seit Angular 19+ ist es die empfohlene Einstellung für neue Projekte.</p>
+
+    <table>
+      <thead><tr><th></th><th>XHR (Standard)</th><th>Fetch (mit <code>withFetch()</code>)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap">Bundle-Größe</td>
+          <td>Eigene <code>XhrBackend</code>-Klasse wird mitgebundelt</td>
+          <td>Kein eigenes Backend – nutzt natives <code>fetch()</code></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap">SSR / Node.js</td>
+          <td>Benötigt externe XHR-Polyfills auf dem Server</td>
+          <td>Kein Polyfill nötig – Node.js 18+ hat <code>fetch</code> nativ</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap">Abbruch</td>
+          <td>Angular verwaltet eigenen Abbruch-Mechanismus</td>
+          <td>Native <code>AbortController</code>-Integration</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem;white-space:nowrap">DevTools</td>
+          <td>Erscheint als <code>xhr</code> im Network-Tab</td>
+          <td>Erscheint als <code>fetch</code> – besser filterbar</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:rgba(52,211,153,0.07);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:0.8rem 1rem;margin:1rem 0;font-size:0.87rem;">
+      <strong>Was ändert sich für den Angular-Code?</strong> Nichts. Die <code>HttpClient</code>-API bleibt identisch – <code>this.http.get()</code>, <code>this.http.post()</code> etc. funktionieren weiterhin genauso. <code>withFetch()</code> ist ausschließlich ein Implementierungsdetail im Innern von Angular. Der Wechsel ist deshalb risikofrei.
+    </div>
+
+    <pre><code>// app.config.ts – vollständiger Kontext
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZonelessChangeDetection(),
+    provideHttpClient(withFetch()),   // ← einzige Änderung
+    provideRouter(routes),
+  ],
+};</code></pre>
+  </div>
+
+  <div class="change-block" id="s1-3">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.3 – SCSS-Variablen zentralisieren (DRY)</span>
+      <span class="badge badge-s">S</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">src/styles/_variables.scss</span>
+    </div>
+    <p>Spacing- und Border-Radius-Variablen waren in mehreren Component-SCSS-Dateien redundant deklariert. Ausgelagert in ein zentrales Partial mit <code>stylePreprocessorOptions.includePaths</code> in <code>angular.json</code>.</p>
+    <pre><code>// _variables.scss
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+$border-radius: 8px;
+$border-radius-sm: 4px;</code></pre>
+    <p>Components importieren jetzt per <code>@use 'variables' as *</code> ohne relativen Pfad.</p>
+  </div>
+
+  <div class="change-block" id="s1-4">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.4 – Signal Inputs / Outputs migrieren</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-h">High Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Angular 17.1 führte <code>input()</code>, <code>input.required()</code> und <code>output()</code> als Funktions-API ein. Sie lösen <code>@Input()</code> / <code>@Output()</code> ab und integrieren sich direkt ins Signals-Modell.</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher (Decorator-API)</div>
+        <pre><code>@Input({ required: true }) message!: string;
+@Input() isLoading = false;
+@Output() install = new EventEmitter&lt;string&gt;();</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher (Signal-API)</div>
+        <pre><code>readonly message = input.required&lt;string&gt;();
+readonly isLoading = input(false);
+readonly install = output&lt;string&gt;();</code></pre>
+      </div>
+    </div>
+    <p>Umgestellt: <code>loading-state</code>, <code>action-card</code>, <code>installed-versions-card</code>, <code>aliases-card</code>, <code>remote-versions-card</code>, <code>log-card</code>, <code>app-header</code>, <code>install-modal</code>, <code>status-card</code>.</p>
+  </div>
+
+  <div class="change-block" id="s1-5">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.5 – <code>ChangeDetectionStrategy.OnPush</code></span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-h">High Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+
+    <!-- Konzept: Change Detection -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Angular Change Detection</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;">Angular muss wissen, wann das DOM aktualisiert werden soll – also wann sich Daten geändert haben. Dafür ist die <strong>Change Detection (CD)</strong> zuständig. Sie wird nach jedem asynchronen Ereignis ausgelöst: Klick, HTTP-Antwort, Timer, aufgelöstes Promise.</p>
+      <p style="font-size:0.87rem;"><strong>Standardverhalten (<code>Default</code>-Strategie):</strong> Angular prüft nach jedem solchen Ereignis <em>alle</em> Components in der gesamten App – von oben nach unten durch den gesamten Component-Tree. Das ist sicher, aber aufwändig.</p>
+    </div>
+
+    <!-- Konzept: Component-Tree -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Der Component-Tree</div>
+      <p style="font-size:0.87rem;margin-bottom:0.75rem;">Eine Angular-App ist als Baum von Components aufgebaut. <code>AppComponent</code> ist die Wurzel; sie enthält alle anderen Components als Kinder und Enkel:</p>
+      <pre style="font-size:0.78rem;line-height:1.7;"><code>AppComponent
+├── AppHeaderComponent
+├── StatusCardComponent
+│   └── CardComponent
+│       └── LoadingStateComponent
+├── ActionCardComponent
+├── InstalledVersionsCardComponent
+│   └── CardComponent
+├── AliasesCardComponent
+├── RemoteVersionsCardComponent
+└── LogCardComponent</code></pre>
+      <p style="font-size:0.85rem;margin-top:0.6rem;">Mit der <code>Default</code>-Strategie traversiert Angular diesen Baum bei <em>jedem</em> Ereignis vollständig – auch wenn nur der Header neu gerendert werden müsste.</p>
+    </div>
+
+    <!-- Konzept: Signals & Signal Inputs -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Signals und Signal Inputs</div>
+      <p style="font-size:0.87rem;margin-bottom:0.75rem;"><strong>Signals</strong> sind reaktive Primitive (Angular 16+). Ein Signal ist ein Wrapper um einen Wert, der Angular <em>präzise</em> benachrichtigt, sobald sich dieser Wert ändert. Im Gegensatz zu gewöhnlichen Properties weiß Angular, welches Template welche Signals liest.</p>
+      <pre style="font-size:0.78rem;"><code>const count = signal(0);            // Signal anlegen
+count.set(1);                        // Wert setzen → Angular erfährt es sofort
+console.log(count());                // Wert lesen (als Funktion aufrufen)
+
+const double = computed(() => count() * 2);  // Abgeleiteter Wert</code></pre>
+      <p style="font-size:0.87rem;margin-top:0.75rem;"><strong>Signal Inputs</strong> (aus Schritt 1.4) sind Signals, die von außen per Property-Binding befüllt werden. Angular kennt dadurch die Abhängigkeit explizit:</p>
+      <pre style="font-size:0.78rem;"><code>readonly versions = input&lt;NvmVersion[]&gt;([]);
+// Angular weiß: wenn `versions` sich ändert,
+// muss NUR dieses Template neu gerendert werden.</code></pre>
+    </div>
+
+    <!-- Default vs OnPush -->
+    <p style="font-weight:600;margin:1rem 0 0.5rem;"><code>Default</code> vs. <code>OnPush</code> – der Unterschied</p>
+    <p style="margin-bottom:0.75rem;">Mit <code>Default</code> prüft Angular eine Component bei <em>jedem</em> CD-Zyklus, egal ob sich ihre Daten geändert haben. Das sind die „unnötigen Default-CD-Zyklen": Ein Klick in <code>ActionCardComponent</code> löst einen Zyklus aus, der auch <code>RemoteVersionsCardComponent</code> prüft – obwohl dort nichts passiert ist.</p>
+    <p style="margin-bottom:0.75rem;">Mit <strong><code>OnPush</code></strong> überspringt Angular eine Component und ihren gesamten Teilbaum, solange keine der folgenden Bedingungen erfüllt ist:</p>
+
+    <table>
+      <thead><tr><th>Auslöser</th><th>Erklärung</th></tr></thead>
+      <tbody>
+        <tr><td><code>@Input()</code>-Referenz ändert sich</td><td>Angular vergleicht per <code>===</code> (shallow, nicht Deep-Equal)</td></tr>
+        <tr><td>Signal im Template ändert sich</td><td>Angular kennt die Abhängigkeit exakt → präzises Re-Render</td></tr>
+        <tr><td>Event im eigenen Template</td><td>z.B. <code>(click)</code> innerhalb der Component</td></tr>
+        <tr><td><code>async</code>-Pipe emittiert</td><td>Observable-basierte Patterns</td></tr>
+        <tr><td><code>markForCheck()</code> / <code>detectChanges()</code></td><td>Programmatischer Auslöser (manuell)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Visuelles Beispiel -->
+    <p style="font-weight:600;margin:1.2rem 0 0.5rem;">Visuelle Vorstellung: Default vs. OnPush</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Default – prüft alles</div>
+        <pre style="font-size:0.75rem;line-height:1.7;"><code>Ereignis: Klick auf "Installieren"
+
+AppComponent          ✓ prüfen
+├── AppHeaderComponent    ✓ prüfen
+│   (nichts geändert)
+├── StatusCardComponent   ✓ prüfen
+│   (nichts geändert)
+├── ActionCardComponent   ✓ prüfen
+│   (Ereignisquelle)
+├── InstalledVersions…    ✓ prüfen
+└── AliasesCardComponent  ✓ prüfen
+    (nichts geändert)</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">OnPush + Signals – nur Nötiges</div>
+        <pre style="font-size:0.75rem;line-height:1.7;"><code>Signal `isLoading` geändert
+
+AppComponent          ✓ Signal gelesen
+├── AppHeaderComponent  ⏭ überspringen
+│   (kein Signal geändert)
+├── StatusCardComponent ⏭ überspringen
+│   (kein Signal geändert)
+├── ActionCardComponent ✓ Ereignisquelle
+├── InstalledVersions…  ✓ Signal gelesen
+└── AliasesCardComponent ⏭ überspringen
+    (kein Signal geändert)</code></pre>
+      </div>
+    </div>
+
+    <!-- Warum Schritt 4 Voraussetzung -->
+    <div style="background:rgba(52,211,153,0.07);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:0.8rem 1rem;margin:1rem 0;font-size:0.87rem;">
+      <strong>Warum ist Schritt 1.4 (Signal Inputs) Voraussetzung?</strong><br>
+      Mit klassischen <code>@Input()</code>-Properties würde <code>OnPush</code> nur bei <em>Referenzänderungen</em> (<code>===</code>) auslösen. Das ist spröde: Wer ein Array mutiert statt es zu ersetzen, sieht keine Aktualisierung. Signal Inputs lösen das elegant – Angular registriert die Abhängigkeit automatisch und triggert präzise beim tatsächlichen Wertewechsel, unabhängig von der Referenz.
+    </div>
+
+    <pre><code>import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // ...
+})</code></pre>
+
+    <p>Alle 12 Components wurden umgestellt: <code>app.ts</code>, <code>install-modal</code>, <code>app-header</code>, <code>app-footer</code>, <code>status-card</code>, <code>action-card</code>, <code>installed-versions-card</code>, <code>aliases-card</code>, <code>remote-versions-card</code>, <code>log-card</code>, <code>card</code>, <code>loading-state</code>, <code>spinner</code>.</p>
+  </div>
+
+  <div class="change-block" id="s1-6">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.6 – <code>OnChanges</code> durch <code>effect()</code> ersetzen</span>
+      <span class="badge badge-s">S</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">install-modal.component.ts</span>
+    </div>
+
+    <!-- Konzept: ngOnChanges -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: <code>ngOnChanges</code> und seine Schwächen im Signals-Zeitalter</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;"><code>ngOnChanges</code> ist ein <strong>Lifecycle-Hook</strong>: Angular ruft ihn auf, sobald sich ein <code>@Input()</code>-Property ändert. Die Component muss dafür <code>OnChanges</code> implementieren und bekommt ein <code>SimpleChanges</code>-Objekt – mit String-Keys ohne Typsicherheit (<code>changes['state']</code>).</p>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;">Das Problem: Sobald der Hook <strong>Ressourcen anlegt</strong> (hier: ein <code>setTimeout</code>-Timer), muss dieselbe Component auch <code>OnDestroy</code> implementieren, um aufzuräumen. Das Ergebnis:</p>
+      <ul style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li>Zwei Interfaces, die nur gemeinsam Sinn ergeben</li>
+        <li>Anlage-Logik in <code>ngOnChanges</code>, Bereinigung in <code>ngOnDestroy</code> – räumlich getrennt</li>
+        <li>Dupliziertes <code>clearTimeout</code> an zwei Stellen</li>
+        <li>String-Key <code>changes['state']</code> – keine Compile-Zeit-Sicherheit</li>
+      </ul>
+    </div>
+
+    <!-- Konzept: effect() -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: <code>effect()</code> – reaktive Seiteneffekte mit Signals</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;"><code>effect()</code> läuft <strong>einmalig beim Erstellen</strong> der Component und danach <strong>automatisch erneut</strong>, sobald sich ein Signal ändert, das im Effekt gelesen wird – Angular erkennt die Abhängigkeit selbst.</p>
+      <p style="font-size:0.87rem;">Die <strong>Cleanup-Funktion</strong> wird per <code>onCleanup()</code> direkt im selben Effekt registriert. Angular führt sie aus, bevor der Effekt erneut auslöst und wenn die Component zerstört wird. <code>ngOnDestroy</code> wird damit überflüssig.</p>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Vorher → Nachher im Detail</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher – Logik an zwei Stellen</div>
+        <pre style="font-size:0.75rem;"><code>// Problem: 2 Interfaces, dupliziertes
+// clearTimeout, kein Type-Safety
+implements OnChanges, OnDestroy {
+  @Input() state: InstallModalState = null;
+  private autoCloseTimer?: ReturnType&lt;
+    typeof setTimeout&gt;;
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['state']) {       // String-Key!
+      clearTimeout(this.autoCloseTimer);
+      if (this.state?.phase === 'success') {
+        this.autoCloseTimer = setTimeout(
+          () => this.closed.emit(), 3000
+        );
+      }
+    }
+  }
+
+  ngOnDestroy() {
+    clearTimeout(this.autoCloseTimer); // ← dupliziert
+  }
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher – alles an einem Ort</div>
+        <pre style="font-size:0.75rem;"><code>// Keine Interfaces, typsicher, Cleanup
+// direkt neben der Anlage-Logik
+readonly state = input&lt;InstallModalState&gt;(null);
+readonly closed = output&lt;void&gt;();
+
+constructor() {
+  let autoCloseTimer: ReturnType&lt;
+    typeof setTimeout&gt; | undefined;
+
+  effect((onCleanup) => {
+    clearTimeout(autoCloseTimer);
+    if (this.state()?.phase === 'success') {
+      autoCloseTimer = setTimeout(
+        () => this.closed.emit(), 3000
+      );
+    }
+    onCleanup(          // ← Bereinigung hier
+      () => clearTimeout(autoCloseTimer)
+    );
+  });
+}</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:0.75rem;"><code>OnChanges</code>, <code>SimpleChanges</code> und <code>OnDestroy</code> vollständig aus Importen entfernt. Die Component implementiert keine Interfaces mehr.</p>
+  </div>
+
+  <div class="change-block" id="s1-7">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.7 – God Component auflösen: <code>NvmStateService</code></span>
+      <span class="badge badge-l">L</span>
+      <span class="badge badge-impact-h">High Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">services/nvm-state.service.ts</span>
+    </div>
+
+    <!-- Konzept: God Component -->
+    <div style="background:rgba(248,113,113,0.07);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:0.6rem;">⚠ Anti-Pattern: God Component</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;">Eine <strong>God Component</strong> (auch „Fat Component") trägt zu viele Verantwortungen und verstößt damit gegen das <strong>Single Responsibility Principle (SRP)</strong>. <code>app.ts</code> hatte vor diesem Schritt drei Aufgaben gleichzeitig:</p>
+      <ol style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li><strong>Layout</strong> – das HTML-Gerüst der Seite zusammenstellen</li>
+        <li><strong>State</strong> – alle Signals der App halten (<code>isLoading</code>, <code>installedVersions</code>, …)</li>
+        <li><strong>Aktionen</strong> – alle Benutzerinteraktionen verarbeiten (<code>onInstall</code>, <code>onUse</code>, …)</li>
+      </ol>
+      <p style="font-size:0.85rem;margin-top:0.6rem;">Folgen: unkontrolliertes Wachstum (~295 Zeilen), hohe Änderungsrisiken und schlechte Testbarkeit – um <code>onInstall()</code> zu testen, musste die gesamte Angular-Component mit DOM hochgefahren werden.</p>
+    </div>
+
+    <!-- Konzept: Services & DI -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Services und Dependency Injection</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">Ein <strong>Service</strong> in Angular ist eine einfache TypeScript-Klasse mit <code>@Injectable()</code>. Kein Template, kein DOM – nur Daten und Logik. Angulars <strong>Dependency Injection (DI)</strong> stellt eine einzige Instanz der gesamten App bereit (Singleton-Pattern).</p>
+      <pre style="font-size:0.78rem;"><code>@Injectable({ providedIn: 'root' })  // eine Instanz für die gesamte App
+export class NvmStateService {
+  // Zustand und Logik hier – kein Template, kein DOM
+}
+
+// In app.ts: Angular liefert die Instanz automatisch
+protected readonly state = inject(NvmStateService);</code></pre>
+    </div>
+
+    <!-- Vorher Nachher Struktur -->
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Vorher → Nachher: Verantwortungsverteilung</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher – app.ts (~295 Zeilen)</div>
+        <pre style="font-size:0.75rem;line-height:1.7;"><code>app.ts
+  Layout:    Template 8 Cards
+  State:     9 Signals
+             isLoading
+             installedVersions
+             installedRaw
+             log
+             installModal
+             prefillVersion
+             aliasesRefreshTrigger
+             activeVersion
+             installedLoading
+  Aktionen:  10 Methoden
+             onInstall
+             onUse / onUseFromList
+             onSetDefault
+             onUninstall
+             onNvmUpdate
+             closeInstallModal
+             onLogged / addLog
+             loadInstalledVersions</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher – klare Trennung</div>
+        <pre style="font-size:0.75rem;line-height:1.7;"><code>app.ts (~50 Zeilen)
+  Layout only:
+  Template + inject(NvmStateService)
+  state.installedVersions()
+  state.onInstall($event)
+  …
+
+nvm-state.service.ts
+  State:     9 Signals (alle ausgelagert)
+
+  Aktionen:  10 Methoden (alle ausgelagert)
+
+  inject(NvmApiService) intern</code></pre>
+      </div>
+    </div>
+
+    <!-- Testbarkeit -->
+    <div style="background:rgba(52,211,153,0.07);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:0.8rem 1rem;margin:1rem 0;font-size:0.87rem;">
+      <strong>Testbarkeit – der entscheidende Gewinn:</strong> Der Service lässt sich als einfache TypeScript-Klasse testen – kein DOM, kein Angular-TestBed nötig. <code>app.spec.ts</code> mockt jetzt nur noch den Service und testet ausschließlich das Layout-Verhalten. Neuer <code>nvm-state.service.spec.ts</code> testet die extrahierte Logik isoliert.
+    </div>
+  </div>
+
+  <div class="change-block" id="s1-8">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.8 – <code>confirm()</code> durch Inline-Modal ersetzen</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">aliases-card.component.ts</span>
+    </div>
+
+    <!-- Konzept: window.confirm() Probleme -->
+    <div style="background:rgba(248,113,113,0.07);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:0.6rem;">⚠ Problem: <code>window.confirm()</code> in modernen Apps</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;"><code>confirm()</code> ist eine Browser-API aus den frühen Tagen des Webs. Sie zeigt einen nativen OS-Dialog und liefert <em>synchron</em> <code>true</code> oder <code>false</code> zurück. Das klingt praktisch, hat aber vier ernste Nachteile:</p>
+      <ol style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.4rem;">
+        <li><strong>Blockiert den UI-Thread:</strong> Die gesamte JS-Ausführung hält an, solange der Dialog offen ist. Kein Spinner, keine Animation, keine Netzwerk-Requests – die App „friert" ein.</li>
+        <li><strong>Nicht gestaltbar:</strong> Das Aussehen bestimmt ausschließlich das Betriebssystem. Schriftart, Farben, Layout lassen sich nicht anpassen – der Dialog passt nie ins App-Design.</li>
+        <li><strong>Unzuverlässig:</strong> Auf mobilen Geräten sieht er anders aus. In iframes und PWAs kann er stumm <code>false</code> zurückliefern. Chrome unterdrückt wiederholte Aufrufe automatisch.</li>
+        <li><strong>Nicht testbar:</strong> Unit-Tests müssen <code>window.confirm</code> manuell überschreiben (<code>spyOn(window, 'confirm')</code>) – fragil und aufwändig.</li>
+      </ol>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Die Signal-gesteuerte Alternative</p>
+    <p style="margin-bottom:0.75rem;">Statt den Lösch-Auftrag sofort auszuführen, speichert ein Signal den „ausstehenden" Alias-Namen. Das Template reagiert und zeigt kontextuell – direkt beim betroffenen Eintrag – eine Bestätigung an:</p>
+
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher</div>
+        <pre style="font-size:0.75rem;"><code>deleteAlias(name: string) {
+  // Blockiert UI-Thread, nicht testbar,
+  // sieht auf jedem Gerät anders aus
+  if (!confirm(
+    `Alias '${name}' wirklich löschen?`
+  )) return;
+
+  this.api.deleteAlias(name)
+    .subscribe(...);
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher</div>
+        <pre style="font-size:0.75rem;"><code>confirmPendingAlias =
+  signal&lt;string | null&gt;(null);
+
+deleteAlias(name: string) {
+  this.confirmPendingAlias.set(name);
+}
+confirmDelete() {
+  const name = this.confirmPendingAlias();
+  if (name) this.api.deleteAlias(name)
+              .subscribe(...);
+  this.confirmPendingAlias.set(null);
+}
+cancelDelete() {
+  this.confirmPendingAlias.set(null);
+}</code></pre>
+      </div>
+    </div>
+
+    <pre style="margin-top:0.75rem;font-size:0.78rem;"><code>&lt;!-- Template: erscheint direkt beim betroffenen Alias --&gt;
+@if (confirmPendingAlias() === alias.name) {
+  &lt;div role="alert"&gt;
+    Alias '{{ alias.name }}' wirklich löschen?
+    &lt;button (click)="confirmDelete()"&gt;Ja, löschen&lt;/button&gt;
+    &lt;button (click)="cancelDelete()"&gt;Abbrechen&lt;/button&gt;
+  &lt;/div&gt;
+}</code></pre>
+
+    <table style="margin-top:0.75rem;">
+      <thead><tr><th>Aspekt</th><th><code>confirm()</code></th><th>Inline-Confirm</th></tr></thead>
+      <tbody>
+        <tr><td>UI-Thread</td><td>blockiert synchron</td><td>nicht blockiert</td></tr>
+        <tr><td>Gestaltung</td><td>OS bestimmt</td><td>vollständig kontrollierbar</td></tr>
+        <tr><td>Kontextualität</td><td>losgelöster Dialog</td><td>direkt beim Element</td></tr>
+        <tr><td>Testbarkeit</td><td><code>spyOn(window, 'confirm')</code> nötig</td><td>Signal-Wert prüfen reicht</td></tr>
+        <tr><td>Accessibility</td><td>Browser-nativ, kein <code>aria</code></td><td><code>role="alert"</code> für Screenreader</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="change-block" id="s1-9">
+    <div class="change-header">
+      <span class="change-title">Schritt 1.9 – Zoneless Change Detection</span>
+      <span class="badge badge-xl">XL</span>
+      <span class="badge badge-impact-l">Low Impact (kurzfristig)</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">app.config.ts</span>
+    </div>
+
+    <!-- Konzept: Zone.js -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Was ist Zone.js – und warum wurde es eingeführt?</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">Angular muss wissen, wann asynchrone Operationen abgeschlossen sind, um Change Detection auszulösen. <strong>Zone.js</strong> löste das historisch durch <strong>Monkey-Patching</strong>: Beim App-Start überschreibt es nahezu alle asynchronen Browser-APIs mit eigenen Wrapper-Versionen:</p>
+      <pre style="font-size:0.78rem;"><code>setTimeout      → Zone.js-Wrapper
+fetch           → Zone.js-Wrapper
+Promise         → Zone.js-Wrapper
+addEventListener → Zone.js-Wrapper
+XMLHttpRequest  → Zone.js-Wrapper</code></pre>
+      <p style="font-size:0.87rem;margin-top:0.6rem;">Wenn eine Operation abschließt, benachrichtigt Zone.js Angular: „Jetzt Change Detection auslösen." Angular prüft dann den <em>gesamten</em> Component-Tree.</p>
+    </div>
+
+    <!-- Probleme Zone.js -->
+    <div style="background:rgba(248,113,113,0.07);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:0.6rem;">⚠ Die Kosten von Zone.js</div>
+      <ul style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.35rem;">
+        <li><strong>Bundle-Größe:</strong> ~35 KB extra (gzipped)</li>
+        <li><strong>Monkey-Patching:</strong> Überschreiben von Browser-APIs ist konzeptionell fragil und erschwert Debugging</li>
+        <li><strong>Unvorhersagbarkeit:</strong> CD kann zu unerwarteten Zeitpunkten ausgelöst werden</li>
+        <li><strong>Verwirrende Stack-Traces:</strong> Zone.js-Wrapper-Frames erscheinen im Debugger</li>
+        <li><strong>SSR / Node.js:</strong> Zone.js benötigt auch auf dem Server einen Patch</li>
+      </ul>
+    </div>
+
+    <!-- Konzept: Zoneless -->
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Signals ersetzen Zone.js vollständig</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">Mit Signal-basiertem State-Management weiß Angular präzise, welche Signals von welchen Templates gelesen werden. Ändert sich ein Signal, löst Angular nur die betroffenen Components aus:</p>
+      <div class="diff-grid">
+        <div>
+          <div class="diff-label before">Mit Zone.js</div>
+          <pre style="font-size:0.75rem;"><code>async-Event
+  → Zone.js fängt ab
+  → Angular: „Check alle
+    Components im Tree"</code></pre>
+        </div>
+        <div>
+          <div class="diff-label after">Zoneless + Signals</div>
+          <pre style="font-size:0.75rem;"><code>signal.set(neuerWert)
+  → Angular: „Check nur
+    Components, die dieses
+    Signal lesen"</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warum XL aber trotzdem leicht -->
+    <div style="background:rgba(52,211,153,0.07);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:0.8rem 1rem;margin:0 0 1rem;font-size:0.87rem;">
+      <strong>Warum XL-Aufwand – und trotzdem trivial hier?</strong><br>
+      XL gilt für eine Migration einer bestehenden Zone.js-App: jede Component auf implizite Abhängigkeiten prüfen, Polyfills entfernen, Tests anpassen. In diesem Projekt war der Schritt trivial: <code>zone.js</code> war nie eingetragen, alle Components nutzten bereits Signal Inputs und OnPush. Die Aktivierung war eine einzige Konfigurationszeile.
+    </div>
+
+    <pre><code>export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZonelessChangeDetection(),  // Angular 21: stabile API
+    provideHttpClient(withFetch()),
+    provideRouter(routes),
+  ],
+};</code></pre>
+
+    <table style="margin-top:0.75rem;">
+      <thead><tr><th></th><th>Mit Zone.js</th><th>Zoneless</th></tr></thead>
+      <tbody>
+        <tr><td>Bundle</td><td>+35 KB extra</td><td>entfällt vollständig</td></tr>
+        <tr><td>Change Detection</td><td>ganzer Tree nach jedem async-Event</td><td>nur betroffene Components bei Signal-Änderung</td></tr>
+        <tr><td>Monkey-Patching</td><td><code>setTimeout</code>, <code>fetch</code> etc. überschrieben</td><td>keine Browser-API-Eingriffe</td></tr>
+        <tr><td>Stack-Traces</td><td>Zone.js-Frames im Debugger</td><td>saubere, direkte Traces</td></tr>
+        <tr><td>SSR</td><td>Server-seitiger Zone.js-Patch nötig</td><td>kein Patch nötig</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ TEIL 2 ═══ -->
+  <div class="part-header">
+    <span class="part-label">Teil 2</span>
+    <h2>Angular 21 Feinschliff <small style="color:var(--text-muted);font-size:0.8em;font-weight:400">(sonnet-findings-02.md)</small></h2>
+  </div>
+
+  <div class="change-block" id="s2-1">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.1 – ESLint + angular-eslint (Flat Config)</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-h">High Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">apps/web/eslint.config.mjs</span>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Linting – mehr als nur Typen</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">Der TypeScript-Compiler prüft ausschließlich <strong>Typen</strong>. Ein Linter analysiert Code nach konfigurierbaren Regeln, die weit darüber hinausgehen:</p>
+      <table style="font-size:0.82rem;">
+        <thead><tr><th>Regel</th><th>Was wird erkannt</th></tr></thead>
+        <tbody>
+          <tr><td><code>prefer-on-push-component-change-detection</code></td><td>Components ohne <code>OnPush</code></td></tr>
+          <tr><td><code>prefer-standalone</code></td><td>Components, die noch NgModule verwenden</td></tr>
+          <tr><td><code>component-selector</code></td><td>Falsches Selektor-Präfix (<code>app-</code>)</td></tr>
+          <tr><td><code>templateAccessibility</code></td><td>Fehlende <code>alt</code>-Attribute, falsche ARIA-Rollen</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: ESLint Flat Config (ESLint 9+)</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">ESLint 9 ersetzte die Legacy-Config (<code>eslintrc.json</code>) durch die <strong>Flat Config</strong> (<code>eslint.config.mjs</code>): eine einzige JavaScript-Datei, die alle Regeln als Array exportiert – expliziter, besser typisierbar, einfacher zu debuggen.</p>
+      <pre style="font-size:0.78rem;"><code>// eslint.config.mjs (vereinfacht)
+export default [
+  { files: ['**/*.ts'],   rules: { /* TypeScript-Regeln */ } },
+  { files: ['**/*.html'], rules: { /* Template-Regeln  */ } },
+];</code></pre>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.4rem;">Die wichtigste Konsequenz</p>
+    <p style="margin-bottom:0.75rem;">Die Regel <code>prefer-on-push-component-change-detection</code> erzwingt zukünftig, was in Schritt 1.5 manuell migriert wurde. Keine neue Component kann mehr ohne <code>OnPush</code> in den Build kommen – der CI-Build schlägt fehl. <code>--max-warnings 0</code>: Auch Warnungen gelten als Fehler.</p>
+    <p>Nach initialer Bereinigung (fehlende <code>OnPush</code> an Test-Host-Components, ungenutzte Konstante): <strong>0 Lint-Fehler</strong>.</p>
+  </div>
+
+  <div class="change-block" id="s2-2">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.2 – Datenabruf auf <code>rxResource()</code> umstellen</span>
+      <span class="badge badge-l">L</span>
+      <span class="badge badge-impact-h">High Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+
+    <div style="background:rgba(248,113,113,0.07);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:0.6rem;">⚠ Problem: Manueller subscribe()-Boilerplate</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;">HTTP-GET-Aufrufe haben immer drei Zustände: <strong>Laden, Erfolg, Fehler</strong>. Bei manuellem <code>subscribe()</code> muss dieser Automat jedes Mal von Hand gebaut werden – mit eigenen Signals, eigenem Reset nach Reload und oft vergessenen Randfällen.</p>
+      <ul style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li><strong>Redundanz:</strong> Jede ladende Component schreibt denselben Boilerplate</li>
+        <li><strong>Randfälle vergessen:</strong> <code>error</code>-Signal nach erneutem Laden nicht zurückgesetzt</li>
+        <li><strong>Kein Reload:</strong> Nach einer Mutation muss <code>ngOnInit</code> erneut aufgerufen werden</li>
+      </ul>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: <code>rxResource()</code> – deklarativer Lade-Zustandsautomat</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;"><code>rxResource()</code> kapselt den kompletten Lade-Zustandsautomaten in einer Signal-Abstraktion mit vier klaren Slots:</p>
+      <table style="font-size:0.82rem;">
+        <thead><tr><th>Zustand</th><th>Signal-Methode</th><th>Bedeutung</th></tr></thead>
+        <tbody>
+          <tr><td><code>idle</code></td><td><code>resource.status()</code></td><td>Noch nicht geladen</td></tr>
+          <tr><td><code>loading</code></td><td><code>resource.isLoading()</code></td><td>Request läuft</td></tr>
+          <tr><td><code>resolved</code></td><td><code>resource.value()</code></td><td>Daten erfolgreich geladen</td></tr>
+          <tr><td><code>error</code></td><td><code>resource.error()</code></td><td>Fehler aufgetreten</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.85rem;margin-top:0.6rem;"><code>resource.reload()</code> löst den Loader nach einer Mutation erneut aus – eine Zeile statt eines ganzen Reload-Mechanismus.</p>
+    </div>
+
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher – Boilerplate in jeder Component</div>
+        <pre style="font-size:0.75rem;"><code>loading = signal(false);
+error   = signal&lt;string | null&gt;(null);
+data    = signal&lt;NvmVersion[]&gt;([]);
+
+ngOnInit() {
+  this.loading.set(true);
+  this.api.getRemoteVersions()
+    .subscribe({
+      next: v => {
+        this.data.set(v);
+        this.loading.set(false);
+      },
+      error: e => {
+        this.error.set(e.message);
+        this.loading.set(false);
+      }
+    });
+}
+// Reload: loadData() nochmals aufrufen</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher – deklarativ mit rxResource()</div>
+        <pre style="font-size:0.75rem;"><code>protected readonly resource =
+  rxResource({
+    loader: () =>
+      this.api.getRemoteVersions()
+  });
+
+// Template:
+// @if (resource.isLoading()) { … }
+// @if (resource.error()) { … }
+// @for (v of resource.value()?.versions
+//       ; track v.version) { … }
+
+// Reload nach Mutation:
+// this.resource.reload();</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:0.75rem;">Betroffen: <code>status-card</code>, <code>remote-versions-card</code>, <code>nvm-state.service</code>, <code>aliases-card</code>. <strong>185 Tests grün</strong> nach Migration.</p>
+  </div>
+
+  <div class="change-block" id="s2-3">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.3 – <code>action-card</code>: <code>effect()</code> → <code>linkedSignal()</code></span>
+      <span class="badge badge-s">S</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">action-card.component.ts</span>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: „Abgeleiteter, aber überschreibbarer Zustand"</div>
+      <p style="font-size:0.87rem;margin-bottom:0.5rem;">Das Versions-Eingabefeld soll sich automatisch befüllen, wenn per <code>prefillVersion</code>-Input eine Version kommt – aber der Nutzer soll ihn manuell überschreiben können. Ein klassisches Spannungsfeld:</p>
+      <ul style="font-size:0.85rem;padding-left:1.4rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li><strong>Abgeleitet:</strong> sollte bei neuem <code>prefillVersion</code> automatisch aktualisieren</li>
+        <li><strong>Überschreibbar:</strong> darf manuelle Eingabe nicht bei jedem Render überschreiben</li>
+      </ul>
+      <p style="font-size:0.85rem;margin-top:0.5rem;"><code>effect()</code> ist dafür das falsche Werkzeug – Angular warnt ausdrücklich davor, in einem Effekt in ein anderes Signal zu schreiben. <code>linkedSignal()</code> (Angular 19+) ist genau für dieses Muster gebaut: Quelle + Berechnungsfunktion mit Zugriff auf den <strong>vorherigen Wert</strong> (<code>prev</code>).</p>
+    </div>
+
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher – effect() als State-Ableitung</div>
+        <pre style="font-size:0.75rem;"><code>versionInput = signal('22');
+constructor() {
+  effect(() => {
+    // Überschreibt auch manuelle
+    // Eingabe des Nutzers!
+    this.versionInput.set(
+      this.prefillVersion() || '22'
+    );
+  });
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher – linkedSignal()</div>
+        <pre style="font-size:0.75rem;"><code>protected readonly versionInput =
+  linkedSignal({
+    source: this.prefillVersion,
+    // prev?.value = vorheriger Wert
+    // (manuelle Eingabe bleibt!)
+    computation: (v, prev) =>
+      v || prev?.value || '22'
+  });
+// Kein Konstruktor, kein effect()</code></pre>
+      </div>
+    </div>
+
+    <div style="background:rgba(52,211,153,0.07);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:0.8rem 1rem;margin:0.75rem 0;font-size:0.85rem;">
+      <strong>Verhalten:</strong> Klick auf „Verwenden" bei v22.3.0 → <code>versionInput</code> = <code>'22.3.0'</code>. Nutzer tippt manuell <code>'20'</code> → Eingabe bleibt. Klick auf v18.0.0 → <code>versionInput</code> = <code>'18.0.0'</code> (neue Source überschreibt wieder).
+    </div>
+  </div>
+
+  <div class="change-block" id="s2-4">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.4 – Zentrales Error-Handling</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">core/http-error.interceptor.ts</span>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: HTTP-Interceptoren – Middleware für den HttpClient</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;">Ein <strong>Interceptor</strong> fängt jeden HTTP-Request und jede Response ab, bevor sie die Anwendungslogik erreicht – identisch zu Middleware in Express. In Angular sind Interceptoren seit v15 funktional (einfache Funktion, kein <code>implements</code>):</p>
+      <pre style="font-size:0.78rem;line-height:1.8;"><code>HttpClient.get('/api/…')
+  ↓ [ Interceptor: Auth-Header ]
+  ↓ [ Interceptor: Error-Normalisierung ] ← unser httpErrorInterceptor
+  ↓ Backend-Server
+  ↑ [ Interceptor: Error-Normalisierung ] ← fängt Fehler-Responses ab
+  ↑ [ Interceptor: Auth-Header ]
+  ↑ Component / Resource</code></pre>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Die zwei Schutzschichten</p>
+    <pre style="font-size:0.78rem;"><code>// Schicht 1: HTTP-Fehler normalisieren (4xx, 5xx)
+// HttpErrorResponse → Error (einheitliches Format für die gesamte App)
+export const httpErrorInterceptor: HttpInterceptorFn = (req, next) =>
+  next(req).pipe(
+    catchError((err: HttpErrorResponse) => {
+      const message = err.error?.error ?? err.message;
+      return throwError(() => new Error(message));
+    })
+  );
+
+// Schicht 2: Safety-Net für alle anderen Fehler
+// (nicht abgefangene Exceptions, Template-Rendering-Fehler)
+@Injectable()
+export class GlobalErrorHandler implements ErrorHandler {
+  handleError(error: unknown): void {
+    console.error('[GlobalErrorHandler]', error);
+    // In Produktion: an Monitoring senden (z.B. Sentry)
+  }
+}</code></pre>
+
+    <table style="margin-top:0.75rem;">
+      <thead><tr><th></th><th>Ohne zentrales Handling</th><th>Mit Interceptor</th></tr></thead>
+      <tbody>
+        <tr><td>Fehlerformat</td><td><code>HttpErrorResponse</code> oder <code>Error</code></td><td>immer <code>Error</code></td></tr>
+        <tr><td>Änderungsaufwand</td><td>10+ Stellen im Service</td><td>1 Stelle im Interceptor</td></tr>
+        <tr><td>Unbehandelte Fehler</td><td>stiller Absturz</td><td>GlobalErrorHandler loggt</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="change-block" id="s2-5">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.5 – <code>handleError</code> aus <code>NvmApiService</code> entfernen</span>
+      <span class="badge badge-xs">XS</span>
+      <span class="badge badge-impact-l">Low Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">nvm-api.service.ts</span>
+    </div>
+
+    <p style="margin-bottom:0.75rem;">Direkte Konsequenz aus Schritt 2.4: Das fragile <code>catchError(this.handleError)</code> als Methodenreferenz entfällt ersatzlos.</p>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Das <code>this</code>-Binding-Problem</div>
+      <p style="font-size:0.87rem;">In JavaScript hängt <code>this</code> davon ab, <em>wie</em> eine Funktion aufgerufen wird. Als Methodenreferenz (<code>catchError(this.handleError)</code>) verliert sie ihren Kontext – funktionierte hier nur zufällig, weil <code>this</code> in <code>handleError</code> nicht genutzt wurde. Korrekt wäre <code>catchError((e) =&gt; this.handleError(e))</code> – mit dem Interceptor entfällt die Frage vollständig.</p>
+    </div>
+
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher – fragile Methodenreferenz</div>
+        <pre style="font-size:0.75rem;"><code>getInstalledVersions() {
+  return this.http
+    .get&lt;InstalledVersionsResponse&gt;(
+      '/api/versions/installed'
+    )
+    .pipe(catchError(this.handleError));
+    //   ↑ this-Binding fragil!
+}
+
+private handleError(
+  error: HttpErrorResponse
+): Observable&lt;never&gt; { … }</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher – reiner HTTP-Aufruf</div>
+        <pre style="font-size:0.75rem;"><code>getInstalledVersions() {
+  return this.http
+    .get&lt;InstalledVersionsResponse&gt;(
+      '/api/versions/installed'
+    );
+  // Interceptor übernimmt Fehler
+  // handleError: gelöscht
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="change-block" id="s2-6">
+    <div class="change-header">
+      <span class="change-title">Schritt 2.6 – Accessibility</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-impact-m">Medium Impact</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+
+    <div style="background:rgba(124,106,247,0.07);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:1rem 1.1rem;margin:0 0 1rem;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;">💡 Konzept: Accessibility (a11y) – ARIA und Tastaturnavigation</div>
+      <p style="font-size:0.87rem;margin-bottom:0.6rem;"><strong>ARIA-Attribute</strong> teilen Browser und Screenreadern die <em>semantische Rolle</em> eines Elements mit – unabhängig von seinem visuellen Aussehen. <strong>Live Regions</strong> benachrichtigen Screenreader automatisch, wenn sich Inhalt dynamisch ändert. <strong>Fokus-Management</strong> stellt sicher, dass Tastaturnutzer in Modals nicht im Hintergrund navigieren können.</p>
+      <table style="font-size:0.82rem;">
+        <thead><tr><th>ARIA-Attribut</th><th>Bedeutung</th></tr></thead>
+        <tbody>
+          <tr><td><code>role="dialog"</code></td><td>Screenreader erkennt Modal-Kontext</td></tr>
+          <tr><td><code>aria-modal="true"</code></td><td>Hintergrund ist für Screenreader nicht navigierbar</td></tr>
+          <tr><td><code>aria-labelledby</code></td><td>Verknüpft Titel mit dem Dialog</td></tr>
+          <tr><td><code>aria-live="polite"</code></td><td>Neue Inhalte werden beim nächsten Pause vorgelesen</td></tr>
+          <tr><td><code>role="alert"</code></td><td>Sofortige Screenreader-Ansage (assertive live region)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-weight:600;margin:1rem 0 0.5rem;">Umgesetzte Maßnahmen</p>
+    <pre style="font-size:0.78rem;"><code>&lt;!-- install-modal: vollständige ARIA-Semantik --&gt;
+&lt;div role="dialog" aria-modal="true"
+     aria-labelledby="modal-title" tabindex="-1"&gt;
+  &lt;h2 id="modal-title"&gt;Installation läuft…&lt;/h2&gt;
+  &lt;button #closeButton&gt;Schließen&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- log-card: Live Region für neue Einträge --&gt;
+&lt;div role="log" aria-live="polite" aria-relevant="additions"&gt;
+  @for (entry of log(); track entry.id) { … }
+&lt;/div&gt;
+
+&lt;!-- aliases-card: Sofort-Ansage beim Inline-Confirm --&gt;
+@if (confirmPendingAlias() === alias.name) {
+  &lt;div role="alert"&gt;Wirklich löschen? …&lt;/div&gt;
+}</code></pre>
+
+    <pre style="font-size:0.78rem;margin-top:0.75rem;"><code>// install-modal: Fokus-Management via viewChild + effect()
+constructor() {
+  effect(() => {
+    if (this.state()) {
+      this.previousFocus = document.activeElement as HTMLElement;
+      this.closeButton()?.nativeElement.focus();     // Fokus in Modal
+    } else {
+      this.previousFocus?.focus();                   // Fokus zurück
+    }
+  });
+}
+
+// Escape schließt Modal – aber nicht während laufender Operation
+@HostListener('document:keydown.escape')
+onEscape() {
+  if (this.state()?.phase !== 'running') this.closed.emit();
+}</code></pre>
+
+    <p style="margin-top:0.75rem;">Testzahl nach Schritt 2.6: <strong>200 Tests grün</strong>, Lint sauber.</p>
+  </div>
+
+  <!-- ═══ PROGRESS ═══ -->
+  <div class="progress-section">
+    <h2>Fortschrittsübersicht</h2>
+    <table>
+      <thead>
+        <tr><th>Nr.</th><th>Beschreibung</th><th>Teil</th><th>Aufwand</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1.1</td><td>index.html fixen</td><td>1</td><td><span class="badge badge-xs">XS</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.2</td><td>withFetch()</td><td>1</td><td><span class="badge badge-xs">XS</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.3</td><td>SCSS _variables.scss</td><td>1</td><td><span class="badge badge-s">S</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.4</td><td>Signal Inputs/Outputs</td><td>1</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.5</td><td>OnPush auf allen Components</td><td>1</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.6</td><td>OnChanges → effect()</td><td>1</td><td><span class="badge badge-s">S</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.7</td><td>NvmStateService</td><td>1</td><td><span class="badge badge-l">L</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.8</td><td>confirm() → Inline-Modal</td><td>1</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>1.9</td><td>Zoneless Change Detection</td><td>1</td><td><span class="badge badge-xl">XL</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.1</td><td>ESLint + angular-eslint</td><td>2</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.2</td><td>rxResource() Migration</td><td>2</td><td><span class="badge badge-l">L</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.3</td><td>linkedSignal() action-card</td><td>2</td><td><span class="badge badge-s">S</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.4</td><td>HTTP-Interceptor + ErrorHandler</td><td>2</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.5</td><td>handleError entfernt</td><td>2</td><td><span class="badge badge-xs">XS</span></td><td><span class="check">✅ erledigt</span></td></tr>
+        <tr><td>2.6</td><td>Accessibility</td><td>2</td><td><span class="badge badge-m">M</span></td><td><span class="check">✅ erledigt</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  nvm-manager · <a href="index.html">← Übersicht</a> · <a href="FRONTEND.md">FRONTEND.md</a> · <a href="BACKEND-changes.html">BACKEND-changes</a> · <a href="API-changes.html">API-changes</a>
+</footer>
+
+</body>
+</html>

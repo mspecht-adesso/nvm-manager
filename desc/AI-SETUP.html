@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor AI-Setup – nvm-manager</title>
+  <script>(function(){var t=localStorage.getItem('nvm-ui-theme'),d=window.matchMedia('(prefers-color-scheme: light)').matches;if(t==='light'||(t===null&&d))document.documentElement.setAttribute('data-theme','light');})()</script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body.page-ai { --accent: #06b6d4; --accent-light: #67e8f9; }
+    html[data-theme="light"] body.page-ai { --accent: #0e7490; --accent-light: #0891b2; }
+    body.page-ai header { background: linear-gradient(135deg, #041a22 0%, #031015 100%); }
+    html[data-theme="light"] body.page-ai header { background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); }
+    html[data-theme="light"] body.page-ai h1 { color: var(--text); }
+    body.page-ai tr:hover td { background: rgba(6,182,212,0.06); }
+    html[data-theme="light"] body.page-ai tr:hover td { background: rgba(14,116,144,0.06); }
+
+    /* Scope pill */
+    .scope {
+      display: inline-block;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.72rem;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.15em 0.55em;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .scope-always {
+      background: rgba(16,185,129,0.12);
+      border-color: rgba(16,185,129,0.25);
+      color: #34d399;
+    }
+    html[data-theme="light"] .scope-always { color: #047857; background: rgba(4,120,87,0.08); border-color: rgba(4,120,87,0.2); }
+
+    /* Skill card grid */
+    .skill-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 0.75rem 0 1.5rem;
+    }
+    @media (max-width: 640px) { .skill-grid { grid-template-columns: 1fr; } }
+    .skill-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.3rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .skill-card-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: 'SF Mono','Fira Code',monospace;
+      margin-bottom: 0.35rem;
+    }
+    .skill-card-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.55rem; }
+    .skill-triggers {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .skill-triggers li {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      padding-left: 0.9rem;
+      position: relative;
+      margin-bottom: 0;
+    }
+    .skill-triggers li::before { content: '→'; position: absolute; left: 0; color: var(--accent); }
+
+    /* Hook flow */
+    .hook-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 0.75rem 0 1.5rem;
+    }
+    @media (max-width: 640px) { .hook-grid { grid-template-columns: 1fr; } }
+    .hook-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .hook-card-header {
+      padding: 0.75rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .hook-event {
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent-light);
+    }
+    html[data-theme="light"] .hook-event { color: var(--accent); }
+    .hook-type-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.15em 0.5em;
+      border-radius: 3px;
+      background: rgba(6,182,212,0.12);
+      color: #67e8f9;
+      border: 1px solid rgba(6,182,212,0.2);
+    }
+    html[data-theme="light"] .hook-type-badge { color: #0e7490; background: rgba(14,116,144,0.08); }
+    .hook-type-badge.prompt { background: rgba(124,106,247,0.12); color: #a78bfa; border-color: rgba(124,106,247,0.2); }
+    html[data-theme="light"] .hook-type-badge.prompt { color: #5b21b6; background: rgba(91,33,182,0.08); }
+    .hook-card-body { padding: 0.9rem 1.1rem; }
+    .hook-script { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.75rem; color: var(--text-muted); }
+    .hook-script-item { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .hook-script-item:last-child { margin-bottom: 0; }
+    .hook-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 0.4em; }
+    .hook-script-name { color: var(--text); font-size: 0.78rem; font-weight: 600; }
+    .hook-script-desc { font-size: 0.75rem; color: var(--text-muted); font-family: inherit; }
+
+    /* Session flow diagram */
+    .session-flow {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      margin: 0.75rem 0;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.82rem;
+      line-height: 2.1;
+    }
+    .sf-event { color: var(--accent-light); font-weight: 700; }
+    html[data-theme="light"] .sf-event { color: var(--accent); }
+    .sf-arrow { color: var(--text-dim); }
+    .sf-action { color: var(--text-muted); }
+    .sf-indent { padding-left: 2em; }
+    .sf-note { color: var(--text-dim); font-size: 0.72rem; }
+
+    /* Interaction table accents */
+    .col-rule { color: var(--green); }
+    .col-skill { color: #a78bfa; }
+    html[data-theme="light"] .col-skill { color: #5b21b6; }
+    .col-hook { color: var(--accent-light); }
+    html[data-theme="light"] .col-hook { color: var(--accent); }
+  </style>
+</head>
+<body class="page-ai">
+
+<button id="theme-btn" onclick="(function(){var h=document.documentElement,c=h.getAttribute('data-theme')==='light';h.setAttribute('data-theme',c?'':'light');localStorage.setItem('nvm-ui-theme',c?'dark':'light');document.getElementById('theme-btn').textContent=c?'☀ Hell':'☾ Dunkel';})()" aria-label="Farbschema wechseln">☀ Hell</button>
+<script>document.getElementById('theme-btn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'☾ Dunkel':'☀ Hell';</script>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tag">Cursor · Agentic AI</div>
+    <h1>AI-Entwicklungs-Setup</h1>
+    <p class="header-meta">
+      nvm-manager · .cursor/ ·
+      Rules · Skills · Hooks
+    </p>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--green)">12</div>
+      <div class="stat-label">Cursor Rules (5 immer aktiv, 7 dateiabhängig)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#a78bfa">9</div>
+      <div class="stat-label">Expert Skills (.cursor/skills/)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--accent-light)">4</div>
+      <div class="stat-label">Hook-Events (4 Scripts + 3 Prompt-Hooks)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--yellow)">AA</div>
+      <div class="stat-label">WCAG 2.1 Level AA · eigener a11y-Expert-Skill</div>
+    </div>
+  </div>
+
+  <nav aria-label="Inhaltsverzeichnis">
+    <h2>Inhaltsverzeichnis</h2>
+    <ol>
+      <li><a href="#konzept">Konzept: Warum dieses Setup?</a></li>
+      <li><a href="#rules">Rules – persistente Leitplanken</a></li>
+      <li><a href="#skills">Skills – situatives Expertenwissen</a></li>
+      <li><a href="#hooks">Hooks – automatische Qualitätssicherung</a></li>
+      <li><a href="#session-flow">Session-Flow: Zusammenspiel</a></li>
+    </ol>
+  </nav>
+
+  <!-- ══════════════════════════════════════
+       KONZEPT
+  ══════════════════════════════════════ -->
+  <div class="section-header" id="konzept">
+    <h2>Konzept: Warum dieses Setup?</h2>
+  </div>
+
+  <p>
+    Cursor ist eine KI-gestützte IDE, die durch einen eingebauten Agenten Code erzeugen,
+    refaktorieren und prüfen kann. Damit der Agent nicht bei jedem Auftrag neu eingewiesen
+    werden muss und konsistent nach den Projektstandards arbeitet, gibt es drei Mechanismen:
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0 1.75rem;">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.2rem;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:0.4rem;">Rules</div>
+      <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.3rem;">Immer im Kontext</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5;">
+        <code>.mdc</code>-Dateien in <code>.cursor/rules/</code>. Werden beim Öffnen
+        passender Dateien oder immer geladen. Der Agent handelt danach, ohne dass du
+        ihn explizit darum bitten musst.
+      </div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.2rem;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#a78bfa;margin-bottom:0.4rem;">Skills</div>
+      <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.3rem;">Auf Abruf nachladen</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5;">
+        Ordner mit <code>SKILL.md</code> in <code>.cursor/skills/</code>. Tiefer gehendes
+        Fachwissen, das nur geladen wird, wenn es gebraucht wird – spart Kontext-Budget
+        für die eigentliche Aufgabe.
+      </div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.2rem;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-light);margin-bottom:0.4rem;">Hooks</div>
+      <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.3rem;">Ereignis-getrieben</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5;">
+        Scripts und Prompt-Hooks in <code>.cursor/hooks.json</code>. Laufen automatisch
+        bei Session-Start, Dateibearbeitung oder Session-Ende – ohne manuellen Aufruf.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="background:rgba(6,182,212,0.07);border-left-color:var(--accent);">
+    <strong>Lernhinweis:</strong> Das Setup ist selbst dokumentierter Code.
+    Jede Rule, jeder Skill und jeder Hook lässt sich im Editor neben diesem Dokument öffnen.
+    Pfade beginnen immer mit <code>.cursor/</code> im Projekt-Root.
+  </div>
+
+  <!-- ══════════════════════════════════════
+       RULES
+  ══════════════════════════════════════ -->
+  <div class="section-header" id="rules">
+    <h2>Rules – persistente Leitplanken</h2>
+  </div>
+
+  <p>
+    Rules werden als <code>.mdc</code>-Dateien in <code>.cursor/rules/</code> abgelegt.
+    Jede Rule hat einen <em>Scope</em>: entweder <strong>alwaysApply: true</strong> (immer aktiv)
+    oder ein <strong>globs-Muster</strong> (aktiv, wenn eine passende Datei geöffnet ist).
+  </p>
+
+  <table aria-label="Übersicht aller Cursor Rules">
+    <thead>
+      <tr>
+        <th scope="col">Datei</th>
+        <th scope="col">Scope / Trigger</th>
+        <th scope="col">Inhalt / Zweck</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>project-conventions.mdc</code></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Monorepo-Struktur, Namenskonventionen, Security-Grundregeln, API-Prefix <code>/api/</code>, Dependency-Management</td>
+      </tr>
+      <tr>
+        <td><code>project-architecture.mdc</code></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Architekturentscheidungen (nvm als Shell-Funktion, 127.0.0.1-Binding, Signals statt NgRx, zweischichtiger Injection-Schutz), Datei-Quickref</td>
+      </tr>
+      <tr>
+        <td><code>nvm-security.mdc</code></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Whitelist erlaubter nvm-Befehle, Versionsmuster-Regex, Single-Quote-Escaping, was niemals erlaubt ist (kein <code>eval()</code>, kein <code>/api/exec</code>)</td>
+      </tr>
+      <tr>
+        <td><code>comments-english.mdc</code></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Alle Code-Kommentare (Inline, Block, TSDoc) müssen auf Englisch sein – in allen Dateitypen (.ts, .html, .scss, .sh)</td>
+      </tr>
+      <tr>
+        <td><code>angular-standalone.mdc</code></td>
+        <td><span class="scope">apps/web/**/*.ts<br>apps/web/**/*.html<br>apps/web/**/*.scss</span></td>
+        <td>Standalone Components, Signals, HttpClient, SCSS-Konventionen; enthält eigenen <strong>Accessibility-Abschnitt</strong> (WCAG 2.1 AA, aria-labels, live regions, Fokus-Management)</td>
+      </tr>
+      <tr>
+        <td><code>express-api.mdc</code></td>
+        <td><span class="scope">apps/api/**/*.ts</span></td>
+        <td>Router-Struktur, typisierte Request-Handler, zentrales Error-Middleware-Pattern, Security-Hinweise, Response-Format</td>
+      </tr>
+      <tr>
+        <td><code>nodejs-typescript.mdc</code></td>
+        <td><span class="scope">apps/api/**/*.ts</span></td>
+        <td>Async/Await, <code>execFile('bash',['-c',…])</code> für nvm, Custom Error Types, Env-Variablen, tsconfig-Einstellungen</td>
+      </tr>
+      <tr>
+        <td><code>testing.mdc</code></td>
+        <td><span class="scope">apps/**/*.spec.ts<br>apps/**/*.test.ts<br>apps/**/*.e2e.ts</span></td>
+        <td>Vitest + Supertest (API), <code>@testing-library/angular</code> (Web), Playwright (E2E), <code>vi.mock()</code>-Konvention, Naming-Regeln</td>
+      </tr>
+      <tr>
+        <td><code>formatting.mdc</code></td>
+        <td><span class="scope">apps/**/*.ts<br>apps/**/*.html<br>apps/**/*.scss<br>*.json · *.mjs</span></td>
+        <td>Prettier-Konfiguration (100 Zeichen, Single Quotes, LF), ESLint Flat Config für API und Web (angular-eslint), EditorConfig, npm-Scripts</td>
+      </tr>
+      <tr>
+        <td><code>a11y.mdc</code></td>
+        <td><span class="scope">apps/web/**/*.html<br>apps/web/**/*.ts</span></td>
+        <td>WCAG 2.1 AA: accessible button names, <code>aria-hidden</code> auf SVGs, Tabellenstruktur mit <code>scope</code>, <code>aria-live</code>-Regionen, Modal-Anforderungen, <code>.visually-hidden</code></td>
+      </tr>
+      <tr>
+        <td><code>commit-conventions.mdc</code></td>
+        <td><span class="scope scope-always">alwaysApply</span></td>
+        <td>Conventional Commits: 10 Typen (feat/fix/perf/refactor/test/docs/chore/style/a11y/ci), 7 Scopes (web/api/e2e/a11y/deps/hooks/rules), Imperativ-Stil, max. 72 Zeichen, Beispiele + Anti-Patterns</td>
+      </tr>
+      <tr>
+        <td><code>performance.mdc</code></td>
+        <td><span class="scope">apps/web/**/*.ts<br>apps/web/**/*.html<br>apps/api/**/*.ts</span></td>
+        <td>Angular: <code>ChangeDetectionStrategy.OnPush</code> auf allen Komponenten, stabiles <code>track</code> in <code>@for</code>, keine Funktionsaufrufe in Templates, <code>rxResource()</code> für HTTP-Ressourcen, Lazy Loading. Node.js: kein Blocking-I/O, <code>execFile</code> statt <code>exec</code>, <code>maxBuffer</code> + Timeout-Werte</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="background:rgba(6,182,212,0.07);border-left-color:var(--accent);margin-top:1rem;">
+    <strong>Zusammenspiel commit-conventions + stop-Hook:</strong> Die Commit-Konventions-Rule ist
+    alwaysApply. Der <code>stop</code>-Hook prüft am Sitzungsende in Punkt 7 der Checkliste automatisch,
+    ob die geplante Commit-Message dem Conventional-Commits-Format entspricht.
+  </div>
+
+  <div class="callout" style="background:rgba(6,182,212,0.07);border-left-color:var(--accent);margin-top:0.75rem;">
+    <strong>Wie Rules geladen werden:</strong> Rules mit <code>alwaysApply: true</code> sind
+    in jeder Antwort des Agenten präsent. Glob-basierte Rules werden automatisch aktiviert,
+    sobald eine passende Datei im Editor geöffnet ist oder der Agent sie bearbeitet.
+    Es gibt keine manuelle Aktivierung.
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SKILLS
+  ══════════════════════════════════════ -->
+  <div class="section-header" id="skills">
+    <h2>Skills – situatives Expertenwissen</h2>
+  </div>
+
+  <p>
+    Skills sind Ordner in <code>.cursor/skills/</code>, die je eine <code>SKILL.md</code>
+    (und optionale Referenz-Dokumente) enthalten. Sie werden nur geladen, wenn der Agent
+    sie aufruft – typischerweise weil der Auftrag in das Beschreibungsfeld passt.
+    So bleibt das Kontext-Budget für Rules + eigentliche Aufgabe reserviert.
+  </p>
+
+  <div class="skill-grid">
+
+    <div class="skill-card">
+      <div class="skill-card-name">project-explainer</div>
+      <div class="skill-card-desc">
+        Detaillierte Erklärung der Architektur, Designentscheidungen,
+        Angular-Komponenten, Express-Backend und Datenfluss.
+      </div>
+      <ul class="skill-triggers">
+        <li>„Wie funktioniert X?" / „Erkläre die Architektur"</li>
+        <li>„Was macht dieser Dienst?" / „Warum so gebaut?"</li>
+        <li>„Wie kommuniziert Frontend mit Backend?"</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">angular-expert</div>
+      <div class="skill-card-desc">
+        Angular 17+ Standalone, Signals, HttpClient, reaktive Muster,
+        SCSS-Architektur, Routing und Template-Kontrollfluss.
+      </div>
+      <ul class="skill-triggers">
+        <li>Angular-Komponenten implementieren oder debuggen</li>
+        <li>Signal-basiertes State-Management</li>
+        <li>HTTP-Fehlerbehandlung, Lazy Loading, SCSS</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">nodejs-express-expert</div>
+      <div class="skill-card-desc">
+        Express-Routen, typisierte Handler, Child-Process-Management,
+        SSE-Streaming, Fehlerbehandlung und TS-Konfiguration.
+      </div>
+      <ul class="skill-triggers">
+        <li>API-Routen bauen oder Middleware schreiben</li>
+        <li>nvm Shell-Befehle ausführen / SSE streamen</li>
+        <li>Error-Middleware, Input-Validation</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">formatting-linting-expert</div>
+      <div class="skill-card-desc">
+        Prettier-Konfiguration, ESLint Flat Config für TypeScript und Angular,
+        angular-eslint-Regeln, EditorConfig, Lint/Format-Scripts.
+      </div>
+      <ul class="skill-triggers">
+        <li>ESLint/Prettier einrichten oder Fehler beheben</li>
+        <li>angular-eslint-Regeln konfigurieren</li>
+        <li>Format/Lint-npm-Scripts hinzufügen</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">testing-expert</div>
+      <div class="skill-card-desc">
+        Vitest Unit Tests, Supertest Integration Tests, Angular Component Testing,
+        Playwright E2E, nvm-Mocking, Coverage-Konfiguration.
+      </div>
+      <ul class="skill-triggers">
+        <li>Tests schreiben oder Test-Infrastruktur aufsetzen</li>
+        <li>Fehlgeschlagene Tests debuggen</li>
+        <li><code>child_process</code> mocken, Coverage konfigurieren</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">documentation-expert</div>
+      <div class="skill-card-desc">
+        TSDoc/JSDoc für TypeScript, OpenAPI/Swagger-Annotationen,
+        <code>swagger-ui-express</code>, Markdown-Benutzerhandbuch.
+      </div>
+      <ul class="skill-triggers">
+        <li>Code-Kommentare / TSDoc schreiben</li>
+        <li>API-Endpunkte mit <code>@openapi</code> dokumentieren</li>
+        <li>Benutzerhandbuch oder README aktualisieren</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">debugging-expert</div>
+      <div class="skill-card-desc">
+        Debugging aller Schichten: Angular Signals (DevTools, effect()-Traces),
+        Express child_process stderr, SSE-Streaming-Diagnose, häufige nvm-Laufzeitfehler
+        und Vitest-/Supertest-Fehlermuster. Inkl. Quick-Diagnostic-Checkliste.
+      </div>
+      <ul class="skill-triggers">
+        <li>Signal aktualisiert sich nicht wie erwartet</li>
+        <li>nvm-Befehl schlägt still fehl (kein Output, falscher Exit-Code)</li>
+        <li>SSE streamt nicht oder bricht ab</li>
+        <li>Test schlägt unerwartet fehl (vi.mock() nicht aktiv, Port-Konflikt)</li>
+        <li>„Wie debugge ich X in diesem Projekt?"</li>
+      </ul>
+    </div>
+
+    <div class="skill-card">
+      <div class="skill-card-name">refactoring-expert</div>
+      <div class="skill-card-desc">
+        Code-Smell-Erkennung für Angular und Express, Entscheidungshilfen für
+        Komponenten-/Service-Extraktion, sicheres Umbenennen und Verschieben von Dateien,
+        Test-Coverage-Erhalt bei Umstrukturierungen, Typ-Alignment zwischen Frontend und Backend.
+      </div>
+      <ul class="skill-triggers">
+        <li>„Sollte ich das in eine eigene Komponente auslagern?"</li>
+        <li>Komponente wächst auf &gt; 200 Zeilen</li>
+        <li>Logik ist in mehreren Komponenten dupliziert</li>
+        <li>Datei umbenennen oder verschieben ohne Import-Brüche</li>
+        <li>Code-Review vor einem PR</li>
+      </ul>
+    </div>
+
+    <div class="skill-card" style="border-color:rgba(6,182,212,0.3);">
+      <div class="skill-card-name" style="color:var(--accent-light);">a11y-expert</div>
+      <div class="skill-card-desc">
+        WCAG 2.1/2.2 AA für Angular: ARIA-Rollen, Keyboard-Navigation,
+        Fokus-Management (CDK), Live-Regionen, zugängliche Tabellen, Modals und Buttons.
+        Enthält eine komponentenweise <code>CHECKLIST.md</code>.
+      </div>
+      <ul class="skill-triggers">
+        <li>Angular-Templates auf WCAG 2.1 AA prüfen oder verbessern</li>
+        <li><code>aria-*</code>-Attribute oder Fokus-Trap implementieren</li>
+        <li>A11y-Linter-Fehler beheben, CDK <code>A11yModule</code> einrichten</li>
+        <li>Komponentenaudit gegen Checkliste durchführen</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="callout" style="background:rgba(6,182,212,0.07);border-left-color:var(--accent);">
+    <strong>Eigene Skills erstellen:</strong> Der Cursor-eigene Skill <code>create-skill</code>
+    (~/.cursor/skills-cursor/create-skill/SKILL.md) führt durch den Prozess.
+    Projektspezifische Skills kommen nach <code>.cursor/skills/</code>,
+    persönliche Skills (projektübergreifend) nach <code>~/.cursor/skills/</code>.
+  </div>
+
+  <!-- ══════════════════════════════════════
+       HOOKS
+  ══════════════════════════════════════ -->
+  <div class="section-header" id="hooks">
+    <h2>Hooks – automatische Qualitätssicherung</h2>
+  </div>
+
+  <p>
+    Hooks sind in <code>.cursor/hooks.json</code> konfiguriert. Sie laufen bei
+    definierten Ereignissen der Agent-Session und können den Agenten ergänzend
+    informieren, warnen oder auffordern, weitere Schritte auszuführen.
+    Es gibt zwei Typen: <strong>Command Hooks</strong> (Shell-Skripte, die JSON über stdin/stdout
+    tauschen) und <strong>Prompt Hooks</strong> (Anweisungen für den Agenten selbst).
+  </p>
+
+  <div class="hook-grid">
+
+    <div class="hook-card">
+      <div class="hook-card-header">
+        <span class="hook-event">sessionStart</span>
+        <span class="hook-type-badge prompt">Prompt</span>
+      </div>
+      <div class="hook-card-body">
+        <div class="hook-script-item">
+          <div class="hook-dot"></div>
+          <div>
+            <div class="hook-script-name">Projekt-Kontext-Injection</div>
+            <div class="hook-script-desc">
+              Lädt beim Sitzungsstart die Architektur-Zusammenfassung (nvm als Shell-Funktion,
+              Komponenten-Übersicht, Security-Hinweise) und listet alle verfügbaren Skills.
+              Sorgt dafür, dass der Agent von der ersten Antwort an über das Projekt informiert ist.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hook-card" style="grid-column: 1 / -1;">
+      <div class="hook-card-header">
+        <span class="hook-event">beforeShellExecution</span>
+        <span class="hook-type-badge">Script × 2</span>
+      </div>
+      <div class="hook-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot"></div>
+            <div>
+              <div class="hook-script-name">security-check.sh</div>
+              <div class="hook-script-desc">
+                Läuft vor jedem Shell-Befehl. Prüft auf riskante Muster
+                (Netzwerk-Tools wie curl|wget, <code>eval</code>, <code>sudo</code>, <code>rm -rf</code>)
+                und fragt den Nutzer um Bestätigung. <code>failClosed: false</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot" style="background:var(--accent);"></div>
+            <div>
+              <div class="hook-script-name" style="color:var(--accent-light);">npm-guard.sh <span style="font-size:0.68rem;color:var(--text-dim);font-weight:400;">neu</span></div>
+              <div class="hook-script-desc">
+                Matcher: <code>npm (install|add|update)</code>.
+                <strong>Blockiert hart</strong> auf <code>@latest</code>-Tag (Konventionsverletzung).
+                Fügt bei allen anderen Package-Operationen einen Reminder ein:
+                Caret-Range prüfen, <code>knip</code> laufen lassen, <code>npm audit</code> ausführen.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hook-card" style="grid-column: 1 / -1;">
+      <div class="hook-card-header">
+        <span class="hook-event">afterFileEdit</span>
+        <span class="hook-type-badge">Script × 3</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);">matcher: Write</span>
+      </div>
+      <div class="hook-card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot"></div>
+            <div>
+              <div class="hook-script-name">post-edit-notify.sh</div>
+              <div class="hook-script-desc">
+                Allgemeine Nachricht nach Dateispeicherungen.
+                Gibt dem Agenten Kontext über die soeben geänderte Datei zurück.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot"></div>
+            <div>
+              <div class="hook-script-name">lint-reminder.sh</div>
+              <div class="hook-script-desc">
+                Pfad-basiertes Routing: <strong>.spec.ts</strong> → Vitest-Hinweise,
+                <strong>apps/api/*.ts</strong> → Backend-Lint-Tipps,
+                <strong>apps/web/*.ts</strong> → Angular-Lint + CDK a11y,
+                <strong>apps/web/*.html</strong> → 7-Punkt-A11y-Checkliste für Templates.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot" style="background:var(--accent);"></div>
+            <div>
+              <div class="hook-script-name" style="color:var(--accent-light);">a11y-check.sh <span style="font-size:0.68rem;color:var(--text-dim);font-weight:400;">neu</span></div>
+              <div class="hook-script-desc">
+                Statischer Grep-Scan für <code>apps/web/**/*.html</code>.
+                Prüft auf: fehlende <code>aria-label</code> an Tabellen-Buttons,
+                SVGs ohne <code>aria-hidden</code>, Tabellen ohne <code>scope/aria-label</code>,
+                Dialoge ohne <code>cdkTrapFocus</code>, fehlende <code>aria-live</code>-Regionen,
+                Fehler-Signale ohne <code>role="alert"</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hook-card" style="grid-column: 1 / -1;">
+      <div class="hook-card-header">
+        <span class="hook-event">stop</span>
+        <span class="hook-type-badge prompt">Prompt × 2</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);">loop_limit: 1</span>
+      </div>
+      <div class="hook-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot"></div>
+            <div>
+              <div class="hook-script-name">Qualitäts-Checkliste</div>
+              <div class="hook-script-desc">
+                Prüft nach Abschluss: (1) TSDoc-Kommentare auf neuen Methoden,
+                (2) <code>@openapi</code>-Annotationen auf neuen Endpoints,
+                (3) Unit-Tests für neue Logik-Einheiten,
+                (4) TypeScript-Lint-Fehler (<code>no-explicit-any</code>, <code>no-floating-promises</code>),
+                (5) A11y: accessible names, aria-live-Regionen, Tabellen-scope, SVG aria-hidden,
+                (6) <strong>Performance:</strong> <code>OnPush</code>, stabiles <code>track</code> in <code>@for</code>, keine Funktionsaufrufe in Templates,
+                (7) <strong>Commit-Format:</strong> Conventional Commits eingehalten?
+                Informiert den Nutzer über noch offene Punkte.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hook-script-item">
+            <div class="hook-dot"></div>
+            <div>
+              <div class="hook-script-name">Changelog-Update</div>
+              <div class="hook-script-desc">
+                Liest <code>CHANGELOG.md</code> und fügt Änderungen automatisch
+                unter <code>[Unreleased]</code> ein – gruppiert nach Added / Changed /
+                Fixed / Removed. Nur nutzerrelevante Änderungen; reine Refactorings
+                ohne Verhaltensänderung werden nicht protokolliert.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SESSION FLOW
+  ══════════════════════════════════════ -->
+  <div class="section-header" id="session-flow">
+    <h2>Session-Flow: Zusammenspiel</h2>
+  </div>
+
+  <p>
+    Das folgende Ablaufdiagramm zeigt, wie Rules, Skills und Hooks in einer typischen
+    Arbeits-Session ineinandergreifen:
+  </p>
+
+  <div class="session-flow" role="img" aria-label="Session-Flow-Diagramm: Ablauf einer Cursor-Agenten-Session">
+    <span class="sf-event">sessionStart</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">Prompt-Hook injiziert Projekt-Kontext + Skills-Übersicht</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Nutzer stellt Aufgabe</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Rules geladen</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">4× alwaysApply (immer) + Glob-Rules für geöffnete Dateien</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Skill aufgerufen?</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">z. B. a11y-expert → SKILL.md + CHECKLIST.md geladen</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Shell-Befehl</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">beforeShellExecution: security-check.sh prüft Muster</span>
+    <br>
+    <span class="sf-indent sf-note">npm install/add  → npm-guard.sh: @latest blockiert · knip/audit reminder</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">Datei gespeichert</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">afterFileEdit: post-edit-notify + lint-reminder + a11y-check</span>
+    <br>
+    <span class="sf-indent sf-note">*.ts (api)  → Backend-Lint-Hinweis</span>
+    <br>
+    <span class="sf-indent sf-note">*.ts (web)  → Angular-Lint + CDK a11y Hinweis</span>
+    <br>
+    <span class="sf-indent sf-note">*.html      → 7-Punkt-A11y-Grep-Scan</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">stop</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">Qualitäts-Checkliste (TSDoc, Tests, Lint, A11y, Performance, Commit-Format)</span>
+    <br>
+    <span class="sf-arrow">        ↓</span>
+    <br>
+    <span class="sf-event">stop</span>
+    <span class="sf-arrow"> ──► </span>
+    <span class="sf-action">CHANGELOG.md automatisch aktualisieren</span>
+  </div>
+
+  <p style="margin-top:1.5rem;">
+    Die folgende Tabelle zeigt, welches Werkzeug bei welcher Art von Arbeit greift:
+  </p>
+
+  <table aria-label="Werkzeug-Zuordnung nach Aufgabentyp">
+    <thead>
+      <tr>
+        <th scope="col">Aufgabentyp</th>
+        <th scope="col">Rule</th>
+        <th scope="col">Skill</th>
+        <th scope="col">Hook</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Angular-Komponente implementieren</td>
+        <td class="col-rule"><code>angular-standalone</code>, <code>a11y</code></td>
+        <td class="col-skill"><code>angular-expert</code></td>
+        <td class="col-hook"><code>lint-reminder</code> + <code>a11y-check</code></td>
+      </tr>
+      <tr>
+        <td>API-Endpunkt hinzufügen</td>
+        <td class="col-rule"><code>express-api</code>, <code>nvm-security</code></td>
+        <td class="col-skill"><code>nodejs-express-expert</code></td>
+        <td class="col-hook"><code>lint-reminder</code> + <code>stop</code>-Checkliste</td>
+      </tr>
+      <tr>
+        <td>Tests schreiben</td>
+        <td class="col-rule"><code>testing</code></td>
+        <td class="col-skill"><code>testing-expert</code></td>
+        <td class="col-hook"><code>lint-reminder</code> (spec-Hinweise)</td>
+      </tr>
+      <tr>
+        <td>A11y-Verbesserungen (Templates)</td>
+        <td class="col-rule"><code>a11y</code>, <code>angular-standalone</code></td>
+        <td class="col-skill"><code>a11y-expert</code> + CHECKLIST.md</td>
+        <td class="col-hook"><code>a11y-check.sh</code> + <code>stop</code>-Checkliste</td>
+      </tr>
+      <tr>
+        <td>Dokumentation schreiben</td>
+        <td class="col-rule"><code>comments-english</code></td>
+        <td class="col-skill"><code>documentation-expert</code></td>
+        <td class="col-hook"><code>stop</code>: TSDoc + <code>@openapi</code> geprüft</td>
+      </tr>
+      <tr>
+        <td>Performance-Optimierung</td>
+        <td class="col-rule"><code>performance</code>, <code>angular-standalone</code></td>
+        <td class="col-skill"><code>refactoring-expert</code></td>
+        <td class="col-hook"><code>stop</code>: OnPush + track geprüft</td>
+      </tr>
+      <tr>
+        <td>Debugging (Signal, SSE, nvm)</td>
+        <td class="col-rule"><code>project-architecture</code></td>
+        <td class="col-skill"><code>debugging-expert</code></td>
+        <td class="col-hook">–</td>
+      </tr>
+      <tr>
+        <td>Refactoring / Code-Review</td>
+        <td class="col-rule"><code>project-conventions</code>, <code>performance</code></td>
+        <td class="col-skill"><code>refactoring-expert</code></td>
+        <td class="col-hook"><code>stop</code>: Lint + Tests + Commit-Format</td>
+      </tr>
+      <tr>
+        <td>Dependency hinzufügen</td>
+        <td class="col-rule"><code>project-conventions</code>, <code>commit-conventions</code></td>
+        <td class="col-skill">–</td>
+        <td class="col-hook"><code>npm-guard</code>: @latest blockiert + knip/audit</td>
+      </tr>
+      <tr>
+        <td>Git Commit erstellen</td>
+        <td class="col-rule"><code>commit-conventions</code></td>
+        <td class="col-skill">–</td>
+        <td class="col-hook"><code>stop</code>: Commit-Format (Punkt 7)</td>
+      </tr>
+      <tr>
+        <td>Architektur-Frage</td>
+        <td class="col-rule"><code>project-architecture</code></td>
+        <td class="col-skill"><code>project-explainer</code></td>
+        <td class="col-hook">–</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════
+       DATEISTRUKTUR
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <h2>Dateistruktur im Überblick</h2>
+  </div>
+
+<pre>.cursor/
+├── hooks.json                    ← Hook-Konfiguration (version: 1)
+├── hooks/
+│   ├── security-check.sh         ← beforeShellExecution (allg. Sicherheit)
+│   ├── npm-guard.sh              ← beforeShellExecution (@latest blockieren) ★
+│   ├── post-edit-notify.sh       ← afterFileEdit (allgemein)
+│   ├── lint-reminder.sh          ← afterFileEdit (.ts + .html)
+│   └── a11y-check.sh             ← afterFileEdit (.html – A11y-Grep-Scan)
+├── rules/
+│   ├── project-conventions.mdc   ← alwaysApply
+│   ├── project-architecture.mdc  ← alwaysApply
+│   ├── nvm-security.mdc          ← alwaysApply
+│   ├── comments-english.mdc      ← alwaysApply
+│   ├── commit-conventions.mdc    ← alwaysApply  ★
+│   ├── angular-standalone.mdc    ← apps/web/**
+│   ├── express-api.mdc           ← apps/api/**
+│   ├── nodejs-typescript.mdc     ← apps/api/**
+│   ├── testing.mdc               ← **/*.spec.ts etc.
+│   ├── formatting.mdc            ← apps/**/*.ts, .html, .scss
+│   ├── a11y.mdc                  ← apps/web/**/*.html, .ts
+│   └── performance.mdc           ← apps/web/**/*.ts, .html · apps/api/**/*.ts  ★
+└── skills/
+    ├── project-explainer/SKILL.md
+    ├── angular-expert/SKILL.md
+    ├── nodejs-express-expert/SKILL.md
+    ├── formatting-linting-expert/SKILL.md
+    ├── testing-expert/SKILL.md
+    ├── documentation-expert/SKILL.md
+    ├── a11y-expert/
+    │   ├── SKILL.md
+    │   └── CHECKLIST.md          ← komponentenweise WCAG-2.1-AA-Prüfliste
+    ├── debugging-expert/SKILL.md  ★
+    └── refactoring-expert/SKILL.md  ★</pre>
+
+</main>
+
+<footer>
+  nvm-manager Dokumentation ·
+  <a href="index.html">← Übersicht</a>
+  <a href="BACKEND.html">Backend</a>
+  <a href="API.html">API</a>
+  <a href="FRONTEND.html">Frontend</a>
+  <a href="FRONTEND-changes.html">Frontend-Changes</a>
+  <a href="BACKEND-changes.html">Backend-Changes</a>
+  <a href="API-changes.html">API-Changes</a>
+</footer>
+
+</body>
+</html>

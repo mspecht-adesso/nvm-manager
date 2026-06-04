@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REST-API – nvm-manager</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <link rel="stylesheet" href="styles-docs.css">
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>REST-API – nvm-manager</h1>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten dieses Dokuments kannst du:</p>
+<ul>
+<li>erklären, was eine REST-API ist und wofür die HTTP-Verben GET, POST und DELETE stehen</li>
+<li>den Aufbau von Request und Response (Body, Statuscode, JSON) beschreiben</li>
+<li>nachvollziehen, warum Eingaben <strong>serverseitig</strong> validiert werden müssen</li>
+<li>den Unterschied zwischen einer normalen Antwort und einem <strong>Datenstrom</strong> (SSE) erklären</li>
+<li>eine API selbstständig mit Werkzeugen wie <code>curl</code> ausprobieren</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li>Du hast <a href="BACKEND.md">BACKEND.md</a> gelesen oder kennst Express-Grundlagen</li>
+<li>Du weißt grob, was ein Server und ein Browser sind</li>
+</ul>
+<blockquote>
+<p>💡 <strong>Konzept: Was ist eine REST-API?</strong>
+Eine <strong>API</strong> ist eine vereinbarte Schnittstelle zwischen zwei Programmen. <strong>REST</strong>
+ist ein verbreiteter Stil für Web-APIs: Man spricht <strong>Ressourcen</strong> über URLs an
+(z.B. <code>/api/versions/installed</code>) und nutzt <strong>HTTP-Verben</strong>, um die Absicht
+auszudrücken:</p>
+<ul>
+<li><strong>GET</strong> = Daten <em>lesen</em> (verändert nichts)</li>
+<li><strong>POST</strong> = etwas <em>erstellen</em> oder eine <em>Aktion auslösen</em></li>
+<li><strong>DELETE</strong> = etwas <em>löschen</em></li>
+</ul>
+<p>Die Antwort enthält einen <strong>Statuscode</strong> (z.B. <code>200</code> = OK, <code>400</code> = fehlerhafte
+Anfrage, <code>500</code> = Serverfehler) und meist einen <strong>Body</strong> im JSON-Format.</p>
+</blockquote>
+<h2>Allgemeines</h2>
+<ul>
+<li><strong>Base URL:</strong> <code>http://127.0.0.1:3789</code></li>
+<li><strong>Format:</strong> JSON (Request-Body und Response)</li>
+<li><strong>Auth:</strong> keine (nur lokal erreichbar, Bind an <code>127.0.0.1</code>)</li>
+<li><strong>CORS:</strong> nur <code>http://localhost:4201</code> erlaubt</li>
+</ul>
+<p>Alle Endpunkte befinden sich unter dem Präfix <code>/api</code>. Der Angular-Dev-Server
+proxyt <code>/api/*</code> → <code>http://127.0.0.1:3789/api/*</code> via <code>proxy.conf.json</code>.</p>
+<blockquote>
+<p>💡 <strong>Konzept: CORS und &quot;Origin&quot;</strong>
+Ein <strong>Origin</strong> ist die Kombination aus Protokoll, Host und Port (z.B.
+<code>http://localhost:4201</code>). Aus Sicherheitsgründen verbietet der Browser
+standardmäßig, dass eine Webseite Anfragen an einen <em>anderen</em> Origin schickt.
+<strong>CORS</strong> (<em>Cross-Origin Resource Sharing</em>) ist der Mechanismus, mit dem ein
+Server dem Browser per Antwort-Header erlaubt: &quot;Anfragen von diesem bestimmten
+Origin sind in Ordnung.&quot; Im Entwicklungsbetrieb umgeht der Angular-<strong>Proxy</strong> das
+Thema zusätzlich, indem er die Anfragen serverseitig weiterleitet – aus Sicht des
+Browsers bleibt alles auf einem Origin.</p>
+</blockquote>
+<hr>
+<h2>Fehlerformat</h2>
+<p>Bei einem Fehler (HTTP 400 oder 500) antwortet die API immer mit:</p>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;Fehlermeldung&quot;,
+  &quot;stdout&quot;: &quot;&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><code>stdout</code> und <code>stderr</code> sind nur bei nvm-Ausführungsfehlern gefüllt und enthalten
+die rohe Shell-Ausgabe.</p>
+<hr>
+<h2>Endpunkte</h2>
+<h3><code>GET /api/status</code></h3>
+<p>Prüft, ob nvm verfügbar ist und gibt die installierte Version zurück. Ruft parallel
+die GitHub-Releases-API ab, um die neueste verfügbare nvm-Version zu ermitteln.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;nvmVersion&quot;: &quot;0.39.3&quot;,
+  &quot;nvmLatestVersion&quot;: &quot;0.40.4&quot;,
+  &quot;nvmDir&quot;: &quot;/Users/username/.nvm&quot;
+}
+</code></pre>
+<blockquote>
+<p><code>nvmLatestVersion</code> ist nur vorhanden wenn die GitHub-Abfrage erfolgreich war (Timeout: 5 s).</p>
+</blockquote>
+<p><strong>Response 200 (nvm nicht gefunden):</strong></p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: false,
+  &quot;error&quot;: &quot;nvm not found&quot;
+}
+</code></pre>
+<p><strong>Implementierung:</strong> <code>server.ts → statusHandler</code>
+Ruft <code>runNvm([&#39;--version&#39;])</code> und <code>fetchNvmLatestVersion()</code> parallel auf.
+Schlägt der nvm-Aufruf fehl (nvm nicht installiert), wird <code>ok: false</code> zurückgegeben –
+kein HTTP-500-Fehler, da dies ein erwarteter Zustand ist.</p>
+<hr>
+<h3><code>POST /api/nvm/update</code></h3>
+<p>Aktualisiert nvm auf die neueste verfügbare Version via <code>nvm upgrade</code>.</p>
+<p><strong>Request:</strong> kein Body erforderlich</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;Downloading nvm from git to &#39;/Users/username/.nvm&#39;\n...&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><strong>Response 500:</strong></p>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;nvm upgrade failed&quot;,
+  &quot;stdout&quot;: &quot;&quot;,
+  &quot;stderr&quot;: &quot;...&quot;
+}
+</code></pre>
+<p><strong>Implementierung:</strong> <code>server.ts → nvmUpdateHandler</code>
+Ruft <code>updateNvm()</code> auf. Die Funktion:</p>
+<ol>
+<li>Ermittelt die Zielversion via <code>fetchNvmLatestVersion()</code> (GitHub API).</li>
+<li>Führt <code>git fetch --tags origin &amp;&amp; git checkout &lt;version&gt;</code> im <code>NVM_DIR</code> aus.</li>
+</ol>
+<blockquote>
+<p><strong>Warum git statt <code>nvm upgrade</code>?</strong> <code>nvm upgrade</code> ist kein stabiles, versionsübergreifendes
+Kommando – in nvm v0.39.x und früheren Versionen existiert es nicht. Der git-Weg ist die
+offizielle Upgrade-Methode laut nvm-Dokumentation und funktioniert für alle Versionen,
+bei denen nvm über das Install-Script (= git clone) eingerichtet wurde.</p>
+</blockquote>
+<p>Timeout: 3 Minuten.</p>
+<hr>
+<h3><code>POST /api/nvm/open-dir</code></h3>
+<p>Öffnet das <code>NVM_DIR</code>-Verzeichnis im nativen Dateimanager des Systems.</p>
+<p><strong>Request:</strong> kein Body erforderlich</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{ &quot;ok&quot;: true }
+</code></pre>
+<p><strong>Response 500:</strong></p>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;open failed: No such file or directory&quot;,
+  &quot;stdout&quot;: &quot;&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><strong>Implementierung:</strong> <code>server.ts → openDirHandler</code> → <code>nvm.service.ts → openNvmDir()</code>
+Ermittelt <code>NVM_DIR</code> aus <code>process.env</code>, wählt dann plattformabhängig den Befehl:</p>
+<ul>
+<li><strong>macOS:</strong> <code>open &lt;NVM_DIR&gt;</code></li>
+<li><strong>Linux:</strong> <code>xdg-open &lt;NVM_DIR&gt;</code></li>
+</ul>
+<p>Kein User-Input wird an die Shell übergeben – ausschließlich der serverseitig
+konfigurierte Pfad wird geöffnet.</p>
+<hr>
+<h3><code>GET /api/versions/installed</code></h3>
+<p>Gibt alle lokal installierten Node.js-Versionen zurück.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;&quot;,
+  &quot;stderr&quot;: &quot;&quot;,
+  &quot;versions&quot;: [
+    { &quot;version&quot;: &quot;22.14.0&quot;, &quot;active&quot;: false, &quot;default&quot;: true,  &quot;system&quot;: false },
+    { &quot;version&quot;: &quot;22.20.0&quot;, &quot;active&quot;: true,  &quot;default&quot;: false, &quot;system&quot;: false },
+    { &quot;version&quot;: &quot;20.17.0&quot;, &quot;active&quot;: false, &quot;default&quot;: false, &quot;system&quot;: false }
+  ]
+}
+</code></pre>
+<p><strong>Felder:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Typ</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>version</code></td>
+<td><code>string</code></td>
+<td>Semver ohne <code>v</code>-Präfix</td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td><code>boolean</code></td>
+<td>Version ist im <code>PATH</code> des laufenden Node.js-Prozesses aktiv</td>
+</tr>
+<tr>
+<td><code>default</code></td>
+<td><code>boolean</code></td>
+<td>Version entspricht dem aufgelösten <code>default</code>-Alias</td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td><code>boolean</code></td>
+<td>Immer <code>false</code> (System-Node nicht über Dateisystem ermittelbar)</td>
+</tr>
+</tbody></table>
+<p><strong>Implementierung:</strong> <code>nvm.routes.ts → getInstalledHandler</code>
+Ruft <code>runNvmLsFast()</code> auf – liest die Daten direkt aus dem Dateisystem
+(<code>~/.nvm/versions/node/</code>, <code>~/.nvm/alias/default</code>), ohne eine Shell zu starten.
+Das macht den Endpunkt von ~20 Sekunden auf ~5 ms schnell.</p>
+<ul>
+<li><strong><code>active</code></strong> wird aus <code>process.env.PATH</code> ermittelt: enthält der PATH einen
+<code>.nvm/versions/node/vX.Y.Z/bin</code>-Eintrag, ist das die aktive Version.</li>
+<li><strong><code>default</code></strong> wird durch Auflösung der Alias-Kette in <code>~/.nvm/alias/</code> ermittelt
+(unterstützt Ketten wie <code>default → lts/* → v22.14.0</code>).</li>
+<li><code>stdout</code>/<code>stderr</code> sind immer leer (kein Shell-Prozess).</li>
+</ul>
+<hr>
+<h3><code>GET /api/versions/remote</code></h3>
+<p>Gibt alle bei nodejs.org verfügbaren Node.js-Versionen zurück.</p>
+<p><strong>Achtung:</strong> Dieser Aufruf führt <code>nvm ls-remote</code> aus, was eine Netzwerkanfrage
+an nodejs.org macht und je nach Verbindung mehrere Sekunden dauern kann.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;...&quot;,
+  &quot;stderr&quot;: &quot;&quot;,
+  &quot;versions&quot;: [
+    { &quot;version&quot;: &quot;24.16.0&quot;, &quot;lts&quot;: &quot;Krypton&quot; },
+    { &quot;version&quot;: &quot;24.15.0&quot;, &quot;lts&quot;: &quot;Krypton&quot; },
+    { &quot;version&quot;: &quot;22.16.0&quot;, &quot;lts&quot;: &quot;Jod&quot; },
+    { &quot;version&quot;: &quot;25.0.0&quot;,  &quot;lts&quot;: null }
+  ]
+}
+</code></pre>
+<p><strong>Felder:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Typ</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>version</code></td>
+<td><code>string</code></td>
+<td>Semver ohne <code>v</code></td>
+</tr>
+<tr>
+<td><code>lts</code></td>
+<td><code>string | null</code></td>
+<td>LTS-Codename oder <code>null</code> für Non-LTS</td>
+</tr>
+</tbody></table>
+<p><strong>Sortierung:</strong> Neueste Versionen zuerst (absteigende Semver-Reihenfolge).</p>
+<hr>
+<h3><code>GET /api/versions/aliases</code></h3>
+<p>Gibt alle nvm-Aliases zurück.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;...&quot;,
+  &quot;stderr&quot;: &quot;&quot;,
+  &quot;aliases&quot;: [
+    {
+      &quot;name&quot;: &quot;default&quot;,
+      &quot;target&quot;: &quot;lts/*&quot;,
+      &quot;resolved&quot;: &quot;v22.20.0&quot;,
+      &quot;editable&quot;: true,
+      &quot;deletable&quot;: false
+    },
+    {
+      &quot;name&quot;: &quot;node&quot;,
+      &quot;target&quot;: &quot;stable&quot;,
+      &quot;resolved&quot;: &quot;v22.20.0&quot;,
+      &quot;editable&quot;: true,
+      &quot;deletable&quot;: false
+    },
+    {
+      &quot;name&quot;: &quot;lts/iron&quot;,
+      &quot;target&quot;: &quot;v20.20.2&quot;,
+      &quot;resolved&quot;: &quot;v20.20.2&quot;,
+      &quot;editable&quot;: false,
+      &quot;deletable&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;my-project&quot;,
+      &quot;target&quot;: &quot;v18.18.0&quot;,
+      &quot;resolved&quot;: &quot;v18.18.0&quot;,
+      &quot;editable&quot;: true,
+      &quot;deletable&quot;: true
+    }
+  ]
+}
+</code></pre>
+<p><strong>Felder:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Typ</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Alias-Name</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td><code>string</code></td>
+<td>Direkt-Ziel (z.B. <code>lts/*</code>, <code>v22.11.0</code>)</td>
+</tr>
+<tr>
+<td><code>resolved</code></td>
+<td><code>string | null</code></td>
+<td>Aufgelöste Semver-Version oder <code>null</code> (N/A)</td>
+</tr>
+<tr>
+<td><code>editable</code></td>
+<td><code>boolean</code></td>
+<td><code>false</code> nur für <code>lts/</code>-Aliases (eigener Endpunkt)</td>
+</tr>
+<tr>
+<td><code>deletable</code></td>
+<td><code>boolean</code></td>
+<td><code>false</code> für <code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h3><code>POST /api/versions/install</code></h3>
+<p>Installiert eine Node.js-Version via <code>nvm install</code>.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;22&quot; }
+</code></pre>
+<p>Erlaubte Versionswerte: <code>node</code>, <code>stable</code>, <code>lts/*</code>, <code>22</code>, <code>22.11</code>, <code>22.11.0</code></p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;Downloading and installing node v22.11.0...\n...&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><strong>Response 400 (ungültige Version):</strong></p>
+<pre><code class="language-json">{ &quot;error&quot;: &quot;Ungültige Version: ../evil&quot; }
+</code></pre>
+<p><strong>Hinweis:</strong> Dieser Endpunkt ist blockierend (bis zu 3 Minuten Timeout). Für
+Live-Ausgabe während der Installation gibt es <code>GET /api/versions/install/stream</code>.</p>
+<hr>
+<h3><code>POST /api/versions/use</code></h3>
+<p>Setzt eine installierte Version als aktive Default-Version.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;20.18.0&quot; }
+</code></pre>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;default -&gt; 20.18.0 (-&gt; v20.18.0)\n&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><strong>Implementierung:</strong> Führt intern <code>nvm alias default &lt;version&gt;</code> aus, <strong>nicht</strong>
+<code>nvm use &lt;version&gt;</code>.</p>
+<p><strong>Warum?</strong> <code>nvm use</code> ändert die aktive Version nur im aktuellen Shell-Prozess.
+Da jeder API-Aufruf eine neue <code>bash</code>-Subshell spawnt, würde diese Änderung sofort
+verloren gehen. <code>nvm alias default</code> schreibt die Präferenz dauerhaft in
+<code>~/.nvm/alias/default</code> – ab dem nächsten Shell-Start ist automatisch die richtige
+Version aktiv.</p>
+<hr>
+<h3><code>POST /api/versions/default</code></h3>
+<p>Setzt eine Version oder einen Alias als nvm-Default.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;22.11.0&quot; }
+</code></pre>
+<p>Erlaubte Werte: alle gültigen Alias-Ziele – Semver (<code>22.11.0</code>, <code>v22.11.0</code>),
+<code>node</code>, <code>stable</code>, <code>unstable</code>, LTS-Codename (<code>lts/iron</code>, <code>lts/*</code>).</p>
+<p><strong>Response 200:</strong> wie <code>/use</code></p>
+<p><strong>Unterschied zu <code>/use</code>:</strong> <code>/use</code> akzeptiert nur einfache Versions-Strings;
+<code>/default</code> akzeptiert zusätzlich LTS-Codenames (z.B. <code>lts/iron</code>), sodass
+Default dauerhaft eine LTS-Linie tracken kann.</p>
+<hr>
+<h3><code>POST /api/versions/stable</code></h3>
+<p>Setzt den <code>stable</code>-Alias auf eine Version oder einen Alias-Namen.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;lts/iron&quot; }
+</code></pre>
+<p>Erlaubte Werte: identisch mit <code>/default</code>.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{ &quot;stdout&quot;: &quot;stable -&gt; lts/iron (-&gt; v20.20.2)\n&quot;, &quot;stderr&quot;: &quot;&quot; }
+</code></pre>
+<hr>
+<h3><code>POST /api/versions/uninstall</code></h3>
+<p>Deinstalliert eine Node.js-Version.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;18.20.7&quot; }
+</code></pre>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;Uninstalled node v18.20.7\n&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<hr>
+<h3><code>POST /api/versions/aliases</code></h3>
+<p>Erstellt oder überschreibt einen nvm-Alias.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;my-project&quot;,
+  &quot;target&quot;: &quot;v18.18.0&quot;
+}
+</code></pre>
+<p>Erlaubte Namen: <code>[a-zA-Z][a-zA-Z0-9_-]{0,49}</code> – muss mit Buchstaben beginnen.
+Erlaubte Ziele: <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>lts/&lt;codename&gt;</code>, <code>lts/*</code>, <code>vX.Y.Z</code>, <code>X.Y.Z</code>.</p>
+<p><strong>Hinweis:</strong> <code>lts/</code>-Aliases können nicht über diesen Endpunkt gesetzt werden –
+dafür gibt es <code>POST /api/versions/aliases/lts</code> (technischer Grund: nvm unterstützt
+keine Unterverzeichnis-Aliases über <code>nvm alias</code>).</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;my-project -&gt; v18.18.0\n&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<hr>
+<h3><code>POST /api/versions/aliases/lts</code></h3>
+<p>Setzt einen LTS-Alias direkt als Datei in <code>~/.nvm/alias/lts/&lt;codename&gt;</code>.</p>
+<p><strong>Hintergrund:</strong> <code>nvm alias lts/&lt;codename&gt; &lt;version&gt;</code> schlägt mit „Aliases in
+subdirectories are not supported&quot; fehl. Dieser Endpunkt schreibt die Alias-Datei
+direkt, wie nvm es intern tut.</p>
+<p><strong>Request-Body:</strong></p>
+<pre><code class="language-json">{
+  &quot;codename&quot;: &quot;iron&quot;,
+  &quot;version&quot;: &quot;20.17.0&quot;
+}
+</code></pre>
+<p><code>codename</code> ist der Teil nach <code>lts/</code> (z.B. <code>iron</code>, <code>hydrogen</code>, <code>*</code>).
+<code>version</code> ist eine valide Semver-Angabe mit oder ohne <code>v</code>-Präfix.</p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{ &quot;stdout&quot;: &quot;&quot;, &quot;stderr&quot;: &quot;&quot; }
+</code></pre>
+<hr>
+<h3><code>DELETE /api/versions/aliases/:name</code></h3>
+<p>Löscht einen Alias. <code>:name</code> darf <strong>kein</strong> Schrägstrich enthalten (kein <code>lts/</code>).</p>
+<p><strong>URL-Parameter:</strong> <code>name</code> – Name des zu löschenden Alias (URL-encoded)</p>
+<p><strong>Beispiel:</strong> <code>DELETE /api/versions/aliases/my-project</code></p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{
+  &quot;stdout&quot;: &quot;Deleted alias my-project\n&quot;,
+  &quot;stderr&quot;: &quot;&quot;
+}
+</code></pre>
+<p><strong>Response 400 – geschützter Alias:</strong></p>
+<pre><code class="language-json">{ &quot;error&quot;: &quot;Alias &#39;default&#39; ist geschützt und kann nicht gelöscht werden.&quot; }
+</code></pre>
+<p>Geschützt (nicht löschbar): <code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code>.</p>
+<hr>
+<h3><code>DELETE /api/versions/aliases/lts/:codename</code></h3>
+<p>Löscht einen LTS-Alias durch direktes Entfernen der Datei <code>~/.nvm/alias/lts/&lt;codename&gt;</code>.</p>
+<p><strong>URL-Parameter:</strong> <code>codename</code> – Teil nach <code>lts/</code> (z.B. <code>iron</code>, <code>hydrogen</code>)</p>
+<p><strong>Beispiel:</strong> <code>DELETE /api/versions/aliases/lts/iron</code></p>
+<p><strong>Response 200:</strong></p>
+<pre><code class="language-json">{ &quot;stdout&quot;: &quot;&quot;, &quot;stderr&quot;: &quot;&quot; }
+</code></pre>
+<p><strong>Response 400 – ungültiger Codename:</strong></p>
+<pre><code class="language-json">{ &quot;error&quot;: &quot;Ungültiger LTS-Codename.&quot; }
+</code></pre>
+<hr>
+<h3><code>GET /api/versions/install/stream</code></h3>
+<blockquote>
+<p>💡 <strong>Konzept: Server-Sent Events (SSE)</strong>
+Normalerweise schickt der Server <strong>eine</strong> Antwort und schließt die Verbindung.
+Bei einer Installation will man aber den Fortschritt <em>live</em> sehen. <strong>SSE</strong> hält
+die Verbindung offen und der Server sendet nach und nach einzelne Nachrichten
+(Events) im Format <code>data: &lt;text&gt;\n\n</code>. Der Browser liest diese mit der
+eingebauten Klasse <code>EventSource</code>. SSE ist einfacher als WebSockets und genau
+richtig, wenn nur der Server senden muss (Einbahnstraße Server → Browser).</p>
+</blockquote>
+<p>Streaming-Endpunkt für Live-Output während <code>nvm install</code>.
+Liefert die Ausgabe als <strong>Server-Sent Events (SSE)</strong>.</p>
+<p><strong>Query-Parameter:</strong> <code>version</code> – zu installierende Version (gleiche Validierung
+wie <code>POST /install</code>)</p>
+<p><strong>Beispiel:</strong> <code>GET /api/versions/install/stream?version=22</code></p>
+<p><strong>Response-Header:</strong></p>
+<pre><code>Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+</code></pre>
+<p><strong>Event-Format:</strong>
+Jedes Event ist ein <code>data:</code>-Zeile mit JSON:</p>
+<pre><code>data: {&quot;type&quot;:&quot;stdout&quot;,&quot;line&quot;:&quot;Downloading and installing node v22.11.0...&quot;}
+
+data: {&quot;type&quot;:&quot;stderr&quot;,&quot;line&quot;:&quot;&quot;}
+
+data: {&quot;type&quot;:&quot;done&quot;,&quot;line&quot;:&quot;0&quot;}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th><code>type</code></th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stdout</code></td>
+<td>Standardausgabe des nvm-Prozesses</td>
+</tr>
+<tr>
+<td><code>stderr</code></td>
+<td>Fehlerausgabe des nvm-Prozesses</td>
+</tr>
+<tr>
+<td><code>done</code></td>
+<td>Prozess beendet; <code>line</code> enthält den Exit-Code</td>
+</tr>
+</tbody></table>
+<p><strong>Client-Verbindungstrennung:</strong> Wenn der Browser die Verbindung trennt
+(Tab geschlossen, Navigation), wird der nvm-Prozess via <code>child.kill()</code> beendet.</p>
+<p><strong>Hinweis:</strong> Dieser Endpunkt ist im Frontend noch nicht vollständig integriert
+(MVP nutzt <code>POST /install</code>), aber vollständig implementiert und für spätere
+UI-Erweiterungen vorbereitet.</p>
+<hr>
+<h2>Validierungsregeln (Zusammenfassung)</h2>
+<p>Alle Eingaben werden serverseitig per Whitelist-Regex validiert, bevor sie an
+die Shell übergeben werden. Der Client kann keine unsicheren Werte einschleusen.</p>
+<table>
+<thead>
+<tr>
+<th>Eingabe</th>
+<th>Regex</th>
+<th>Erlaubte Beispiele</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Version (<code>/install</code>, <code>/use</code>, <code>/uninstall</code>)</td>
+<td><code>/^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/</code></td>
+<td><code>node</code>, <code>lts/*</code>, <code>22</code>, <code>22.11</code>, <code>22.11.0</code></td>
+</tr>
+<tr>
+<td>Alias-Ziel (<code>/default</code>, <code>/stable</code>, <code>/aliases</code>)</td>
+<td><code>/^(node|stable|unstable|lts\/[\w.*-]+|v?\d+(\.\d+){0,2})$/</code></td>
+<td><code>lts/iron</code>, <code>lts/*</code>, <code>v22.11.0</code>, <code>stable</code></td>
+</tr>
+<tr>
+<td>Alias-Name</td>
+<td><code>/^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/</code></td>
+<td><code>my-project</code>, <code>prod</code>, <code>default</code></td>
+</tr>
+<tr>
+<td>LTS-Codename</td>
+<td><code>/^[\w*-]+$/</code>, max. 30 Zeichen</td>
+<td><code>iron</code>, <code>hydrogen</code>, <code>*</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Routing-Übersicht</h2>
+<pre><code>GET    /api/status
+GET    /api/versions/installed
+GET    /api/versions/remote
+GET    /api/versions/aliases
+GET    /api/versions/install/stream        ← SSE
+POST   /api/versions/install
+POST   /api/versions/use
+POST   /api/versions/default
+POST   /api/versions/stable
+POST   /api/versions/uninstall
+POST   /api/versions/aliases
+POST   /api/versions/aliases/lts           ← LTS-Alias direkt schreiben
+DELETE /api/versions/aliases/lts/:codename ← LTS-Alias direkt löschen
+DELETE /api/versions/aliases/:name
+</code></pre>
+<hr>
+<h2>Glossar</h2>
+<table>
+<thead>
+<tr>
+<th>Begriff</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>API</strong></td>
+<td>Schnittstelle zwischen zwei Programmen</td>
+</tr>
+<tr>
+<td><strong>REST</strong></td>
+<td>Architekturstil für Web-APIs auf Basis von HTTP-Verben und Ressourcen</td>
+</tr>
+<tr>
+<td><strong>Endpunkt</strong></td>
+<td>Eine konkrete, aufrufbare Adresse der API (Verb + Pfad)</td>
+</tr>
+<tr>
+<td><strong>HTTP-Verb</strong></td>
+<td>Art der Aktion: GET (lesen), POST (erstellen/auslösen), DELETE (löschen)</td>
+</tr>
+<tr>
+<td><strong>Statuscode</strong></td>
+<td>Numerisches Ergebnis: 200 OK, 400 Client-Fehler, 500 Server-Fehler</td>
+</tr>
+<tr>
+<td><strong>Request-Body</strong></td>
+<td>Die mitgesendeten Daten einer Anfrage (hier JSON)</td>
+</tr>
+<tr>
+<td><strong>Response</strong></td>
+<td>Die Antwort des Servers (Statuscode + Body)</td>
+</tr>
+<tr>
+<td><strong>JSON</strong></td>
+<td>Textformat für strukturierte Daten (<code>{ &quot;key&quot;: &quot;value&quot; }</code>)</td>
+</tr>
+<tr>
+<td><strong>Origin</strong></td>
+<td>Kombination aus Protokoll + Host + Port</td>
+</tr>
+<tr>
+<td><strong>CORS</strong></td>
+<td>Mechanismus, der Cross-Origin-Anfragen kontrolliert erlaubt</td>
+</tr>
+<tr>
+<td><strong>Proxy</strong></td>
+<td>Vermittler, der Anfragen an ein anderes Ziel weiterleitet</td>
+</tr>
+<tr>
+<td><strong>Validierung</strong></td>
+<td>Prüfung, ob eine Eingabe den erlaubten Regeln entspricht</td>
+</tr>
+<tr>
+<td><strong>SSE</strong></td>
+<td>Server-Sent Events; fortlaufender Datenstrom Server → Browser</td>
+</tr>
+<tr>
+<td><strong>idempotent</strong></td>
+<td>Mehrfaches Ausführen hat denselben Effekt wie einmaliges (z.B. GET)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Verständnisfragen</h2>
+<ol>
+<li>Welches HTTP-Verb würdest du erwarten, um eine Ressource zu <em>löschen</em>? Welcher
+Endpunkt im Projekt nutzt es?</li>
+<li>Warum gibt <code>GET /api/status</code> bei fehlendem nvm den Statuscode <code>200</code> mit
+<code>ok: false</code> zurück und nicht <code>500</code>?</li>
+<li>Was bedeutet der Statuscode <code>400</code>, und in welchen Fällen liefert die API ihn?</li>
+<li>Warum reicht es nicht, Eingaben nur im Frontend zu prüfen – warum muss der
+Server zusätzlich validieren?</li>
+<li>Worin unterscheidet sich die Antwort von <code>GET /api/versions/install/stream</code>
+technisch von der Antwort von <code>POST /api/versions/install</code>?</li>
+<li><code>POST /use</code> und <code>POST /default</code> machen backend-seitig dasselbe. Warum existieren
+trotzdem zwei Endpunkte?</li>
+</ol>
+<hr>
+<h2>Übungsaufgaben</h2>
+<blockquote>
+<p>Für diese Übungen muss das Backend laufen (<code>cd apps/api &amp;&amp; npm run dev</code>).</p>
+</blockquote>
+<ol>
+<li><strong>API mit <code>curl</code> erkunden:</strong> Rufe den Status ab und beobachte die Antwort:<pre><code class="language-bash">curl http://127.0.0.1:3789/api/status
+</code></pre>
+Rufe danach <code>GET /api/versions/installed</code> ab und vergleiche die JSON-Struktur
+mit der Dokumentation oben.</li>
+<li><strong>POST mit Body senden:</strong> Sende einen gültigen und einen ungültigen Versionswert
+und vergleiche Statuscode und Antwort:<pre><code class="language-bash">curl -X POST http://127.0.0.1:3789/api/versions/install \
+  -H &quot;Content-Type: application/json&quot; -d &#39;{&quot;version&quot;:&quot;22&quot;}&#39;
+
+curl -X POST http://127.0.0.1:3789/api/versions/install \
+  -H &quot;Content-Type: application/json&quot; -d &#39;{&quot;version&quot;:&quot;22; rm -rf ~&quot;}&#39;
+</code></pre>
+Welche Antwort liefert der zweite Aufruf, und welche Code-Stelle ist dafür
+verantwortlich (siehe <a href="BACKEND.md">BACKEND.md</a>, Validatoren)?</li>
+<li><strong>Endpunkt-Tabelle ergänzen:</strong> Erstelle eine eigene Tabelle, die jeden Endpunkt
+einem HTTP-Verb und der Frage &quot;verändert er Daten?&quot; (ja/nein) zuordnet.</li>
+<li><strong>Fehlerformat verstehen:</strong> Provoziere einen Fehler (z.B. ungültiger Alias-Name
+bei <code>POST /api/versions/aliases</code>) und ordne die Felder <code>error</code>, <code>stdout</code>,
+<code>stderr</code> der Antwort den jeweiligen Code-Stellen zu.</li>
+<li><strong>Integrationstests lesen:</strong> Sieh dir <code>apps/api/src/routes/nvm.routes.spec.ts</code>
+an. Welche Endpunkte werden getestet, und wie werden die nvm-Aufrufe dabei
+ersetzt (gemockt)?</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

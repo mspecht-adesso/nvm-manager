@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API – Änderungen | nvm-manager Changes</title>
+  <script>(function(){var t=localStorage.getItem('nvm-ui-theme'),d=window.matchMedia('(prefers-color-scheme: light)').matches;if(t==='light'||(t===null&&d))document.documentElement.setAttribute('data-theme','light');})()</script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-api">
+
+<button id="theme-btn" onclick="(function(){var h=document.documentElement,c=h.getAttribute('data-theme')==='light';h.setAttribute('data-theme',c?'':'light');localStorage.setItem('nvm-ui-theme',c?'dark':'light');document.getElementById('theme-btn').textContent=c?'☀ Hell':'☾ Dunkel';})()" aria-label="Farbschema wechseln">☀ Hell</button>
+<script>document.getElementById('theme-btn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'☾ Dunkel':'☀ Hell';</script>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tag">API Changes</div>
+    <h1>REST-API – Änderungen &amp; neue Endpunkte</h1>
+    <p class="header-meta">
+      nvm-manager · http://127.0.0.1:3789 ·
+      <a href="API.md">→ API.md</a> ·
+      <a href="API-changes.md">→ Markdown-Version</a>
+    </p>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-value">5</div>
+      <div class="stat-label">Neue Endpunkte</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">2</div>
+      <div class="stat-label">Geänderte Endpunkte</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">1</div>
+      <div class="stat-label">Neues Fehler-Pattern</div>
+    </div>
+  </div>
+
+  <nav>
+    <h2>Inhaltsverzeichnis</h2>
+    <ol>
+      <li><a href="#error-norm">Fehler-Normalisierung</a></li>
+      <li><a href="#rx-resource">rxResource() Pattern</a></li>
+      <li><a href="#status">GET /api/status erweitert</a></li>
+      <li><a href="#nvm-update">POST /api/nvm/update</a></li>
+      <li><a href="#open-dir">POST /api/nvm/open-dir</a></li>
+      <li><a href="#lts-aliases">LTS-Alias-Endpunkte</a></li>
+      <li><a href="#stable">POST /api/versions/stable</a></li>
+      <li><a href="#use">POST /api/versions/use geändert</a></li>
+      <li><a href="#validation">Eingabevalidierung</a></li>
+      <li><a href="#impact">Impact-Tabelle</a></li>
+    </ol>
+  </nav>
+
+  <!-- Error Normalization -->
+  <div class="section-header">
+    <h2>Querschnittsänderungen</h2>
+  </div>
+
+  <div class="change-block pattern" id="error-norm">
+    <div class="change-header">
+      <span class="change-title">Fehler-Normalisierung via <code>httpErrorInterceptor</code></span>
+      <span class="badge badge-changed">Pattern-Änderung</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Vor dem Interceptor gab es keine garantierte Einheitlichkeit: Jede <code>NvmApiService</code>-Methode wandelte <code>HttpErrorResponse</code> lokal um. Jetzt verarbeitet der zentrale Interceptor alle HTTP-Fehler:</p>
+
+    <div class="flow-diagram">
+      <div><span class="flow-node">HTTP Response (4xx/5xx)</span></div>
+      <div class="flow-arrow">  ↓</div>
+      <div><span class="flow-node">HttpErrorResponse</span> <span class="flow-note">Angular-intern</span></div>
+      <div class="flow-arrow">  ↓</div>
+      <div><span class="flow-node">httpErrorInterceptor</span> <span class="flow-note">extrahiert err.error?.error ?? err.message</span></div>
+      <div class="flow-arrow">  ↓</div>
+      <div><span class="flow-node">Error({ message })</span> <span class="flow-note">einheitliches Format für die gesamte App</span></div>
+      <div class="flow-arrow">  ↓</div>
+      <div><span class="flow-node">resource.error() / Template</span> <span class="flow-note">Anzeige im Log-Panel</span></div>
+    </div>
+
+    <p>Das Backend-Fehlerformat <code>{"error": "Fehlermeldung"}</code> wird durch den Interceptor direkt extrahiert. Die Applikation arbeitet immer mit einfachen <code>Error</code>-Objekten, nie mehr mit <code>HttpErrorResponse</code>.</p>
+  </div>
+
+  <div class="change-block pattern" id="rx-resource">
+    <div class="change-header">
+      <span class="change-title">GET-Endpunkte: Von <code>subscribe()</code> zu <code>rxResource()</code></span>
+      <span class="badge badge-changed">Konsumierungs-Muster</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Endpunkt</th><th>Konsumiert von</th><th>Vorher</th><th>Nachher</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-get">GET</span> <code>/api/status</code></td>
+          <td><code>StatusCardComponent</code></td>
+          <td>manuelles <code>subscribe()</code></td>
+          <td><code>rxResource()</code></td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span> <code>/api/versions/available</code></td>
+          <td><code>RemoteVersionsCardComponent</code></td>
+          <td>manuelles <code>subscribe()</code></td>
+          <td><code>rxResource()</code></td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span> <code>/api/versions/installed</code></td>
+          <td><code>NvmStateService</code></td>
+          <td>manuelles <code>subscribe()</code></td>
+          <td><code>rxResource()</code></td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span> <code>/api/versions/aliases</code></td>
+          <td><code>AliasesCardComponent</code></td>
+          <td>manuelles <code>subscribe()</code></td>
+          <td><code>rxResource()</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>Mutationen</strong> (<code>POST /api/versions/install</code>, <code>DELETE</code>, etc.) bleiben <strong>imperativ</strong> – sie haben Seiteneffekte, sind nicht idempotent und lösen Reloads aus statt eigene Daten darzustellen.</p>
+    <pre><code>// Reload nach einer Mutation:
+this.installedResource.reload();
+
+// Template-Zugriff:
+versionsResource.isLoading()
+versionsResource.value()
+versionsResource.error()</code></pre>
+  </div>
+
+  <!-- New Endpoints -->
+  <div class="section-header">
+    <h2>Neue Endpunkte</h2>
+  </div>
+
+  <div class="change-block new-endpoint" id="status">
+    <div class="change-header">
+      <span class="method method-get">GET</span>
+      <span class="change-title endpoint-path">/api/status</span>
+      <span class="badge badge-changed">Erweiterung</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Das optionale Feld <code>nvmLatestVersion</code> wurde hinzugefügt:</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher</div>
+        <pre><code>{
+  "nvmAvailable": true,
+  "nvmVersion": "0.39.7",
+  "nodeVersion": "v22.3.0"
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher</div>
+        <pre><code>{
+  "nvmAvailable": true,
+  "nvmVersion": "0.39.7",
+  "nodeVersion": "v22.3.0",
+  "nvmLatestVersion": "v0.40.1"
+}</code></pre>
+      </div>
+    </div>
+    <p><code>nvmLatestVersion</code> wird nur geliefert, wenn die GitHub-Releases-API erreichbar ist (5 s Timeout). Das Frontend zeigt bei Unterschied einen „Aktualisieren"-Button.</p>
+  </div>
+
+  <div class="change-block new-endpoint" id="nvm-update">
+    <div class="change-header">
+      <span class="method method-post">POST</span>
+      <span class="change-title endpoint-path">/api/nvm/update</span>
+      <span class="badge badge-new">Neu</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Löst ein nvm-Self-Update via <code>git fetch --tags &amp;&amp; git checkout &lt;version&gt;</code> im <code>NVM_DIR</code> aus. Nutzt SSE-Streaming (gleiche Mechanik wie <code>POST /api/versions/install</code>).</p>
+
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{ "targetVersion": "v0.40.1" }</code></pre>
+
+    <p><strong>Response:</strong> SSE-Stream mit <code>progress</code>-Events, abschließend <code>complete</code> oder <code>error</code>.</p>
+
+    <p><strong>Frontend-Integration:</strong> <code>InstallModalState.action</code> wurde um <code>'nvm-update'</code> erweitert; alle drei Phasen (running / success / error) zeigen nvm-spezifische Modal-Texte.</p>
+  </div>
+
+  <div class="change-block new-endpoint" id="open-dir">
+    <div class="change-header">
+      <span class="method method-post">POST</span>
+      <span class="change-title endpoint-path">/api/nvm/open-dir</span>
+      <span class="badge badge-new">Neu</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Öffnet <code>NVM_DIR</code> im Dateimanager (<code>open</code> auf macOS, <code>xdg-open</code> auf Linux).</p>
+
+    <p><strong>Request:</strong> kein Body erforderlich</p>
+
+    <p><strong>Response (200):</strong></p>
+    <pre><code>{ "opened": true }</code></pre>
+
+    <p><strong>Sicherheitshinweis:</strong> Kein User-Input → kein Injection-Risiko. Der Pfad kommt ausschließlich aus der Server-Konfiguration (<code>NVM_DIR</code>).</p>
+  </div>
+
+  <div class="change-block new-endpoint" id="lts-aliases">
+    <div class="change-header">
+      <span class="change-title">LTS-Alias-Endpunkte (Dateisystem-basiert)</span>
+      <span class="badge badge-new">Neu</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>nvm unterstützt <code>nvm alias lts/&lt;codename&gt;</code> nicht nativ. Die neuen Endpunkte schreiben/löschen Alias-Dateien direkt im Dateisystem (<code>~/.nvm/alias/lts/</code>).</p>
+
+    <table>
+      <thead>
+        <tr><th>Methode &amp; Pfad</th><th>Request</th><th>Response</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span> <code>/api/versions/aliases/lts</code></td>
+          <td><code>{ "codename": "iron", "version": "20.12.2" }</code></td>
+          <td><code>{ "success": true }</code></td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span> <code>/api/versions/aliases/lts/:codename</code></td>
+          <td>–</td>
+          <td><code>{ "success": true }</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Validierung: <code>isValidLtsCodename</code> – Whitelist-Regex <code>/^[a-z]+$/</code>.</p>
+  </div>
+
+  <div class="change-block new-endpoint" id="stable">
+    <div class="change-header">
+      <span class="method method-post">POST</span>
+      <span class="change-title endpoint-path">/api/versions/stable</span>
+      <span class="badge badge-new">Neu</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <p>Setzt den <code>stable</code>-Alias auf eine beliebige Version oder LTS-Linie.</p>
+    <pre><code>// Request
+{ "version": "22.3.0" }
+
+// oder LTS-Codename
+{ "version": "lts/iron" }</code></pre>
+  </div>
+
+  <!-- Changed Endpoints -->
+  <div class="section-header">
+    <h2>Geänderte Endpunkte</h2>
+  </div>
+
+  <div class="change-block changed-endpoint" id="use">
+    <div class="change-header">
+      <span class="method method-post">POST</span>
+      <span class="change-title endpoint-path">/api/versions/use</span>
+      <span class="badge badge-changed">Verhalten geändert</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher (temporär)</div>
+        <pre><code>// nvm use X
+// Nur für die Child-Prozess-Session
+// wirksam – kein persistenter Effekt</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher (persistent)</div>
+        <pre><code>// nvm alias default X
+// Schreibt in ~/.nvm/alias/default
+// Alle zukünftigen Shells nutzen X</code></pre>
+      </div>
+    </div>
+    <p>Root Cause: <code>nvm use</code> setzt die Version nur in der aktuellen Shell-Session. Da der Backend-Prozess in einer isolierten Child-Shell läuft, hatte der Befehl keine sichtbare Wirkung.</p>
+  </div>
+
+  <!-- Validation -->
+  <div class="section-header">
+    <h2>Eingabevalidierung</h2>
+  </div>
+
+  <div class="change-block" id="validation">
+    <div class="change-header">
+      <span class="change-title">Whitelist-Strategie für alle Endpunkte</span>
+    </div>
+    <p>Alle Endpunkte, die Versions- oder Alias-Namen entgegennehmen, validieren diese <strong>vor</strong> der Shell-Übergabe:</p>
+    <table>
+      <thead>
+        <tr><th>Funktion</th><th>Regex / Logik</th><th>Fehler bei Verletzung</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>isValidVersionInput</code></td>
+          <td><code>/^(\d+\.\d+\.\d+|lts\/[a-z]+|[a-z]+|\d+)$/</code></td>
+          <td>HTTP 400</td>
+        </tr>
+        <tr>
+          <td><code>isValidAliasName</code></td>
+          <td><code>/^[\w.\-/]+$/</code></td>
+          <td>HTTP 400</td>
+        </tr>
+        <tr>
+          <td><code>isValidAliasTarget</code></td>
+          <td>wie <code>isValidVersionInput</code></td>
+          <td>HTTP 400</td>
+        </tr>
+        <tr>
+          <td><code>isValidLtsCodename</code></td>
+          <td><code>/^[a-z]+$/</code></td>
+          <td>HTTP 400</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Bei Verletzung: <code>{ "error": "Invalid ..." }</code> – keine Shell-Ausführung findet statt.</p>
+  </div>
+
+  <!-- Impact -->
+  <div class="section-header">
+    <h2>Auswirkungen auf den API-Vertrag</h2>
+  </div>
+
+  <div class="change-block" id="impact">
+    <table>
+      <thead>
+        <tr><th>Aspekt</th><th>Vor den Reviews</th><th>Nach den Reviews</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fehlerformat (Frontend)</td>
+          <td><code>HttpErrorResponse</code> oder <code>Error</code></td>
+          <td>immer <code>Error</code></td>
+        </tr>
+        <tr>
+          <td>Ladestate (GET)</td>
+          <td><code>loading = signal(false)</code></td>
+          <td><code>resource.isLoading()</code></td>
+        </tr>
+        <tr>
+          <td>Fehlerstate (GET)</td>
+          <td><code>error = signal(null)</code></td>
+          <td><code>resource.error()</code></td>
+        </tr>
+        <tr>
+          <td>Reload nach Mutation</td>
+          <td>manuelle Methode <code>loadXyz()</code></td>
+          <td><code>resource.reload()</code></td>
+        </tr>
+        <tr>
+          <td>Service-Methoden</td>
+          <td>HTTP-Call + <code>catchError</code></td>
+          <td>reiner HTTP-Call</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/versions/use</code></td>
+          <td>temporär (Child-Prozess only)</td>
+          <td>persistent (<code>~/.nvm/alias/default</code>)</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/status</code></td>
+          <td>3 Felder</td>
+          <td>4 Felder (optional <code>nvmLatestVersion</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  nvm-manager · <a href="index.html">← Übersicht</a> · <a href="API.md">API.md</a> · <a href="FRONTEND-changes.html">FRONTEND-changes</a> · <a href="BACKEND-changes.html">BACKEND-changes</a>
+</footer>
+
+</body>
+</html>

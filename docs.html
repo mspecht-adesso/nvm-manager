@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NVM Manager – Dokumentationsübersicht</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+    body { line-height: 1.6; padding: 0; }
+
+    header {
+      background: var(--header-bg);
+      color: var(--header-fg);
+      padding: 2.5rem 1.5rem 2rem;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    header h1 {
+      margin: 0 0 0.35em;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p { margin: 0; color: var(--text-muted); font-size: 1rem; }
+
+    main {
+      max-width: 900px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge {
+      margin-left: auto;
+      font-size: 0.72rem;
+      font-weight: 500;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 0.15em 0.6em;
+    }
+
+    ul { list-style: none; margin: 0; padding: 0; }
+
+    li { border-top: 1px solid var(--border-h); padding: 0.45em 0; }
+    li:first-child { border-top: none; }
+
+    a { color: var(--link); text-decoration: none; font-size: 0.95rem; }
+    a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    footer code {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1em 0.4em;
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+
+  <header>
+    <h1>NVM Manager</h1>
+    <p>Dokumentationsübersicht</p>
+  </header>
+
+  <main>
+      <section class="card">
+        <h2>📖 Dokumentation <span class="badge">docs/</span></h2>
+        <ul>
+        <li><a href="docs/BENUTZERHANDBUCH.html">nvm Manager – Benutzerhandbuch</a></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>📐 Projektbeschreibung <span class="badge">desc/</span></h2>
+        <ul>
+        <li><a href="desc/API.html">REST-API – nvm-manager</a></li>
+        <li><a href="desc/BACKEND.html">Backend – nvm-manager API</a></li>
+        <li><a href="desc/FRONTEND.html">Frontend – nvm-manager Angular-Anwendung</a></li>
+        <li><a href="desc/README.html">nvm-manager – Technische Dokumentation (Lernunterlagen)</a></li>
+        </ul>
+      </section>
+  </main>
+
+  <footer>Generiert von <code>npm run docs:build</code></footer>
+
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

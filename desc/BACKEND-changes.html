@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend – Änderungen | nvm-manager Changes</title>
+  <script>(function(){var t=localStorage.getItem('nvm-ui-theme'),d=window.matchMedia('(prefers-color-scheme: light)').matches;if(t==='light'||(t===null&&d))document.documentElement.setAttribute('data-theme','light');})()</script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-backend">
+
+<button id="theme-btn" onclick="(function(){var h=document.documentElement,c=h.getAttribute('data-theme')==='light';h.setAttribute('data-theme',c?'':'light');localStorage.setItem('nvm-ui-theme',c?'dark':'light');document.getElementById('theme-btn').textContent=c?'☀ Hell':'☾ Dunkel';})()" aria-label="Farbschema wechseln">☀ Hell</button>
+<script>document.getElementById('theme-btn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'☾ Dunkel':'☀ Hell';</script>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tag">Backend Changes</div>
+    <h1>Backend – Refactoring &amp; Testinfrastruktur</h1>
+    <p class="header-meta">
+      nvm-manager · Node.js/Express · apps/api/ ·
+      <a href="BACKEND.md">→ BACKEND.md</a> ·
+      <a href="BACKEND-changes.md">→ Markdown-Version</a>
+    </p>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-value">111</div>
+      <div class="stat-label">Backend-Tests (alle grün)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">2000×</div>
+      <div class="stat-label">Speedup bei GET /api/versions/installed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0</div>
+      <div class="stat-label">catchError-Pipes im Service</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">≥70%</div>
+      <div class="stat-label">Coverage-Schwellenwert (Lines/Functions)</div>
+    </div>
+  </div>
+
+  <nav>
+    <h2>Inhaltsverzeichnis</h2>
+    <ol>
+      <li><a href="#api-service">NvmApiService vereinfachen</a></li>
+      <li><a href="#create-app">createApp()-Factory</a></li>
+      <li><a href="#bash-c">bash -lc → bash -c</a></li>
+      <li><a href="#ls-fast">runNvmLsFast</a></li>
+      <li><a href="#tests">Testabdeckung</a></li>
+      <li><a href="#summary">Zusammenfassung</a></li>
+    </ol>
+  </nav>
+
+  <!-- NvmApiService -->
+  <div class="section-header">
+    <h2>Service-Layer</h2>
+  </div>
+
+  <div class="change-block" id="api-service">
+    <div class="change-header">
+      <span class="change-title"><code>NvmApiService</code> – <code>handleError</code> entfernen</span>
+      <span class="badge badge-xs">XS</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">nvm-api.service.ts</span>
+    </div>
+    <div class="callout">
+      Obwohl der <code>NvmApiService</code> im Frontend (<code>apps/web</code>) liegt,
+      ist er die einzige Kommunikationsschicht zum Backend. Änderungen hier wirken sich
+      direkt auf das Fehlerverhalten der gesamten API-Kommunikation aus.
+    </div>
+    <p>Jede HTTP-Methode enthielt eine <code>.pipe(catchError(this.handleError))</code>-Kette. Das führte zu drei Problemen:</p>
+    <ol>
+      <li><strong>Fragiler <code>this</code>-Kontext:</strong> Methodenreferenz funktionierte nur zufällig.</li>
+      <li><strong>Redundanz:</strong> Fehlerbehandlung war über alle Service-Methoden verteilt.</li>
+      <li><strong>Wartbarkeit:</strong> Jede Änderung musste an jeder Methode nachgezogen werden.</li>
+    </ol>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher</div>
+        <pre><code>getInstalledVersions() {
+  return this.http
+    .get&lt;InstalledVersionsResponse&gt;(
+      '/api/versions/installed'
+    )
+    .pipe(catchError(this.handleError));
+}
+
+private handleError(
+  error: HttpErrorResponse
+): Observable&lt;never&gt; {
+  const msg = error.error?.error
+              ?? error.message;
+  return throwError(() => new Error(msg));
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher</div>
+        <pre><code>getInstalledVersions() {
+  return this.http
+    .get&lt;InstalledVersionsResponse&gt;(
+      '/api/versions/installed'
+    );
+  // Interceptor normalisiert Fehler
+}</code></pre>
+      </div>
+    </div>
+    <p>Die Normalisierung übernimmt der zentrale <code>httpErrorInterceptor</code>. Der Service enthält nur noch die fachliche Absicht.</p>
+  </div>
+
+  <!-- createApp -->
+  <div class="section-header">
+    <h2>Express-Architektur</h2>
+  </div>
+
+  <div class="change-block" id="create-app">
+    <div class="change-header">
+      <span class="change-title"><code>createApp()</code>-Factory für Testbarkeit</span>
+      <span class="badge badge-s">S</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">apps/api/src/server.ts</span>
+    </div>
+    <p>Die Express-App wurde direkt beim Modul-Import gestartet. Das machte Supertest-Tests ohne echten TCP-Port unmöglich.</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher</div>
+        <pre><code>const app = express();
+app.use(cors(...));
+// ...
+app.listen(3789);</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher</div>
+        <pre><code>export function createApp() {
+  const app = express();
+  app.use(cors(...));
+  // ...
+  return app;
+}
+
+if (process.env['NODE_ENV'] !== 'test') {
+  createApp().listen(3789, '127.0.0.1');
+}</code></pre>
+      </div>
+    </div>
+    <p>Supertest kann <code>createApp()</code> direkt einbinden – kein TCP-Port, keine Port-Konflikte, CI-sicher.</p>
+  </div>
+
+  <!-- Performance -->
+  <div class="section-header">
+    <h2>Performance-Optimierungen</h2>
+  </div>
+
+  <div class="change-block" id="bash-c">
+    <div class="change-header">
+      <span class="change-title"><code>bash -lc</code> → <code>bash -c</code></span>
+      <span class="badge badge-xs">XS</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">nvm.service.ts</span>
+    </div>
+    <p>Alle nvm-Shell-Aufrufe nutzten ursprünglich das Login-Shell-Flag <code>-l</code>. Das lädt <code>.bash_profile</code>, <code>.bashrc</code> etc. vollständig – auf manchen Systemen mehrere Sekunden Overhead.</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher</div>
+        <pre><code>execFile('bash', ['-lc',
+  `${NVM_HEADER} nvm ${args}`])</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher</div>
+        <pre><code>execFile('bash', ['-c',
+  `${NVM_HEADER} nvm ${args}`])
+// NVM_HEADER setzt NVM_DIR, HOME
+// und sourcet nvm.sh explizit</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="change-block" id="ls-fast">
+    <div class="change-header">
+      <span class="change-title"><code>runNvmLsFast</code> – Dateisystem statt Shell</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-done">✓ erledigt</span>
+      <span class="change-file">nvm.service.ts</span>
+    </div>
+    <p><code>GET /api/versions/installed</code> war zuvor ~20 Sekunden langsam, weil <code>nvm ls</code> eine vollständige Shell-Session startete. Ersetzt durch direktes Dateisystem-Lesen mit <code>node:fs/promises</code>:</p>
+    <div class="diff-grid">
+      <div>
+        <div class="diff-label before">Vorher (~20 Sekunden)</div>
+        <pre><code>async function runNvmLs() {
+  // Startet bash, sourcet nvm.sh,
+  // ruft nvm ls auf → Shell-Overhead
+  return runNvm('ls');
+}</code></pre>
+      </div>
+      <div>
+        <div class="diff-label after">Nachher (&lt; 10 ms)</div>
+        <pre><code>async function runNvmLsFast() {
+  const nodeDir = join(NVM_DIR,
+    'versions/node');
+  const aliasDir = join(NVM_DIR, 'alias');
+  // Liest Verzeichnisse direkt aus dem
+  // Dateisystem – kein Shell-Prozess
+}</code></pre>
+      </div>
+    </div>
+    <p>Speedup: <span class="speed-badge">~2000×</span> für den häufigsten Endpunkt.</p>
+  </div>
+
+  <!-- Tests -->
+  <div class="section-header">
+    <h2>Testabdeckung</h2>
+  </div>
+
+  <div class="change-block" id="tests">
+    <div class="change-header">
+      <span class="change-title">Vollständige Backend-Testsuite mit Vitest + Supertest</span>
+      <span class="badge badge-m">M</span>
+      <span class="badge badge-done">✓ erledigt</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Datei</th><th>Tests</th><th>Was wird getestet</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>nvm.types.spec.ts</code></td>
+          <td>24</td>
+          <td><code>isValidVersionInput</code>, <code>isValidAliasName</code>, <code>isValidAliasTarget</code>, <code>NvmError</code> – Shell-Injection-Schutz</td>
+        </tr>
+        <tr>
+          <td><code>nvm.parser.spec.ts</code></td>
+          <td>22</td>
+          <td>ANSI-Escape-Handling, aktive-Version-Erkennung, <code>editable</code>/<code>deletable</code>-Schutzlogik</td>
+        </tr>
+        <tr>
+          <td><code>nvm.service.spec.ts</code></td>
+          <td>14</td>
+          <td><code>runNvm</code>, <code>spawnNvm</code>, <code>runNvmLsFast</code> mit gemocktem <code>node:child_process</code> und <code>node:fs/promises</code></td>
+        </tr>
+        <tr>
+          <td><code>nvm.routes.spec.ts</code></td>
+          <td>51+</td>
+          <td>Alle HTTP-Endpunkte via Supertest: 200/400/500, Validierung, NvmError, SSE-Streaming</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Coverage-Konfiguration in <code>apps/api/vitest.config.ts</code>:</p>
+    <pre><code>thresholds: {
+  lines: 70,
+  functions: 70,
+  branches: 60
+}</code></pre>
+  </div>
+
+  <!-- Summary -->
+  <div class="section-header" id="summary">
+    <h2>Zusammenfassung</h2>
+  </div>
+
+  <div class="change-block">
+    <table>
+      <thead>
+        <tr><th>Datei</th><th>Art der Änderung</th><th>Warum</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>nvm-api.service.ts</code></td><td><code>handleError</code> + <code>catchError</code> entfernt</td><td>Zentraler Interceptor übernimmt</td></tr>
+        <tr><td><code>server.ts</code></td><td><code>createApp()</code>-Factory</td><td>Supertest-Testbarkeit</td></tr>
+        <tr><td><code>nvm.service.ts</code></td><td><code>bash -lc</code> → <code>bash -c</code></td><td>Performance (Login-Shell-Overhead)</td></tr>
+        <tr><td><code>nvm.service.ts</code></td><td><code>runNvmLs</code> → <code>runNvmLsFast</code></td><td>~2000× schneller (kein Shell-Prozess)</td></tr>
+        <tr><td><code>vitest.config.ts</code></td><td>Coverage-Schwellenwerte</td><td>Qualitätssicherung</td></tr>
+        <tr><td><code>*.spec.ts</code> (111 Tests)</td><td>Vollständige Testabdeckung</td><td>CI-Sicherheitsnetz</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  nvm-manager · <a href="index.html">← Übersicht</a> · <a href="BACKEND.md">BACKEND.md</a> · <a href="FRONTEND-changes.html">FRONTEND-changes</a> · <a href="API-changes.html">API-changes</a>
+</footer>
+
+</body>
+</html>
