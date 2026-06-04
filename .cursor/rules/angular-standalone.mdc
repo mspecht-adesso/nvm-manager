@@ -74,3 +74,14 @@ catchError((err: HttpErrorResponse) => {
 - `@if` / `@for` instead of `*ngIf` / `*ngFor` (Angular 17+ control flow)
 - No inline styles in templates
 - Disable buttons during active operations with `[disabled]="isLoading()"`
+
+## Accessibility (WCAG 2.1 AA)
+
+- Every `<button>` needs an accessible name: visible text or `[attr.aria-label]`
+- Row-level buttons must include context in `aria-label` (e.g. `'Version ' + v.version + ' verwenden'`)
+- Decorative SVGs: `aria-hidden="true" focusable="false"`
+- Tables: `scope="col"` on all `<th>`, `aria-label` or `<caption>` on `<table>`, `[attr.aria-current]="v.active ? 'true' : null"` on active row
+- Dynamic content (loading/results/errors): wrap in `aria-live` region or use Angular CDK `LiveAnnouncer`
+- Modals: `role="dialog"`, `aria-modal="true"`, `cdkTrapFocus`, focus restore on close, `@HostListener('keydown.escape')` to close
+- No `tabindex > 0`; never remove focus ring without a visible alternative
+- For detailed patterns and per-component checklist, use the `a11y-expert` skill
