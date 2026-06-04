@@ -33,7 +33,7 @@ Startet Frontend und Backend parallel:
 
 | App      | URL                          |
 |----------|------------------------------|
-| Frontend | http://localhost:4200        |
+| Frontend | http://localhost:4201        |
 | API      | http://127.0.0.1:3789        |
 
 ### Einzeln starten
