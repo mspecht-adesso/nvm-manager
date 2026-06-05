@@ -10,6 +10,8 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Geändert
 
+- **`installed-versions-card`** – die Status-Badges (`Aktiv`, `Default`, `stable`, `unstable`, `iojs`) verwenden jetzt durchgängig denselben Stil wie das `Default`-Badge. Die zuvor abweichenden Farbvarianten für `active`/`alias` (und ihre ungenutzten CSS-Variablen) wurden entfernt.
+- **`aliases-card`** – jede Bearbeitung in der Aliases-Liste wird jetzt über das Fortschritts-Modal kommuniziert (running → success / error), nicht mehr nur das Setzen des `default`-Alias. Betrifft das Speichern beliebiger Aliase (z. B. `stable`, eigene Aliase) sowie das Bearbeiten von LTS-Aliasen. Dafür wurde die neue Modal-Aktion `alias` mit eigenem Titel/Text eingeführt.
 - **`aliases-card`** – die letzten als plain class properties geführten Formfelder (`editAliasTarget`, `ltsEditVersion`, `newAliasName`, `newAliasTarget`) auf `signal()` umgestellt. Damit ist die Komponente durchgängig signals-first; `[(ngModel)]` wurde auf explizites `[ngModel]` / `(ngModelChange)` aufgelöst.
 
 ---

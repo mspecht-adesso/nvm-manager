@@ -30,6 +30,12 @@
             Node <code class="ver">v{{ s.version }}</code> wird als Default gesetzt.<br>
             Bitte warten …
           </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias wird gesetzt</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> wird auf <code class="ver">v{{ s.version }}</code> gesetzt.<br>
+            Bitte warten …
+          </p>
         } @else {
           <h2 class="modal__title" id="modal-title">Version wird aktiviert</h2>
           <p class="modal__body">
@@ -63,6 +69,11 @@
           <p class="modal__body">
             Node <code class="ver">v{{ s.version }}</code> ist jetzt die Default-Version.
           </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias gesetzt</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> zeigt jetzt auf <code class="ver">v{{ s.version }}</code>.
+          </p>
         } @else {
           <h2 class="modal__title" id="modal-title">Version aktiviert</h2>
           <p class="modal__body">
@@ -95,6 +106,11 @@
           <h2 class="modal__title" id="modal-title">Default setzen fehlgeschlagen</h2>
           <p class="modal__body">
             Node <code class="ver">v{{ s.version }}</code> konnte nicht als Default gesetzt werden.
+          </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias setzen fehlgeschlagen</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> konnte nicht gesetzt werden.
           </p>
         } @else {
           <h2 class="modal__title" id="modal-title">Aktivierung fehlgeschlagen</h2>

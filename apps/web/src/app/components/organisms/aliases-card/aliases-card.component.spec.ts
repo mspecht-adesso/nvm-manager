@@ -20,13 +20,22 @@ const ALIAS_CUSTOM: NvmAlias = {
   editable: true,
   deletable: true,
 };
+const ALIAS_LTS: NvmAlias = {
+  name: 'lts/iron',
+  target: 'v20.18.0',
+  resolved: 'v20.18.0',
+  editable: true,
+  deletable: false,
+};
 const ALIASES_RESPONSE = { stdout: '', stderr: '', aliases: [ALIAS_DEFAULT, ALIAS_CUSTOM] };
 
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
     setAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
+    setLtsAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     deleteAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
+    deleteLtsAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     ...overrides,
   };
 }
@@ -195,7 +204,7 @@ describe('AliasesCardComponent', () => {
     expect(modalStates[1]?.errorMessage).toBe('Boom');
   });
 
-  it('zeigt kein Modal beim Speichern eines nicht-default Alias', async () => {
+  it('zeigt das Modal (running → success) beim Speichern eines beliebigen Alias', async () => {
     const { fixture, comp } = await setup();
     fixture.detectChanges();
     const modalStates: InstallModalState[] = [];
@@ -206,7 +215,38 @@ describe('AliasesCardComponent', () => {
     comp.saveAlias('my-project');
     await fixture.whenStable();
 
-    expect(modalStates).toHaveLength(0);
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({
+      action: 'alias',
+      phase: 'running',
+      version: '18.18.0',
+      alias: 'my-project',
+    });
+    expect(modalStates[1]).toEqual({
+      action: 'alias',
+      phase: 'success',
+      version: '18.18.0',
+      alias: 'my-project',
+    });
+  });
+
+  it('zeigt das Modal mit phase: error wenn das Speichern eines Alias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_CUSTOM);
+    comp.editAliasTarget.set('18.18.0');
+    comp.saveAlias('my-project');
+    await fixture.whenStable();
+
+    expect(modalStates[0]?.phase).toBe('running');
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.action).toBe('alias');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
   });
 
   it('emittiert Fehler-Log wenn saveAlias fehlschlägt', async () => {
@@ -223,6 +263,55 @@ describe('AliasesCardComponent', () => {
     await fixture.whenStable();
 
     expect(logged[0].type).toBe('error');
+  });
+
+  // ── saveLtsAlias ────────────────────────────────────────────────────────────
+
+  it('speichert LTS-Alias und zeigt das Modal (running → success)', async () => {
+    const { fixture, comp, mockSvc } = await setup();
+    fixture.componentRef.setInput('installedVersions', [
+      { version: '20.18.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
+    ]);
+    fixture.detectChanges();
+    const logged: LogEvent[] = [];
+    const modalStates: InstallModalState[] = [];
+    comp.logged.subscribe((e: LogEvent) => logged.push(e));
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startLtsEdit(ALIAS_LTS);
+    comp.ltsEditVersion.set('20.18.0');
+    comp.saveLtsAlias(ALIAS_LTS);
+    await fixture.whenStable();
+
+    expect(mockSvc.setLtsAlias).toHaveBeenCalledWith('iron', '20.18.0');
+    expect(logged[0].type).toBe('success');
+    expect(comp.editingLtsAlias()).toBeNull();
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({
+      action: 'alias',
+      phase: 'running',
+      version: '20.18.0',
+      alias: 'lts/iron',
+    });
+    expect(modalStates[1]?.phase).toBe('success');
+  });
+
+  it('zeigt das Modal mit phase: error wenn saveLtsAlias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setLtsAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startLtsEdit(ALIAS_LTS);
+    comp.ltsEditVersion.set('20.18.0');
+    comp.saveLtsAlias(ALIAS_LTS);
+    await fixture.whenStable();
+
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.action).toBe('alias');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
   });
 
   // ── createAlias ─────────────────────────────────────────────────────────────

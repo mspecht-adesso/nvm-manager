@@ -72,6 +72,7 @@ export class InstallModalComponent {
         return this.nvmUpdateInstructions(message);
       case 'use':
       case 'default':
+      case 'alias':
         return InstallModalComponent.includesAny(message, ['not installed', 'not found'])
           ? 'Die Version ist nicht installiert. Installiere sie zunächst über „Installieren".'
           : InstallModalComponent.GENERIC_RETRY;

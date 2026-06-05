@@ -4,7 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { NvmAlias, LogEvent, InstalledNodeVersion, InstallModalState } from '../../../models/nvm.models';
+import type {
+  NvmAlias,
+  LogEvent,
+  InstalledNodeVersion,
+  InstallModalState,
+  InstallModalAction,
+} from '../../../models/nvm.models';
 
 @Component({
   selector: 'app-aliases-card',
@@ -74,11 +80,12 @@ export class AliasesCardComponent {
   saveAlias(name: string): void {
     const target = this.editAliasTarget().trim();
     if (!target) return;
-    // Beim Default-Alias erhält der Nutzer zusätzlich ein Modal mit dem Fortschritt.
-    const withModal = name === 'default';
-    if (withModal) {
-      this.modalStateChange.emit({ action: 'default', phase: 'running', version: target });
-    }
+    // Every alias edit is communicated through the modal. The default alias
+    // keeps its dedicated wording ('default' action); all other aliases
+    // (e.g. 'stable', custom aliases) use the generic 'alias' action.
+    const action: InstallModalAction = name === 'default' ? 'default' : 'alias';
+    const aliasName = name === 'default' ? undefined : name;
+    this.modalStateChange.emit({ action, phase: 'running', version: target, alias: aliasName });
     this.nvmApi.setAlias(name, target).subscribe({
       next: () => {
         this.logged.emit({ message: `Alias '${name}' → '${target}' gesetzt.`, type: 'success' });
@@ -86,15 +93,17 @@ export class AliasesCardComponent {
         this.editAliasTarget.set('');
         this.load();
         this.aliasChanged.emit();
-        if (withModal) {
-          this.modalStateChange.emit({ action: 'default', phase: 'success', version: target });
-        }
+        this.modalStateChange.emit({ action, phase: 'success', version: target, alias: aliasName });
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Setzen des Alias '${name}': ${err.message}`, type: 'error' });
-        if (withModal) {
-          this.modalStateChange.emit({ action: 'default', phase: 'error', version: target, errorMessage: err.message });
-        }
+        this.modalStateChange.emit({
+          action,
+          phase: 'error',
+          version: target,
+          alias: aliasName,
+          errorMessage: err.message,
+        });
       },
     });
   }
@@ -130,6 +139,7 @@ export class AliasesCardComponent {
     const version = this.ltsEditVersion().trim();
     if (!version) return;
     const codename = alias.name.slice('lts/'.length);
+    this.modalStateChange.emit({ action: 'alias', phase: 'running', version, alias: alias.name });
     this.nvmApi.setLtsAlias(codename, version).subscribe({
       next: () => {
         this.logged.emit({ message: `LTS-Alias '${alias.name}' → '${version}' gesetzt.`, type: 'success' });
@@ -137,9 +147,17 @@ export class AliasesCardComponent {
         this.ltsEditVersion.set('');
         this.load();
         this.aliasChanged.emit();
+        this.modalStateChange.emit({ action: 'alias', phase: 'success', version, alias: alias.name });
       },
       error: (err: Error) => {
         this.logged.emit({ message: `Fehler beim Setzen von '${alias.name}': ${err.message}`, type: 'error' });
+        this.modalStateChange.emit({
+          action: 'alias',
+          phase: 'error',
+          version,
+          alias: alias.name,
+          errorMessage: err.message,
+        });
       },
     });
   }

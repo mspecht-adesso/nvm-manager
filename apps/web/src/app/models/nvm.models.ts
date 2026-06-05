@@ -46,12 +46,14 @@ export type AliasesResponse = NvmCommandResult & {
   aliases: NvmAlias[];
 };
 
-export type InstallModalAction = 'install' | 'use' | 'uninstall' | 'nvm-update' | 'default';
+export type InstallModalAction = 'install' | 'use' | 'uninstall' | 'nvm-update' | 'default' | 'alias';
 
 export type InstallModalState = {
   action: InstallModalAction;
   phase: 'running' | 'success' | 'error';
   version: string;
+  /** Name of the alias being edited (only used for the 'alias' action). */
+  alias?: string;
   errorMessage?: string;
 } | null;
 
