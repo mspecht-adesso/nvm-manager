@@ -7,6 +7,7 @@
     "dev:web": "npm --prefix apps/web start",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "install:all": "npm install && npm --prefix apps/api install && npm --prefix apps/web install && npm --prefix apps/e2e install",
+    "install:browsers": "npm --prefix apps/e2e run install:browsers",
     "test:api": "npm --prefix apps/api run test",
     "test:api:coverage": "npm --prefix apps/api run test:coverage",
     "test:web": "npm --prefix apps/web run test",

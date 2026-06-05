@@ -77,7 +77,7 @@ describe('runNvm', () => {
     );
 
     await runNvm(['install', '22']);
-    const [cmd, args] = execFileMock.mock.calls[0] as [string, string[]];
+    const [cmd, args] = execFileMock.mock.calls[0] as unknown as [string, string[]];
     expect(cmd).toBe('bash');
     expect(args[0]).toBe('-c');
     expect(args[1]).toContain("nvm 'install' '22'");
@@ -92,7 +92,7 @@ describe('runNvm', () => {
     );
 
     await runNvm(["it's-a-test"]);
-    const [, args] = execFileMock.mock.calls[0] as [string, string[]];
+    const [, args] = execFileMock.mock.calls[0] as unknown as [string, string[]];
     expect(args[1]).toContain("'it'\\''s-a-test'");
   });
 });
@@ -165,7 +165,7 @@ describe('spawnNvm', () => {
     );
 
     spawnNvm(['install', '22']);
-    const [cmd, args] = spawnMock.mock.calls[0] as [string, string[]];
+    const [cmd, args] = spawnMock.mock.calls[0] as unknown as [string, string[]];
     expect(cmd).toBe('bash');
     expect(args[0]).toBe('-c');
     expect(args[1]).toContain("nvm 'install' '22'");
@@ -299,7 +299,7 @@ describe('openNvmDir', () => {
     mockExecFile(null);
     setPlatform('darwin');
     await openNvmDir();
-    const [cmd] = vi.mocked(childProcess.execFile).mock.calls[0] as [string];
+    const [cmd] = vi.mocked(childProcess.execFile).mock.calls[0] as unknown as [string];
     expect(cmd).toBe('open');
   });
 
@@ -307,7 +307,7 @@ describe('openNvmDir', () => {
     mockExecFile(null);
     setPlatform('linux');
     await openNvmDir();
-    const [cmd] = vi.mocked(childProcess.execFile).mock.calls[0] as [string];
+    const [cmd] = vi.mocked(childProcess.execFile).mock.calls[0] as unknown as [string];
     expect(cmd).toBe('xdg-open');
   });
 
@@ -336,7 +336,10 @@ describe('updateNvm', () => {
 
     const result = await updateNvm();
 
-    const [cmd, args] = vi.mocked(childProcess.execFile).mock.calls[0] as [string, string[]];
+    const [cmd, args] = vi.mocked(childProcess.execFile).mock.calls[0] as unknown as [
+      string,
+      string[],
+    ];
     expect(cmd).toBe('bash');
     expect(args[1]).toContain("git checkout 'v0.40.4'");
     expect(result.stdout).toBe('Switched');

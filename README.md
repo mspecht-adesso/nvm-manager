@@ -21,6 +21,15 @@ Oder manuell:
 npm install
 npm --prefix apps/api install
 npm --prefix apps/web install
+npm --prefix apps/e2e install
+```
+
+Beim Installieren der E2E-Abhängigkeiten lädt ein `postinstall`-Hook automatisch den
+benötigten Chromium-Browser für Playwright herunter. Manuell nachholen lässt sich das
+jederzeit mit:
+
+```bash
+npm run install:browsers
 ```
 
 ## Start
@@ -64,13 +73,27 @@ npm run dev:web   # nur Angular Frontend
 `nvm use` gilt nur für die **Shell-Session des Backend-Prozesses** und verändert nicht bereits geöffnete Terminals.  
 Für neue Terminals sollte die **Default-Version** gesetzt werden (`nvm alias default`).
 
+## Tests
+
+```bash
+npm test            # Unit-Tests (API + Web)
+npm run test:api    # nur Express-API (Vitest)
+npm run test:web    # nur Angular-Frontend
+npm run test:e2e    # Klick-E2E-Tests (Playwright, Chromium)
+```
+
+Die E2E-Tests mocken die `/api/**`-Schicht und führen **keine** echten nvm-Operationen aus.
+Der benötigte Chromium-Browser wird über `npm run install:all` (bzw. `npm run install:browsers`)
+bereitgestellt.
+
 ## Projektstruktur
 
 ```
 nvm-manager/
 ├── apps/
 │   ├── web/          # Angular 21 Frontend (Standalone, Signals)
-│   └── api/          # Express Backend (TypeScript, tsx)
+│   ├── api/          # Express Backend (TypeScript, tsx)
+│   └── e2e/          # Playwright Klick-E2E-Tests (Chromium)
 ├── package.json      # Root Scripts (concurrently)
 └── README.md
 ```

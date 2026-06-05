@@ -1,23 +1,8 @@
-import type { InstalledNodeVersion, NvmAlias, RemoteNodeVersion } from './nvm.types.js';
+import type { NvmAlias, RemoteNodeVersion } from './nvm.types.js';
 
 // Strips ANSI escape sequences (color codes) from a string.
 const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
 
-/**
- * Parses the stdout output of `nvm ls` into structured version objects.
- *
- * Installed versions always appear at the start of a line (optionally with
- * leading whitespace and an optional `->` marker for the active version):
- *   ->     v22.11.0 (default)
- *          v20.18.0
- *          v18.20.7
- *
- * Alias/summary lines such as
- *   default -> v22.11.0 (-> v22.11.0)
- *   node -> stable (-> v22.11.0)
- *   lts/iron -> v20.19.1 (-> N/A)
- * are intentionally ignored.
- */
 /**
  * Parses the stdout output of `nvm alias` into structured alias objects.
  *
@@ -90,19 +75,4 @@ export function parseRemoteVersions(stdout: string): RemoteNodeVersion[] {
   }
 
   return versions.reverse();
-}
-
-export function parseInstalledVersions(stdout: string): InstalledNodeVersion[] {
-  return stdout
-    .split('\n')
-    .map((line) => line.replace(ANSI_ESCAPE, ''))
-    // Only real version lines: optional whitespace, optional "->", whitespace, then "vX.Y.Z"
-    .filter((line) => /^\s*(->)?\s*v\d+\.\d+\.\d+/.test(line))
-    .map((line) => ({
-      version: (/v(\d+\.\d+\.\d+)/.exec(line) ?? [])[1] ?? '',
-      active: line.trim().startsWith('->'),
-      default: line.includes('(default)'),
-      system: line.includes('system'),
-    }))
-    .filter((v) => v.version !== '');
 }
