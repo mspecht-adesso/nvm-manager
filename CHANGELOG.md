@@ -8,6 +8,10 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Geändert
+
+- **`aliases-card`** – die letzten als plain class properties geführten Formfelder (`editAliasTarget`, `ltsEditVersion`, `newAliasName`, `newAliasTarget`) auf `signal()` umgestellt. Damit ist die Komponente durchgängig signals-first; `[(ngModel)]` wurde auf explizites `[ngModel]` / `(ngModelChange)` aufgelöst.
+
 ---
 
 ## [0.7.0] – 2026-06-04

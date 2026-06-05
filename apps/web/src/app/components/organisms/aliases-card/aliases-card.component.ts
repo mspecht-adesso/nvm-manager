@@ -38,10 +38,10 @@ export class AliasesCardComponent {
   readonly editingLtsAlias = signal<string | null>(null);
   readonly confirmPendingAlias = signal<string | null>(null);
 
-  editAliasTarget = '';
-  ltsEditVersion = '';
-  newAliasName = '';
-  newAliasTarget = '';
+  readonly editAliasTarget = signal('');
+  readonly ltsEditVersion = signal('');
+  readonly newAliasName = signal('');
+  readonly newAliasTarget = signal('');
 
   constructor() {
     effect(() => {
@@ -63,16 +63,16 @@ export class AliasesCardComponent {
     this.editingAlias.set(alias.name);
     const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
     const hasMatch = this.installedVersions().some((v) => v.version === resolvedWithoutV);
-    this.editAliasTarget = hasMatch ? resolvedWithoutV : (this.installedVersions()[0]?.version ?? '');
+    this.editAliasTarget.set(hasMatch ? resolvedWithoutV : (this.installedVersions()[0]?.version ?? ''));
   }
 
   cancelEdit(): void {
     this.editingAlias.set(null);
-    this.editAliasTarget = '';
+    this.editAliasTarget.set('');
   }
 
   saveAlias(name: string): void {
-    const target = this.editAliasTarget.trim();
+    const target = this.editAliasTarget().trim();
     if (!target) return;
     // Beim Default-Alias erhält der Nutzer zusätzlich ein Modal mit dem Fortschritt.
     const withModal = name === 'default';
@@ -83,7 +83,7 @@ export class AliasesCardComponent {
       next: () => {
         this.logged.emit({ message: `Alias '${name}' → '${target}' gesetzt.`, type: 'success' });
         this.editingAlias.set(null);
-        this.editAliasTarget = '';
+        this.editAliasTarget.set('');
         this.load();
         this.aliasChanged.emit();
         if (withModal) {
@@ -118,23 +118,23 @@ export class AliasesCardComponent {
     const compatible = this.ltsCompatibleVersions(alias);
     const resolvedWithoutV = alias.resolved?.replace(/^v/, '') ?? '';
     const hasMatch = compatible.some((v) => v.version === resolvedWithoutV);
-    this.ltsEditVersion = hasMatch ? resolvedWithoutV : (compatible[0]?.version ?? '');
+    this.ltsEditVersion.set(hasMatch ? resolvedWithoutV : (compatible[0]?.version ?? ''));
   }
 
   cancelLtsEdit(): void {
     this.editingLtsAlias.set(null);
-    this.ltsEditVersion = '';
+    this.ltsEditVersion.set('');
   }
 
   saveLtsAlias(alias: NvmAlias): void {
-    const version = this.ltsEditVersion.trim();
+    const version = this.ltsEditVersion().trim();
     if (!version) return;
     const codename = alias.name.slice('lts/'.length);
     this.nvmApi.setLtsAlias(codename, version).subscribe({
       next: () => {
         this.logged.emit({ message: `LTS-Alias '${alias.name}' → '${version}' gesetzt.`, type: 'success' });
         this.editingLtsAlias.set(null);
-        this.ltsEditVersion = '';
+        this.ltsEditVersion.set('');
         this.load();
         this.aliasChanged.emit();
       },
@@ -171,14 +171,14 @@ export class AliasesCardComponent {
   }
 
   createAlias(): void {
-    const name = this.newAliasName.trim();
-    const target = this.newAliasTarget.trim();
+    const name = this.newAliasName().trim();
+    const target = this.newAliasTarget().trim();
     if (!name || !target) return;
     this.nvmApi.setAlias(name, target).subscribe({
       next: () => {
         this.logged.emit({ message: `Alias '${name}' → '${target}' angelegt.`, type: 'success' });
-        this.newAliasName = '';
-        this.newAliasTarget = '';
+        this.newAliasName.set('');
+        this.newAliasTarget.set('');
         this.load();
         this.aliasChanged.emit();
       },

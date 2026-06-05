@@ -7,7 +7,9 @@
     "install:browsers": "playwright install chromium",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed"
+    "test:headed": "PW_VISUAL=1 PW_SLOWMO=400 playwright test --headed",
+    "test:debug": "PWDEBUG=1 playwright test",
+    "report": "playwright show-report"
   },
   "keywords": [],
   "author": "",

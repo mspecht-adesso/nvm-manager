@@ -122,7 +122,7 @@ describe('AliasesCardComponent', () => {
     comp.startEdit(ALIAS_DEFAULT);
 
     expect(comp.editingAlias()).toBe('default');
-    expect(comp.editAliasTarget).toBe('22.11.0');
+    expect(comp.editAliasTarget()).toBe('22.11.0');
   });
 
   it('setzt editingAlias zurück beim Abbrechen', async () => {
@@ -131,7 +131,7 @@ describe('AliasesCardComponent', () => {
     comp.cancelEdit();
 
     expect(comp.editingAlias()).toBeNull();
-    expect(comp.editAliasTarget).toBe('');
+    expect(comp.editAliasTarget()).toBe('');
   });
 
   // ── saveAlias ───────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ describe('AliasesCardComponent', () => {
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20';
+    comp.editAliasTarget.set('20');
     comp.saveAlias('default');
     await fixture.whenStable();
 
@@ -155,7 +155,7 @@ describe('AliasesCardComponent', () => {
   it('bricht saveAlias ab wenn Ziel leer ist', async () => {
     const { comp, mockSvc } = await setup();
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '   ';
+    comp.editAliasTarget.set('   ');
     comp.saveAlias('default');
 
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe('AliasesCardComponent', () => {
     comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20.5.0';
+    comp.editAliasTarget.set('20.5.0');
     comp.saveAlias('default');
     await fixture.whenStable();
 
@@ -186,7 +186,7 @@ describe('AliasesCardComponent', () => {
     comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20.5.0';
+    comp.editAliasTarget.set('20.5.0');
     comp.saveAlias('default');
     await fixture.whenStable();
 
@@ -202,7 +202,7 @@ describe('AliasesCardComponent', () => {
     comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
 
     comp.startEdit(ALIAS_CUSTOM);
-    comp.editAliasTarget = '18.18.0';
+    comp.editAliasTarget.set('18.18.0');
     comp.saveAlias('my-project');
     await fixture.whenStable();
 
@@ -218,7 +218,7 @@ describe('AliasesCardComponent', () => {
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20';
+    comp.editAliasTarget.set('20');
     comp.saveAlias('default');
     await fixture.whenStable();
 
@@ -233,27 +233,27 @@ describe('AliasesCardComponent', () => {
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
-    comp.newAliasName = 'new-alias';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('new-alias');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     await fixture.whenStable();
 
     expect(mockSvc.setAlias).toHaveBeenCalledWith('new-alias', '18');
     expect(logged[0].type).toBe('success');
-    expect(comp.newAliasName).toBe('');
-    expect(comp.newAliasTarget).toBe('');
+    expect(comp.newAliasName()).toBe('');
+    expect(comp.newAliasTarget()).toBe('');
   });
 
   it('bricht createAlias ab wenn Name oder Ziel leer ist', async () => {
     const { comp, mockSvc } = await setup();
 
-    comp.newAliasName = '';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
 
-    comp.newAliasName = 'alias';
-    comp.newAliasTarget = '';
+    comp.newAliasName.set('alias');
+    comp.newAliasTarget.set('');
     comp.createAlias();
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
   });
@@ -266,8 +266,8 @@ describe('AliasesCardComponent', () => {
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
-    comp.newAliasName = 'new-alias';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('new-alias');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     await fixture.whenStable();
 

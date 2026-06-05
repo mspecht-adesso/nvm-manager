@@ -79,12 +79,28 @@ Für neue Terminals sollte die **Default-Version** gesetzt werden (`nvm alias de
 npm test            # Unit-Tests (API + Web)
 npm run test:api    # nur Express-API (Vitest)
 npm run test:web    # nur Angular-Frontend
-npm run test:e2e    # Klick-E2E-Tests (Playwright, Chromium)
+npm run test:e2e    # Klick-E2E-Tests (Playwright, Chromium, headless)
 ```
 
 Die E2E-Tests mocken die `/api/**`-Schicht und führen **keine** echten nvm-Operationen aus.
 Der benötigte Chromium-Browser wird über `npm run install:all` (bzw. `npm run install:browsers`)
 bereitgestellt.
+
+### E2E-Tests im Browser optisch nachvollziehen
+
+```bash
+npm run test:e2e:headed   # Chromium sichtbar, verlangsamt (SlowMo) – live mitschauen
+npm run test:e2e:ui       # Playwright UI-Modus: Watch, Time-Travel, einzelne Tests
+npm run test:e2e:report   # HTML-Report des letzten Laufs (inkl. Video & Trace) öffnen
+```
+
+- **`test:e2e:headed`** öffnet ein echtes Chromium-Fenster und führt jeden Klick verlangsamt
+  aus (`PW_SLOWMO=400` ms), sodass die Flows mit dem Auge verfolgbar sind. Tempo anpassbar,
+  z. B. `PW_SLOWMO=800 npm run test:e2e:headed`.
+- **`test:e2e:ui`** ist die komfortabelste Variante: Tests einzeln starten, jeden Schritt im
+  DOM-Snapshot zurückspulen und bei Änderungen automatisch neu ausführen.
+- Im Headed-Modus werden **Video + Trace** je Test aufgezeichnet; `test:e2e:report` öffnet den
+  Report zum Nachspielen. (Im normalen `test:e2e`-Lauf nur bei Fehlern – schlank für CI.)
 
 ## Projektstruktur
 

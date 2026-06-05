@@ -24,13 +24,21 @@
             <!-- Zielspalte: Dropdown beim Bearbeiten, sonst Code -->
             <td>
               @if (editingAlias() === alias.name) {
-                <select class="select select--inline" [(ngModel)]="editAliasTarget">
+                <select
+                  class="select select--inline"
+                  [ngModel]="editAliasTarget()"
+                  (ngModelChange)="editAliasTarget.set($event)"
+                >
                   @for (v of installedVersions(); track v.version) {
                     <option [value]="v.version">{{ v.version }}</option>
                   }
                 </select>
               } @else if (editingLtsAlias() === alias.name) {
-                <select class="select select--inline" [(ngModel)]="ltsEditVersion">
+                <select
+                  class="select select--inline"
+                  [ngModel]="ltsEditVersion()"
+                  (ngModelChange)="ltsEditVersion.set($event)"
+                >
                   @for (v of ltsCompatibleVersions(alias); track v.version) {
                     <option [value]="v.version">{{ v.version }}</option>
                   }
@@ -57,7 +65,7 @@
                 <button class="btn btn--xs btn--secondary" (click)="cancelDelete()">Abbrechen</button>
               } @else if (alias.name.startsWith('lts/')) {
                 @if (editingLtsAlias() === alias.name) {
-                  <button class="btn btn--xs btn--primary" (click)="saveLtsAlias(alias)" [disabled]="!ltsEditVersion">Speichern</button>
+                  <button class="btn btn--xs btn--primary" (click)="saveLtsAlias(alias)" [disabled]="!ltsEditVersion()">Speichern</button>
                   <button class="btn btn--xs btn--secondary" (click)="cancelLtsEdit()">Abbrechen</button>
                 } @else {
                   <button class="btn btn--xs btn--secondary" (click)="startLtsEdit(alias)">Bearbeiten</button>
@@ -67,7 +75,7 @@
                 }
               } @else {
                 @if (editingAlias() === alias.name) {
-                  <button class="btn btn--xs btn--primary" (click)="saveAlias(alias.name)" [disabled]="!editAliasTarget">Speichern</button>
+                  <button class="btn btn--xs btn--primary" (click)="saveAlias(alias.name)" [disabled]="!editAliasTarget()">Speichern</button>
                   <button class="btn btn--xs btn--secondary" (click)="cancelEdit()">Abbrechen</button>
                 } @else {
                   @if (alias.editable) {
@@ -92,19 +100,21 @@
     <div class="alias-form__fields">
       <input
         class="input input--sm"
-        [(ngModel)]="newAliasName"
+        [ngModel]="newAliasName()"
+        (ngModelChange)="newAliasName.set($event)"
         placeholder="Name (z.B. my-project)"
       />
       <input
         class="input input--sm"
-        [(ngModel)]="newAliasTarget"
+        [ngModel]="newAliasTarget()"
+        (ngModelChange)="newAliasTarget.set($event)"
         placeholder="Ziel (z.B. 22, lts/*, v18.18.0)"
         (keydown.enter)="createAlias()"
       />
       <button
         class="btn btn--primary btn--sm"
         (click)="createAlias()"
-        [disabled]="!newAliasName.trim() || !newAliasTarget.trim()"
+        [disabled]="!newAliasName().trim() || !newAliasTarget().trim()"
       >
         Anlegen
       </button>
