@@ -133,6 +133,40 @@ describe('RemoteVersionsCardComponent', () => {
     expect(result.every((v) => v.version.includes('22'))).toBe(true);
   });
 
+  it('zeigt bei alleinigem "v" alle verfügbaren Versionen', async () => {
+    const { fixture, comp } = await setup();
+    comp.load();
+    await fixture.whenStable();
+
+    comp.remoteSearch.set('v');
+    const result = comp.filteredVersions();
+    expect(result.length).toBe(REMOTE_VERSIONS.length);
+    expect(result.length).toBeGreaterThan(30);
+  });
+
+  it('filtert mit "v19" nur Versionen, die mit "19." beginnen', async () => {
+    const { fixture, comp } = await setup({
+      getRemoteVersions: vi.fn().mockReturnValue(
+        of({
+          stdout: '',
+          stderr: '',
+          versions: [
+            { version: '19.0.0', lts: null },
+            { version: '19.9.0', lts: null },
+            { version: '1.19.0', lts: null },
+            { version: '20.0.0', lts: null },
+          ],
+        }),
+      ),
+    });
+    comp.load();
+    await fixture.whenStable();
+
+    comp.remoteSearch.set('v19');
+    const result = comp.filteredVersions();
+    expect(result.map((v) => v.version)).toEqual(['19.0.0', '19.9.0']);
+  });
+
   it('filtert nach LTS-Codename', async () => {
     const { fixture, comp } = await setup();
     comp.load();

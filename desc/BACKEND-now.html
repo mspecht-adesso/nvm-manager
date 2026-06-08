@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend – Aktueller Stand (Lernunterlagen)</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <link rel="stylesheet" href="styles-docs.css">
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Backend – Aktueller Stand (Lernunterlagen)</h1>
+<blockquote>
+<p><strong>Stand:</strong> Version 0.8.0 · 2026-06-05
+<strong>Verhältnis zu <a href="BACKEND.md">BACKEND.md</a>:</strong> Das Kerndokument erklärt die
+<em>Konzepte</em> (Middleware, <code>child_process</code>, Shell-Injection-Schutz). Dieses Dokument
+beschreibt den <strong>Ist-Zustand</strong> des Codes in <code>apps/api/</code> – also <strong>wie</strong> das Backend
+heute konkret aufgebaut ist und <strong>warum</strong> die einzelnen Bausteine so existieren.</p>
+</blockquote>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten kannst du:</p>
+<ul>
+<li>die heute vorhandenen Quelldateien und ihre Aufgabe benennen</li>
+<li>erklären, <strong>wie</strong> der Server eingehende Requests verarbeitet und <strong>warum</strong> er an <code>127.0.0.1</code> bindet</li>
+<li>die vier Ausführungswege zu nvm unterscheiden und begründen</li>
+<li>den aktuellen Sicherheits- und Teststand einordnen</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li><a href="BACKEND.md">BACKEND.md</a> gelesen oder Express-Grundlagen bekannt</li>
+<li>Grundverständnis von <code>async</code>/<code>await</code></li>
+</ul>
+<h2>Dateistruktur (Ist-Zustand)</h2>
+<pre><code>apps/api/
+├── package.json          ← Express 5, cors, morgan; Dev via tsx
+├── tsconfig.json
+├── vitest.config.ts      ← Coverage-Schwellenwerte
+├── eslint.config.mjs     ← flat config, strictTypeChecked
+└── src/
+    ├── server.ts                  ← App-Factory + 3 Top-Level-Handler
+    ├── routes/
+    │   └── nvm.routes.ts          ← alle /api/versions/* Routen
+    └── nvm/
+        ├── nvm.service.ts         ← Shell-Ausführung + Dateisystem-Zugriffe
+        ├── nvm.parser.ts          ← parst nvm-stdout → TypeScript-Objekte
+        └── nvm.types.ts           ← Typen, NvmError, Validierungs-Guards
+</code></pre>
+<blockquote>
+<p>💡 <strong>Konzept: Warum kein Datenbank-Layer?</strong>
+Es gibt bewusst <strong>keine Datenbank</strong>. nvm selbst – konkret das Verzeichnis
+<code>~/.nvm</code> – ist die einzige Quelle der Wahrheit. Jeder Request fragt den
+tatsächlichen Zustand live ab. Das vermeidet die schwierigste Klasse von Bugs:
+Daten, die zwischen einer Kopie und dem Original auseinanderlaufen.</p>
+</blockquote>
+<h2><code>server.ts</code> – wie der Einstieg heute aussieht</h2>
+<p>Drei Handler liegen direkt in <code>server.ts</code>, der Rest hängt am Versions-Router:</p>
+<pre><code class="language-typescript">app.get(&#39;/api/status&#39;, statusHandler);       // nvm-Version + neueste Version (GitHub)
+app.post(&#39;/api/nvm/update&#39;, nvmUpdateHandler);// nvm per git aktualisieren
+app.post(&#39;/api/nvm/open-dir&#39;, openDirHandler);// NVM_DIR im Dateimanager öffnen
+app.use(&#39;/api/versions&#39;, versionsRouter);     // alle Versions-/Alias-Routen
+app.use(errorMiddleware);                      // zentrale Fehlerbehandlung
+</code></pre>
+<p><strong>Wie die Middleware-Kette aktuell aussteht</strong> (Reihenfolge zählt):</p>
+<pre><code>express.json()                  → JSON-Body parsen
+morgan(&#39;dev&#39;)                   → Logging, NUR wenn NODE_ENV !== &#39;test&#39;
+cors({ origin: &#39;http://localhost:4201&#39; })  → genau ein erlaubter Origin
+</code></pre>
+<p><strong>Warum <code>createApp()</code> als Factory?</strong> Supertest importiert die Funktion und erhält
+eine frische Express-Instanz <em>ohne</em> Port-Binding. Der Guard
+<code>process.env[&#39;NODE_ENV&#39;] !== &#39;test&#39;</code> verhindert, dass beim Testlauf ein echter
+Server auf Port 3789 startet.</p>
+<p><strong>Warum Bind nur an <code>127.0.0.1</code>?</strong> Das Backend führt Shell-Befehle auf dem Host
+aus. Ein Bind an <code>0.0.0.0</code> würde es im Netzwerk erreichbar machen – ein
+Sicherheitsrisiko. Der lokale Loopback schließt externe Zugriffe aus.</p>
+<h3>Status-Handler im Detail</h3>
+<p><code>statusHandler</code> ruft <strong>parallel</strong> <code>runNvm([&#39;--version&#39;])</code> und
+<code>fetchNvmLatestVersion()</code> (GitHub-Releases-API) auf. Ist nvm nicht installiert,
+antwortet er bewusst mit HTTP <strong>200</strong> und <code>ok: false</code> – kein 500, denn „nvm fehlt&quot;
+ist ein erwarteter Zustand, kein Serverfehler.</p>
+<h2><code>nvm/nvm.service.ts</code> – die vier Wege zu nvm</h2>
+<blockquote>
+<p>💡 <strong>Konzept: nvm ist eine Shell-Funktion, kein Programm</strong>
+Es gibt kein <code>/usr/bin/nvm</code>. nvm wird beim Shell-Start aus <code>~/.nvm/nvm.sh</code>
+geladen. Node.js kann Shell-Funktionen nicht direkt aufrufen – deshalb startet
+jeder Aufruf eine <code>bash -c</code>-Subshell, die zuerst die nötigen Variablen setzt und
+<code>nvm.sh</code> sourcet (<code>NVM_HEADER</code>).</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Weg</th>
+<th>Funktion</th>
+<th>Wann genutzt</th>
+<th>Warum so</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Standard</td>
+<td><code>runNvm(args)</code></td>
+<td>install, use, default, uninstall, --version</td>
+<td><code>execFile(&#39;bash&#39;, [&#39;-c&#39;, cmd])</code>, Timeout 3 min, maxBuffer 10 MB</td>
+</tr>
+<tr>
+<td>Schnell-Listing</td>
+<td><code>runNvmLsFast()</code></td>
+<td><code>GET /versions/installed</code></td>
+<td>liest Dateisystem statt <code>nvm ls</code> → ~2000× schneller</td>
+</tr>
+<tr>
+<td>LTS-Alias-Datei</td>
+<td><code>setLtsAliasFile</code> / <code>deleteLtsAliasFile</code></td>
+<td>LTS-Aliase</td>
+<td><code>nvm alias lts/&lt;x&gt;</code> wird von nvm nicht unterstützt</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td><code>spawnNvm(args)</code></td>
+<td>SSE-Install-Stream</td>
+<td>liefert Live-Output als Stream</td>
+</tr>
+</tbody></table>
+<p><strong>Warum <code>runNvmLsFast()</code>?</strong> <code>nvm ls</code> löst intern alle Alias-Ketten auf und kann
+10–30 Sekunden dauern → UI-Timeouts. Stattdessen liest die Funktion direkt:</p>
+<ul>
+<li>installierte Versionen: <code>readdir(~/.nvm/versions/node/)</code></li>
+<li>Default: <code>readFile(~/.nvm/alias/default)</code> + Auflösung der Alias-Kette (max. 5 Ebenen gegen Zyklen)</li>
+<li>aktive Version: aus <code>process.env.PATH</code> extrahiert</li>
+</ul>
+<p><strong>Warum git statt <code>nvm upgrade</code>?</strong> <code>updateNvm()</code> ermittelt die Zielversion über die
+GitHub-API und führt dann <code>git fetch --tags origin &amp;&amp; git checkout &lt;version&gt;</code> im
+<code>NVM_DIR</code> aus. <code>nvm upgrade</code> existiert in vielen nvm-Versionen (z.B. 0.39.x) gar
+nicht – der git-Weg ist die offiziell dokumentierte, versionsübergreifende Methode.</p>
+<p><strong><code>openNvmDir()</code></strong> wählt plattformabhängig <code>open</code> (macOS) bzw. <code>xdg-open</code> (Linux).
+Es wird <strong>kein</strong> Nutzer-Input an die Shell übergeben – nur der serverseitig
+bekannte <code>NVM_DIR</code>-Pfad.</p>
+<h2>Sicherheit – wie sie aktuell umgesetzt ist</h2>
+<blockquote>
+<p>💡 <strong>Konzept: Zwei Verteidigungslinien (Defense in Depth)</strong>
+Sicherheit verlässt sich nie auf eine einzige Maßnahme. Hier greifen zwei
+unabhängige Schichten ineinander: Eine Eingabe muss <em>beide</em> passieren, um die
+Shell zu erreichen.</p>
+</blockquote>
+<ol>
+<li><strong>Whitelist-Validatoren</strong> in <code>nvm.types.ts</code> (vor dem Aufruf): vier Typ-Guards
+(<code>isValidVersionInput</code>, <code>isValidAliasName</code>, <code>isValidAliasTarget</code>,
+<code>isValidLtsCodename</code>) prüfen Eingaben per Regex. Ungültiges → HTTP 400.</li>
+<li><strong>Single-Quote-Escaping</strong> in <code>escapeArgs()</code> (beim Aufruf): jedes Argument wird
+in <code>&#39;…&#39;</code> gekapselt, enthaltene <code>&#39;</code> werden zu <code>&#39;\&#39;&#39;</code> neutralisiert.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Maßnahme</th>
+<th>Wo</th>
+<th>Wirkung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bind nur <code>127.0.0.1</code></td>
+<td><code>server.ts</code></td>
+<td>kein Netzwerkzugriff von außen</td>
+</tr>
+<tr>
+<td>Whitelist-Regex</td>
+<td><code>nvm.types.ts</code></td>
+<td>nur explizit erlaubte Eingaben</td>
+</tr>
+<tr>
+<td>Single-Quote-Escaping</td>
+<td><code>nvm.service.ts</code></td>
+<td>Shell-Injection verhindert</td>
+</tr>
+<tr>
+<td>CORS auf einen Origin</td>
+<td><code>server.ts</code></td>
+<td>nur <code>http://localhost:4201</code></td>
+</tr>
+<tr>
+<td>Geschützte Kern-Aliase</td>
+<td><code>nvm.routes.ts</code></td>
+<td><code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code> nicht löschbar</td>
+</tr>
+<tr>
+<td>Kein Login-Shell-Flag (<code>-c</code> statt <code>-lc</code>)</td>
+<td><code>nvm.service.ts</code></td>
+<td>kein Laden von Profilen → keine Timeouts</td>
+</tr>
+</tbody></table>
+<h2>Teststand (aktuell)</h2>
+<ul>
+<li><strong>Unit-Tests</strong> für Parser, Typen/Validatoren und Service (mit gemocktem
+<code>node:child_process</code> bzw. <code>node:fs/promises</code>).</li>
+<li><strong>Integrationstests</strong> aller HTTP-Endpunkte via Supertest (200/400/500, SSE).</li>
+<li><strong>Coverage-Schwellenwerte</strong> in <code>vitest.config.ts</code> erzwingen Mindestabdeckung.</li>
+</ul>
+<pre><code class="language-bash">cd apps/api
+npm run dev            # tsx watch → http://127.0.0.1:3789
+npm test               # vitest run
+npm run test:coverage  # mit Coverage-Report
+npm run lint           # ESLint, 0 Fehler
+</code></pre>
+<h2>Verständnisfragen</h2>
+<ol>
+<li>Welche drei Handler liegen direkt in <code>server.ts</code>, und welche Routen kommen vom Router?</li>
+<li>Warum antwortet <code>GET /api/status</code> bei fehlendem nvm mit 200 statt 500?</li>
+<li>Wodurch ist <code>runNvmLsFast()</code> so viel schneller als <code>nvm ls</code>?</li>
+<li>Warum nutzt <code>updateNvm()</code> git statt <code>nvm upgrade</code>?</li>
+<li>Welche zwei Sicherheitsschichten muss eine Versionseingabe passieren?</li>
+</ol>
+<h2>Übungsaufgaben</h2>
+<ol>
+<li><strong>Code lesen:</strong> Öffne <code>nvm.service.ts</code> und finde im <code>NVM_HEADER</code> jede Zeile;
+notiere ihren Zweck.</li>
+<li><strong>Endpunkt nachverfolgen:</strong> Sende <code>curl http://127.0.0.1:3789/api/status</code> und
+ordne die Antwortfelder dem <code>statusHandler</code> zu.</li>
+<li><strong>Sicherheit testen:</strong> Sende eine ungültige Version (z.B. <code>22; ls</code>) an
+<code>POST /api/versions/install</code> und finde die Code-Stelle, die mit 400 ablehnt.</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

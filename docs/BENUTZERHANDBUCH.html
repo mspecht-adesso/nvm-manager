@@ -614,13 +614,28 @@ gelesen. Bei sehr ungewöhnlichen nvm-Konfigurationen kann die Liste unvollstän
     const html = document.documentElement;
     const isDark = html.getAttribute('data-theme') === 'dark';
     const next = isDark ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
     localStorage.setItem('nvm-docs-theme', next);
     document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
   }
   document.addEventListener('DOMContentLoaded', function () {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
   });
 </script>
 </body>

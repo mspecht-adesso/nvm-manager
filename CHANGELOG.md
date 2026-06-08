@@ -6,7 +6,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [0.8.0] – 2026-06-05
+
+### Behoben
+
+- **`remote-versions-card`** – die Suche in „Verfügbare Versionen" lieferte eine leere Liste, wenn die Eingabe mit einem führenden `v` begann (z. B. `v22`). Ein führendes `v` kennzeichnet jetzt eine explizite Versionssuche per Präfix: `v` allein zeigt alle Versionen, `v19` zeigt nur Versionen, die mit `19.` beginnen.
 
 ### Geändert
 

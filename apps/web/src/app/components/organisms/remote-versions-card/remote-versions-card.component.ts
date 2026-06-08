@@ -53,12 +53,19 @@ export class RemoteVersionsCardComponent {
     const installedSet = new Set(this.installedVersions().map((v) => v.version));
     const query = this.remoteSearch().trim().toLowerCase();
     const available = this.remoteVersions().filter((v) => !installedSet.has(v.version));
-    if (query) {
-      return available
-        .filter((v) => v.version.includes(query) || (v.lts?.toLowerCase().includes(query) ?? false))
-        .slice(0, 100);
+    if (!query) {
+      return available.slice(0, 30);
     }
-    return available.slice(0, 30);
+    // A leading "v" denotes an explicit version search. Versions are stored
+    // without the "v" (e.g. "22.11.0") but displayed as "v22.11.0":
+    // "v" alone matches everything, "v19" matches versions starting with "19".
+    if (query.startsWith('v')) {
+      const versionPrefix = query.slice(1);
+      return available.filter((v) => v.version.startsWith(versionPrefix)).slice(0, 100);
+    }
+    return available
+      .filter((v) => v.version.includes(query) || (v.lts?.toLowerCase().includes(query) ?? false))
+      .slice(0, 100);
   });
 
   readonly availableCount = computed(() => {

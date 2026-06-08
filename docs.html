@@ -174,10 +174,23 @@
       <section class="card">
         <h2>📐 Projektbeschreibung <span class="badge">desc/</span></h2>
         <ul>
+        <li><a href="desc/API-changes.html">API – Änderungen im Rahmen der Refactoring-Reviews</a></li>
         <li><a href="desc/API.html">REST-API – nvm-manager</a></li>
+        <li><a href="desc/BACKEND-changes.html">Backend – Änderungen im Rahmen der Refactoring-Reviews</a></li>
         <li><a href="desc/BACKEND.html">Backend – nvm-manager API</a></li>
+        <li><a href="desc/FRONTEND-changes.html">Frontend – Angular Modernisierung (sonnet-findings-01 & -02)</a></li>
         <li><a href="desc/FRONTEND.html">Frontend – nvm-manager Angular-Anwendung</a></li>
         <li><a href="desc/README.html">nvm-manager – Technische Dokumentation (Lernunterlagen)</a></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>🧭 Aktueller Stand <span class="badge">-now</span></h2>
+        <ul>
+        <li><a href="desc/API-now.html">REST-API – Aktueller Stand (Lernunterlagen)</a></li>
+        <li><a href="desc/BACKEND-now.html">Backend – Aktueller Stand (Lernunterlagen)</a></li>
+        <li><a href="desc/FRONTEND-now.html">Frontend – Aktueller Stand (Lernunterlagen)</a></li>
+        <li><a href="desc/README-now.html">Aktueller Stand – nvm-manager (Lernunterlagen)</a></li>
         </ul>
       </section>
   </main>
@@ -189,13 +202,28 @@
     const html = document.documentElement;
     const isDark = html.getAttribute('data-theme') === 'dark';
     const next = isDark ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
     localStorage.setItem('nvm-docs-theme', next);
     document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
   }
   document.addEventListener('DOMContentLoaded', function () {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
   });
 </script>
 </body>
