@@ -6,15 +6,24 @@ import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
 import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models';
 
+/**
+ * 40 synthetic remote versions (spanning majors 22–25, alternating LTS/non-LTS)
+ * used to exercise filtering and the 30/100 result caps.
+ */
 const REMOTE_VERSIONS = Array.from({ length: 40 }, (_, i) => ({
   version: `${22 + Math.floor(i / 10)}.${i % 10}.0`,
   lts: i % 2 === 0 ? 'Jod' : null,
 }));
 
+/** Single installed version, used to verify it is filtered out of the remote list. */
 const INSTALLED: InstalledNodeVersion[] = [
   { version: '22.0.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
 ];
 
+/**
+ * Builds a mock {@link NvmApiService} returning {@link REMOTE_VERSIONS} by default.
+ * @param overrides - Per-method replacements (e.g. an error or custom version set).
+ */
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getRemoteVersions: vi.fn().mockReturnValue(
@@ -24,7 +33,19 @@ function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   };
 }
 
+/**
+ * Unit tests for {@link RemoteVersionsCardComponent}.
+ *
+ * Verifies lazy loading via `load()` (first call loads, subsequent calls
+ * reload), error forwarding to the `logged` output, and the `filteredVersions` /
+ * `availableCount` computed logic: installed-version exclusion, the empty-query
+ * 30-item cap, the `v`-prefix version search, and LTS-codename search.
+ */
 describe('RemoteVersionsCardComponent', () => {
+  /**
+   * Compiles the component with a mocked API service.
+   * @param svcOverrides - Optional per-method API mock overrides.
+   */
   async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
     const mockSvc = buildSvc(svcOverrides);
     await TestBed.configureTestingModule({

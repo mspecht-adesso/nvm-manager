@@ -2,12 +2,21 @@ import { TestBed } from '@angular/core/testing';
 import { InstalledVersionsCardComponent } from './installed-versions-card.component';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
 
+/** Two sample versions (one active/default, one inactive) for input tests. */
 const VERSIONS: InstalledNodeVersion[] = [
   { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
   { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
 ];
 
+/**
+ * Unit tests for {@link InstalledVersionsCardComponent}.
+ *
+ * As a presentational component, the suite verifies input defaults, that the
+ * `versions` input is accepted, and that the action outputs
+ * (`useVersion`, `uninstallVersion`, `refresh`) are exposed.
+ */
 describe('InstalledVersionsCardComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [InstalledVersionsCardComponent],

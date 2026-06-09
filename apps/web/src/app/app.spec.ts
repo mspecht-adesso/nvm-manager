@@ -4,6 +4,12 @@ import { App } from './app';
 import { NvmStateService } from './services/nvm-state.service';
 import type { InstalledNodeVersion, InstallModalState, LogEntry } from './models/nvm.models';
 
+/**
+ * Builds a full stand-in for {@link NvmStateService} exposing every signal and
+ * action method the root template binds to. State is backed by real Signals so
+ * the component can render, while action methods are `vi.fn()` spies so tests
+ * can assert the App never calls them on its own.
+ */
 function makeStateMock() {
   const installedVersions = signal<InstalledNodeVersion[]>([]);
   return {
@@ -28,7 +34,19 @@ function makeStateMock() {
   };
 }
 
+/**
+ * Unit tests for the root {@link App} component.
+ *
+ * The App is a composition shell, so these tests confirm it instantiates,
+ * renders without throwing, exposes the injected state, and notably does NOT
+ * kick off a manual data load (the state service's rxResource loads on its own).
+ */
 describe('App', () => {
+  /**
+   * Compiles the root component with a mocked NvmStateService.
+   *
+   * @param stateMock - Optional pre-built state mock; a fresh one is created by default.
+   */
   async function setup(stateMock = makeStateMock()) {
     await TestBed.configureTestingModule({
       imports: [App],

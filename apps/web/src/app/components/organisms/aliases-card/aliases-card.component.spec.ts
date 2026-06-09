@@ -6,6 +6,7 @@ import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
 import type { NvmAlias, LogEvent, InstallModalState } from '../../../models/nvm.models';
 
+/** The built-in `default` alias (editable, not deletable). */
 const ALIAS_DEFAULT: NvmAlias = {
   name: 'default',
   target: 'lts/*',
@@ -13,6 +14,7 @@ const ALIAS_DEFAULT: NvmAlias = {
   editable: true,
   deletable: false,
 };
+/** A user-defined alias (editable and deletable). */
 const ALIAS_CUSTOM: NvmAlias = {
   name: 'my-project',
   target: 'v18.18.0',
@@ -20,6 +22,7 @@ const ALIAS_CUSTOM: NvmAlias = {
   editable: true,
   deletable: true,
 };
+/** An LTS codename alias (`lts/iron`), used for the LTS-edit path. */
 const ALIAS_LTS: NvmAlias = {
   name: 'lts/iron',
   target: 'v20.18.0',
@@ -27,8 +30,16 @@ const ALIAS_LTS: NvmAlias = {
   editable: true,
   deletable: false,
 };
+/** Default aliases payload returned by the mocked `getAliases`. */
 const ALIASES_RESPONSE = { stdout: '', stderr: '', aliases: [ALIAS_DEFAULT, ALIAS_CUSTOM] };
 
+/**
+ * Builds a mock {@link NvmApiService} where all alias operations succeed by
+ * default. Tests override specific methods (e.g. `setAlias`) with `throwError`
+ * to exercise the error paths.
+ *
+ * @param overrides - Per-method replacements.
+ */
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
@@ -40,7 +51,20 @@ function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   };
 }
 
+/**
+ * Unit tests for {@link AliasesCardComponent}.
+ *
+ * Covers the auto-loading alias list (and `refreshTrigger`-driven reloads),
+ * the inline edit flows for regular and LTS aliases, alias creation, and the
+ * two-step delete confirmation. For each mutating action the suite asserts both
+ * the API call and the emitted side effects: `logged`, `aliasChanged`, and the
+ * `modalStateChange` progression (`running → success` or `→ error`).
+ */
 describe('AliasesCardComponent', () => {
+  /**
+   * Compiles the component with a mocked API service.
+   * @param svcOverrides - Optional per-method API mock overrides.
+   */
   async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
     const mockSvc = buildSvc(svcOverrides);
     await TestBed.configureTestingModule({

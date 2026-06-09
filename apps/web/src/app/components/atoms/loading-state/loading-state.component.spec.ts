@@ -1,7 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { LoadingStateComponent } from './loading-state.component';
 
+/**
+ * Unit tests for {@link LoadingStateComponent}.
+ *
+ * Verifies that the component instantiates, renders its `.loading-state`
+ * wrapper, and displays the required `message` input next to the spinner.
+ */
 describe('LoadingStateComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [LoadingStateComponent],

@@ -6,6 +6,20 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.9.0] – 2026-06-09
+
+### Hinzugefügt
+
+- **Durchgängige In-Code-Dokumentation des Frontends** (`apps/web/`) – alle TypeScript-Quellen wurden mit ausführlichen TSDoc-/Inline-Kommentaren (auf Englisch gemäß `comments-english`-Regel) versehen. UI-Texte und Commit-Konventionen bleiben unberührt.
+  - **Komponenten**: `install-modal` (Lebenszyklus, Phasen, Fokus-/Escape-Verhalten, Fehlerklassifizierung), Atoms `spinner`/`loading-state`, Molecule `card` (Content-Projection-Slots) sowie alle Organisms `status-card`, `action-card` (`linkedSignal`-Muster), `installed-versions-card`, `remote-versions-card` (Lazy-Loading + Such-Semantik), `aliases-card`, `app-header`, `app-footer`, `log-card`
+  - **Services**: `nvm-api.service` (alle Endpunkt-Methoden inkl. `useVersion` → `alias default`-Hinweis), `nvm-state.service` (State-Fassade, Datenfluss, Aktions-Handler), `theme.service` (Auflösungsreihenfolge, Persistierung)
+  - **Core**: `global-error-handler` und `http-error.interceptor` (Message-Auflösung, Re-Throw-Verhalten)
+  - **Models**: `nvm.models.ts` – jeder Typ und jedes Feld dokumentiert (API-Shapes, Modal-State, Log-Typen)
+  - **Bootstrap/Config**: `app.ts`, `main.ts`, `app.config.ts` (Provider-Erläuterungen) und `app.routes.ts`
+  - **Tests**: alle 18 `*.spec.ts`-Dateien mit Suite-Beschreibungen, dokumentierten Mock-Factories/Setup-Helpern und Erläuterungen nicht-offensichtlicher Test-Mechanik (synchrone `of()`-Auflösung, Fake-Timer, Stubbing von `localStorage`/`matchMedia`)
+
+---
+
 ## [0.8.0] – 2026-06-05
 
 ### Behoben

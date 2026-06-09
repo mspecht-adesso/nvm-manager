@@ -2,10 +2,29 @@ import { TestBed } from '@angular/core/testing';
 import { InstallModalComponent } from './install-modal.component';
 import type { InstallModalState } from '../../models/nvm.models';
 
+/**
+ * Synchronously runs any pending Angular `effect()`s.
+ *
+ * The component's auto-close and focus logic live in effects; this helper forces
+ * them to run inside a test without waiting for a full change-detection cycle.
+ * `TestBed.flushEffects` is not in the public typings, hence the cast.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const flushEffects = () => (TestBed as any).flushEffects?.();
 
+/**
+ * Unit tests for {@link InstallModalComponent}.
+ *
+ * Three areas are covered:
+ * - Accessibility & Escape handling (dialog ARIA attributes, Escape closes
+ *   except during `running`, focus moves to the close button).
+ * - The success auto-close timer (started only for `success`, cancelled on
+ *   state change) — verified with Vitest fake timers.
+ * - {@link InstallModalComponent.getErrorInstructions} error-message
+ *   classification across all action types.
+ */
 describe('InstallModalComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [InstallModalComponent],
@@ -92,6 +111,7 @@ describe('InstallModalComponent', () => {
 
   describe('Auto-Close bei phase: success', () => {
     it('startet Auto-Close-Timer bei phase: success', async () => {
+      // Fake timers let us assert the 3s auto-close fires without real waiting.
       vi.useFakeTimers();
       const { fixture, comp } = await setup();
 
@@ -102,6 +122,7 @@ describe('InstallModalComponent', () => {
       fixture.componentRef.setInput('state', state);
       flushEffects();
 
+      // Not closed immediately; only after the timer elapses.
       expect(closed).toBe(false);
       vi.advanceTimersByTime(3000);
       expect(closed).toBe(true);
@@ -126,6 +147,8 @@ describe('InstallModalComponent', () => {
     });
 
     it('löscht vorherigen Timer bei erneutem State-Wechsel', async () => {
+      // Switching success → error must cancel the pending auto-close timer so
+      // the modal does not close after the error state was shown.
       vi.useFakeTimers();
       const { fixture, comp } = await setup();
       let closeCount = 0;

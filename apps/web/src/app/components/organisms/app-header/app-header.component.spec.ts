@@ -4,6 +4,7 @@ import { ThemeService } from '../../../services/theme.service';
 import type { InstalledNodeVersion } from '../../../models/nvm.models';
 import { signal } from '@angular/core';
 
+/** Sample active version used to assert the header's version badge. */
 const ACTIVE_VERSION: InstalledNodeVersion = {
   version: '22.11.0',
   active: true,
@@ -14,6 +15,13 @@ const ACTIVE_VERSION: InstalledNodeVersion = {
   iojs: false,
 };
 
+/**
+ * Builds a lightweight ThemeService stand-in backed by a real Signal, so tests
+ * can both observe the current theme and verify that `toggle()` was called.
+ * The mocked `toggle` flips the signal to mirror the real service's behaviour.
+ *
+ * @param initialTheme - Theme the mock should start in.
+ */
 function makeThemeServiceMock(initialTheme: 'light' | 'dark' = 'light') {
   const themeSignal = signal<'light' | 'dark'>(initialTheme);
   return {
@@ -24,7 +32,18 @@ function makeThemeServiceMock(initialTheme: 'light' | 'dark' = 'light') {
   };
 }
 
+/**
+ * Unit tests for {@link AppHeaderComponent}.
+ *
+ * Covers the app title, the conditional active-version badge, and the
+ * theme-toggle button (icon, aria-label, and delegation to ThemeService.toggle).
+ */
 describe('AppHeaderComponent', () => {
+  /**
+   * Compiles the component with a mocked ThemeService.
+   *
+   * @param themeOverride - Initial theme for the mocked service.
+   */
   async function setup(themeOverride: 'light' | 'dark' = 'light') {
     const themeServiceMock = makeThemeServiceMock(themeOverride);
 

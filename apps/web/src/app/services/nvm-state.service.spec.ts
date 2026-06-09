@@ -5,6 +5,7 @@ import { NvmStateService } from './nvm-state.service';
 import { NvmApiService } from './nvm-api.service';
 import type { InstalledVersionsResponse } from '../models/nvm.models';
 
+/** Canned installed-versions response with one active/default version and one inactive. */
 const INSTALLED_VERSION_RESPONSE: InstalledVersionsResponse = {
   stdout: '-> v22.11.0 (default)',
   stderr: '',
@@ -14,6 +15,17 @@ const INSTALLED_VERSION_RESPONSE: InstalledVersionsResponse = {
   ],
 };
 
+/**
+ * Builds a mock {@link NvmApiService} whose methods return synchronous,
+ * successful observables (`of(...)`) by default. Individual tests pass
+ * `overrides` to simulate failures or alternative payloads.
+ *
+ * Note: because the mocks resolve synchronously, an action like `onInstall`
+ * progresses through `running → success` within a single tick, so assertions
+ * made right after the call already observe the `success` phase.
+ *
+ * @param overrides - Per-method replacements (e.g. a `throwError` observable).
+ */
 function makeApiMock(overrides: Partial<Record<keyof NvmApiService, unknown>> = {}) {
   return {
     getInstalledVersions: vi.fn().mockReturnValue(of(INSTALLED_VERSION_RESPONSE)),
@@ -32,10 +44,22 @@ function makeApiMock(overrides: Partial<Record<keyof NvmApiService, unknown>> = 
   };
 }
 
+/**
+ * Unit tests for {@link NvmStateService}, the central state facade.
+ *
+ * Covers the initial state, the auto-loading installed-versions resource (incl.
+ * error logging), every `on*` action handler (modal lifecycle, logging, refresh
+ * triggers), modal control, and the activity log's ordering and 20-entry cap.
+ * The {@link NvmApiService} is fully mocked via {@link makeApiMock}.
+ */
 describe('NvmStateService', () => {
   let service: NvmStateService;
   let apiMock: ReturnType<typeof makeApiMock>;
 
+  /**
+   * Configures the testing module with a fresh API mock and injects the service.
+   * @param overrides - Per-method API mock overrides (e.g. to force errors).
+   */
   function setup(overrides: Partial<Record<keyof NvmApiService, unknown>> = {}) {
     apiMock = makeApiMock(overrides);
     TestBed.configureTestingModule({
@@ -129,6 +153,8 @@ describe('NvmStateService', () => {
     it('öffnet Modal mit action=install und phase=running', () => {
       setup();
       service.onInstall('22.11.0');
+      // The mocked install resolves synchronously, so the modal has already
+      // advanced from 'running' to 'success' by the time we assert here.
       expect(service.installModal()).toMatchObject({ action: 'install', phase: 'success', version: '22.11.0' });
     });
 

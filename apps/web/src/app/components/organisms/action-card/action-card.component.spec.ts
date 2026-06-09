@@ -1,7 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { ActionCardComponent } from './action-card.component';
 
+/**
+ * Unit tests for {@link ActionCardComponent}.
+ *
+ * Two focus areas:
+ * 1. The `prefillVersion` → `versionInput` `linkedSignal` behaviour (default
+ *    `'22'`, prefill overrides, manual edits are preserved when prefill clears).
+ * 2. The four action methods, which must trim input and only emit when the
+ *    version is non-empty.
+ */
 describe('ActionCardComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [ActionCardComponent],

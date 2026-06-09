@@ -2,6 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CardComponent } from './card.component';
 
+/**
+ * Host component that fills all three of the card's content-projection slots
+ * (`card-title`, `card-actions`, and the default body slot). Tests assert that
+ * each piece of projected content lands in the correct part of the card.
+ */
 @Component({
   standalone: true,
   imports: [CardComponent],
@@ -16,7 +21,15 @@ import { CardComponent } from './card.component';
 })
 class TestHostComponent {}
 
+/**
+ * Unit tests for {@link CardComponent}.
+ *
+ * Because the card is a content-projection shell with no inputs, most tests run
+ * through {@link TestHostComponent} to verify that the named slots are projected
+ * into the expected DOM positions.
+ */
 describe('CardComponent', () => {
+  /** Compiles the host wrapper and returns its fixture. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [TestHostComponent],

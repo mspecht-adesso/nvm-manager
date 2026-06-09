@@ -1,7 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { AppFooterComponent } from './app-footer.component';
 
+/**
+ * Unit tests for {@link AppFooterComponent}.
+ *
+ * Verifies the footer renders the current year and the external GitHub /
+ * license links, and that those links open safely in a new tab
+ * (`target="_blank"` + `rel="noopener noreferrer"`).
+ */
 describe('AppFooterComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [AppFooterComponent],

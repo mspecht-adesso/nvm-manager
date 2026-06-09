@@ -4,6 +4,16 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { firstValueFrom } from 'rxjs';
 import { httpErrorInterceptor } from './http-error.interceptor';
 
+/**
+ * Unit tests for {@link httpErrorInterceptor}.
+ *
+ * Uses Angular's `HttpTestingController` to drive real requests through the
+ * interceptor and flush controlled responses. Verifies that:
+ * - successful responses pass through untouched,
+ * - failures are normalised to a plain `Error`,
+ * - the API's `{ error }` body is preferred as the message, with a fallback
+ *   when no such body is present.
+ */
 describe('httpErrorInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
@@ -19,6 +29,7 @@ describe('httpErrorInterceptor', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
+  // Assert that no unexpected outstanding HTTP requests remain after each test.
   afterEach(() => httpMock.verify());
 
   it('lässt erfolgreiche Antworten unverändert durch', async () => {

@@ -2,13 +2,22 @@ import { TestBed } from '@angular/core/testing';
 import { LogCardComponent } from './log-card.component';
 import type { LogEntry } from '../../../models/nvm.models';
 
+/** Sample log entries covering all three entry types (success / error / info). */
 const ENTRIES: LogEntry[] = [
   { message: 'Node 22 installiert.', type: 'success', timestamp: new Date('2026-06-02T12:00:00') },
   { message: 'Fehler aufgetreten.', type: 'error', timestamp: new Date('2026-06-02T12:01:00') },
   { message: 'Installiere Node 20 ...', type: 'info', timestamp: new Date('2026-06-02T12:02:00') },
 ];
 
+/**
+ * Unit tests for {@link LogCardComponent}.
+ *
+ * Verifies the default empty state and placeholder text, that entries passed via
+ * the `log` input are rendered, and that each entry type maps to its
+ * corresponding `.log-entry--*` CSS modifier class.
+ */
 describe('LogCardComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [LogCardComponent],
