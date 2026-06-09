@@ -1,3 +1,16 @@
+/**
+ * Unit tests for `nvm.service.ts`.
+ *
+ * All I/O is mocked at the module boundary:
+ *   - `node:child_process` – `execFile` and `spawn` are replaced with `vi.mock`
+ *     so no real shell process is ever spawned.
+ *   - `node:fs/promises` – `readdir`, `readFile`, `writeFile`, `unlink`, `mkdir`
+ *     are mocked to control the virtual `~/.nvm` filesystem.
+ *   - `globalThis.fetch` – stubbed with `vi.stubGlobal` for GitHub API tests.
+ *
+ * The `mockExecFile` helper drives `execFile` callbacks synchronously so tests
+ * do not need timers; `vi.resetAllMocks()` in `beforeEach` ensures test isolation.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NvmError } from './nvm.types.js';
 
@@ -30,6 +43,10 @@ function mockExecFile(error: Error | null, stdout = '', stderr = ''): void {
 
 // ── runNvm ────────────────────────────────────────────────────────────────────
 
+/**
+ * `runNvm` – verifies that the shell is invoked correctly and that errors are
+ * surfaced as `NvmError` instances carrying the full stdout/stderr.
+ */
 describe('runNvm', () => {
   beforeEach(() => vi.resetAllMocks());
   afterEach(() => vi.restoreAllMocks());
@@ -93,12 +110,20 @@ describe('runNvm', () => {
 
     await runNvm(["it's-a-test"]);
     const [, args] = execFileMock.mock.calls[0] as unknown as [string, string[]];
+    // A single quote inside a single-quoted shell arg becomes '\'' (end quote,
+    // literal quote, reopen quote). This ensures injection via quote characters
+    // is neutralised even if the first validation layer is bypassed.
     expect(args[1]).toContain("'it'\\''s-a-test'");
   });
 });
 
 // ── runNvmLsFast ──────────────────────────────────────────────────────────────
 
+/**
+ * `runNvmLsFast` – filesystem-based version scan.
+ * Tests cover the happy path, missing NVM_DIR, the active-version override
+ * mechanism, partial-version resolution, and stale-override cleanup.
+ */
 describe('runNvmLsFast', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -157,6 +182,10 @@ describe('runNvmLsFast', () => {
 
 // ── spawnNvm ──────────────────────────────────────────────────────────────────
 
+/**
+ * `spawnNvm` – ensures the SSE spawn wrapper calls `bash -c` with the
+ * correctly escaped nvm command (same escaping as `runNvm`).
+ */
 describe('spawnNvm', () => {
   it('ruft spawn mit bash und -c auf', () => {
     const fakeChild = { stdout: null, stderr: null, on: vi.fn() };
@@ -174,6 +203,11 @@ describe('spawnNvm', () => {
 
 // ── Alias-Auflösung (über runNvmLsFast) ───────────────────────────────────────
 
+/**
+ * Alias-resolution within `runNvmLsFast`: verifies that multi-hop chains
+ * (e.g. `default → lts/iron → v20.5.0`) are followed correctly, and that
+ * circular chains are broken at the depth limit without crashing.
+ */
 describe('runNvmLsFast – Alias-Auflösung', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -192,7 +226,9 @@ describe('runNvmLsFast – Alias-Auflösung', () => {
 
   it('bricht zirkuläre Alias-Ketten ab (Tiefenlimit)', async () => {
     vi.mocked(fs.readdir).mockResolvedValue(['v20.5.0'] as never);
-    // default → loop → loop → … (verweist immer auf sich selbst)
+    // Circular chain: default → loop → loop → …
+    // resolveAlias() aborts at depth 5 and returns null so no version is
+    // marked as default – tested to prevent infinite recursion.
     vi.mocked(fs.readFile).mockImplementation(async (p: unknown) => {
       const s = String(p);
       if (s.endsWith('/alias/default')) return 'loop';
@@ -207,6 +243,10 @@ describe('runNvmLsFast – Alias-Auflösung', () => {
 
 // ── setLtsAliasFile / deleteLtsAliasFile ──────────────────────────────────────
 
+/**
+ * `setLtsAliasFile` – verifies that the lts alias directory is created as needed
+ * and the version file is written with a canonical `v`-prefix.
+ */
 describe('setLtsAliasFile', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -235,6 +275,7 @@ describe('setLtsAliasFile', () => {
   });
 });
 
+/** `deleteLtsAliasFile` – verifies file removal and error propagation. */
 describe('deleteLtsAliasFile', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -254,6 +295,10 @@ describe('deleteLtsAliasFile', () => {
 
 // ── fetchNvmLatestVersion ─────────────────────────────────────────────────────
 
+/**
+ * `fetchNvmLatestVersion` – verifies GitHub API integration and graceful null
+ * fallback for every failure mode (HTTP error, missing `tag_name`, network error).
+ */
 describe('fetchNvmLatestVersion', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -283,6 +328,11 @@ describe('fetchNvmLatestVersion', () => {
 
 // ── openNvmDir ────────────────────────────────────────────────────────────────
 
+/**
+ * `openNvmDir` – verifies platform-specific open command selection.
+ * `process.platform` is overridden via `Object.defineProperty` so no real file
+ * manager is launched. The original descriptor is restored after each test.
+ */
 describe('openNvmDir', () => {
   const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
 
@@ -319,6 +369,11 @@ describe('openNvmDir', () => {
 
 // ── updateNvm ─────────────────────────────────────────────────────────────────
 
+/**
+ * `updateNvm` – verifies the git-based nvm self-update flow.
+ * Critically includes a test for the injection guard: a malicious `tag_name`
+ * from the GitHub API must be rejected before the shell command is executed.
+ */
 describe('updateNvm', () => {
   beforeEach(() => vi.resetAllMocks());
   afterEach(() => vi.unstubAllGlobals());

@@ -6,6 +6,20 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [0.10.0] – 2026-06-09
+
+### Hinzugefügt
+
+- **Durchgängige In-Code-Dokumentation des Backends** (`apps/api/`) – alle TypeScript-Quellen wurden mit ausführlichen TSDoc-/Inline-Kommentaren (auf Englisch gemäß `comments-english`-Regel) versehen.
+  - **`nvm.types.ts`** – Datei-Header mit Security-Layer-Übersicht; alle Typen (`InstalledNodeVersion`, `InstalledVersionsResponse`, `NvmAlias`, `RemoteNodeVersion`, `NvmError`) vollständig mit Feldbeschreibungen; alle vier Validator-Funktionen (`isValidVersionInput`, `isValidAliasName`, `isValidAliasTarget`, `isValidLtsCodename`) mit `@param`/`@returns` und Sicherheitshinweisen
+  - **`nvm.parser.ts`** – Datei-Header (pure functions, testability); `ANSI_ESCAPE`- und `PROTECTED_ALIASES`-Konstanten erklärt; `parseAliases` mit detailliertem Parsing-Algorithmus (Fallback-Logik für `resolved`, `editable`/`deletable`-Flags) und `parseRemoteVersions` mit Reihenfolge-Begründung
+  - **`nvm.service.ts`** – Datei-Header (Shell-Funktion vs. Binary, zwei Defence-Layer); `NVM_DIR`, `NVM_HEADER`, `escapeArgs`, `activeVersionOverride` erklärt; alle öffentlichen und privaten Funktionen mit vollständigem TSDoc: `runNvm`, `runNvmLsFast`, `spawnNvm`, `setActiveVersionOverride`, `setLtsAliasFile`, `deleteLtsAliasFile`, `updateNvm`, `openNvmDir`, `fetchNvmLatestVersion` sowie Hilfsfunktionen `readAliasFile`, `normalizeVersion`, `resolveAlias`, `resolveVersionToDir`
+  - **`nvm.routes.ts`** – Datei-Header mit vollständiger Routen-Tabelle (13 Endpunkte); TSDoc-Kommentare für jeden Handler inkl. Validierungslogik, Sonderbehandlung von LTS-Aliases und `useHandler`-Override-Mechanismus; `PROTECTED_ALIASES`-Duplizierungsgrund erklärt
+  - **`server.ts`** – Datei-Header (Factory-Muster für Test-Isolierung, Middleware-Stack-Reihenfolge, Binding-Begründung); TSDoc für alle vier Handler (`statusHandler`, `nvmUpdateHandler`, `openDirHandler`, `errorMiddleware`) und `createApp()`
+  - **Spec-Dateien** (`nvm.types.spec.ts`, `nvm.parser.spec.ts`, `nvm.service.spec.ts`, `nvm.routes.spec.ts`) – Suite-Level-Beschreibungen, Erläuterungen der Mock-Strategie (Modul-Mocking via `vi.mock`, `vi.stubGlobal`, `Object.defineProperty` für `process.platform`), Inline-Kommentare für nicht-offensichtliche Test-Mechanik (SSE `setImmediate`-Trick, zirkuläre Alias-Kette, `'\''`-Escaping-Prüfung)
+
+---
+
 ## [0.9.0] – 2026-06-09
 
 ### Hinzugefügt
