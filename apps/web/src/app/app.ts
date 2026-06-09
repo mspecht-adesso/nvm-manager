@@ -10,6 +10,19 @@ import { RemoteVersionsCardComponent } from './components/organisms/remote-versi
 import { LogCardComponent } from './components/organisms/log-card/log-card.component';
 import { AppFooterComponent } from './components/organisms/app-footer/app-footer.component';
 
+/**
+ * Root component of the nvm-manager SPA (`<app-root>`).
+ *
+ * Acts purely as the composition shell: it imports and lays out the header,
+ * the feature cards (status, actions, installed/remote versions, aliases, log),
+ * the install/progress modal, and the footer. It contains no business logic of
+ * its own.
+ *
+ * All shared state and action handlers live in {@link NvmStateService}, which is
+ * exposed to the template via the {@link state} field. Child components bind to
+ * `state.*` signals and forward their outputs to `state.on*()` methods, keeping
+ * this component a thin, declarative container.
+ */
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -29,5 +42,10 @@ import { AppFooterComponent } from './components/organisms/app-footer/app-footer
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
+  /**
+   * Central application state and action facade, bound throughout `app.html`.
+   * `protected` so it is accessible from the template but not part of the
+   * component's public API.
+   */
   protected readonly state = inject(NvmStateService);
 }
