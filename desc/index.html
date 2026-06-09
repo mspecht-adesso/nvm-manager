@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nvm-manager – Technische Dokumentation</title>
+  <script>(function(){var t=localStorage.getItem('nvm-docs-theme'),d=window.matchMedia('(prefers-color-scheme: light)').matches;if(t==='light'||(t===null&&d))document.documentElement.setAttribute('data-theme','light');})()</script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-index">
+
+<button id="theme-btn" onclick="(function(){var h=document.documentElement,c=h.getAttribute('data-theme')==='light';h.setAttribute('data-theme',c?'':'light');localStorage.setItem('nvm-docs-theme',c?'dark':'light');document.getElementById('theme-btn').textContent=c?'☀ Hell':'☾ Dunkel';})()" aria-label="Farbschema wechseln">☀ Hell</button>
+<script>document.getElementById('theme-btn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'☾ Dunkel':'☀ Hell';</script>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-row">
+      <div class="logo-icon">⚙️</div>
+      <div>
+        <div class="logo-title">nvm-manager</div>
+        <div class="logo-sub">Technische Dokumentation · Lernunterlagen</div>
+      </div>
+    </div>
+    <p class="header-desc">
+      Detaillierte technische Beschreibungen der Implementierung und Architektur.
+      Erklärt nicht nur <em>was</em> der Code tut, sondern auch <em>warum</em> er so gebaut ist
+      und <em>welche Konzepte</em> dahinterstehen.
+    </p>
+    <div class="tag-row">
+      <span class="tag"><span class="tag-dot" style="background:#7c6af7"></span>Angular 21.2</span>
+      <span class="tag"><span class="tag-dot" style="background:#10b981"></span>Node.js / Express</span>
+      <span class="tag"><span class="tag-dot" style="background:#f59e0b"></span>REST-API</span>
+      <span class="tag"><span class="tag-dot" style="background:#06b6d4"></span>TypeScript</span>
+      <span class="tag"><span class="tag-dot" style="background:#f43f5e"></span>Vitest · Playwright</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="info-box">
+    <strong>Lern-Tipp:</strong> Öffne die genannte Quelldatei immer parallel im Editor.
+    Die Dokumente nennen Dateipfade und Funktionsnamen bewusst, damit du zwischen
+    Dokumentation und Code hin- und herspringen kannst. Starte mit
+    <code>npm run dev</code> im Root, um Frontend + Backend gleichzeitig zu starten.
+  </div>
+
+  <!-- ── Kernunterlagen ── -->
+  <div class="section">
+    <div class="section-title">Kernunterlagen · Empfohlener Lernpfad</div>
+    <div class="path-grid">
+      <div class="path-step">
+        <div class="step-num">Schritt 1</div>
+        <div class="step-title">Backend</div>
+        <div class="step-desc">Wie führt eine Node.js/Express-Anwendung sicher Shell-Befehle aus? Server-Grundlagen, Prozesssteuerung, Sicherheit.</div>
+        <a class="step-link" href="BACKEND.html">→ BACKEND.html</a>
+      </div>
+      <div class="path-step">
+        <div class="step-num">Schritt 2</div>
+        <div class="step-title">REST-API</div>
+        <div class="step-desc">Welche Schnittstelle bietet das Backend an? HTTP-Verben, Request/Response-Design, Eingabevalidierung.</div>
+        <a class="step-link" href="API.html">→ API.html</a>
+      </div>
+      <div class="path-step">
+        <div class="step-num">Schritt 3</div>
+        <div class="step-title">Frontend</div>
+        <div class="step-desc">Wie konsumiert eine moderne Angular-Anwendung die API? Komponenten, Signals, Datenfluss.</div>
+        <a class="step-link" href="FRONTEND.html">→ FRONTEND.html</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Alle Dokumente ── -->
+  <div class="section">
+    <div class="section-title">Alle Dokumentationsdateien</div>
+    <div class="card-grid">
+
+      <a class="doc-card" href="BACKEND.html"
+         style="--card-accent: var(--accent-green); --card-icon-bg: rgba(16,185,129,0.12);">
+        <div class="card-icon">🖥️</div>
+        <div>
+          <div class="card-label">Backend</div>
+          <div class="card-title">Express · Node.js · Shell</div>
+        </div>
+        <div class="card-desc">
+          Server-Architektur, <code>child_process</code>, <code>execFile</code> vs. <code>spawn</code>,
+          Shell-Injection-Schutz, TypeScript-Typen, Validierungsguards.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="API.html"
+         style="--card-accent: var(--accent-gold); --card-icon-bg: rgba(245,158,11,0.12);">
+        <div class="card-icon">🔌</div>
+        <div>
+          <div class="card-label">REST-API</div>
+          <div class="card-title">Endpunkte · HTTP · JSON</div>
+        </div>
+        <div class="card-desc">
+          Alle Endpunkte mit Request/Response-Beispielen, Fehlercodes,
+          SSE-Streaming-Endpunkt und <code>curl</code>-Beispielen.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="FRONTEND.html"
+         style="--card-accent: var(--accent-blue); --card-icon-bg: rgba(124,106,247,0.12);">
+        <div class="card-icon">🅰️</div>
+        <div>
+          <div class="card-label">Frontend</div>
+          <div class="card-title">Angular · Signals · Components</div>
+        </div>
+        <div class="card-desc">
+          Standalone Components, Atomic Design, Signal-basiertes State-Management,
+          <code>NvmApiService</code>, Routing, SCSS-Architektur.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="README.html"
+         style="--card-accent: var(--accent-cyan); --card-icon-bg: rgba(6,182,212,0.12);">
+        <div class="card-icon">📚</div>
+        <div>
+          <div class="card-label">Übersicht</div>
+          <div class="card-title">README · Lernpfad · Glossar</div>
+        </div>
+        <div class="card-desc">
+          Einstieg in die Unterlagen, empfohlener Lernpfad, übergreifendes
+          Glossar der Fachbegriffe.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="AI-SETUP.html"
+         style="--card-accent: #06b6d4; --card-icon-bg: rgba(6,182,212,0.12);">
+        <div class="card-icon" style="background:rgba(6,182,212,0.14);">🤖</div>
+        <div>
+          <div class="card-label">Cursor AI</div>
+          <div class="card-title">Rules · Skills · Hooks</div>
+        </div>
+        <div class="card-desc">
+          Das agentic-AI-Entwicklungs-Setup: 10 Cursor Rules, 7 Expert Skills und
+          6 automatische Hooks für Qualitätssicherung inkl. WCAG 2.1 AA Accessibility.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow" style="color:#67e8f9;">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       AKTUELLER STAND (-now)
+  ═══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Aktueller Stand · Momentaufnahme (-now)</div>
+
+    <div style="
+      background: rgba(6,182,212,0.05);
+      border: 1px solid rgba(6,182,212,0.15);
+      border-radius: 10px;
+      padding: 1rem 1.3rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    ">
+      Die <strong style="color:var(--text)">-now</strong>-Dokumente beschreiben den
+      <strong style="color:var(--text)">Ist-Zustand</strong> von Entwicklung und Anwendung
+      (Stand 0.8.0). Sie ergänzen die zeitlosen Kernunterlagen um ein
+      <em>wie</em> und <em>warum</em> des heutigen Codes – besonders das Frontend,
+      das sich seit der Angular-21-Modernisierung stark verändert hat.
+    </div>
+
+    <div class="card-grid">
+
+      <a class="doc-card" href="README-now.html"
+         style="--card-accent: var(--accent-cyan); --card-icon-bg: rgba(6,182,212,0.12);">
+        <div class="card-icon">🧭</div>
+        <div>
+          <div class="card-label">Stand · Übersicht</div>
+          <div class="card-title">Entwicklung &amp; Anwendung heute</div>
+        </div>
+        <div class="card-desc">
+          Funktionsumfang, Architektur, Technologiestand, Entwicklungsverlauf und was
+          bewusst nur <em>vorbereitet</em> ist.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="BACKEND-now.html"
+         style="--card-accent: var(--accent-green); --card-icon-bg: rgba(16,185,129,0.12);">
+        <div class="card-icon">🖥️</div>
+        <div>
+          <div class="card-label">Backend · now</div>
+          <div class="card-title">Express-Ist-Zustand</div>
+        </div>
+        <div class="card-desc">
+          Vorhandene Dateien, die vier Wege zu nvm, git-basiertes Update und der
+          aktuelle Sicherheits- &amp; Teststand.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="API-now.html"
+         style="--card-accent: var(--accent-gold); --card-icon-bg: rgba(245,158,11,0.12);">
+        <div class="card-icon">🔌</div>
+        <div>
+          <div class="card-label">API · now</div>
+          <div class="card-title">REST-Vertrag heute</div>
+        </div>
+        <div class="card-desc">
+          Vollständige Endpunkt-Liste, einheitliches Fehlerformat und der Status des
+          (vorbereiteten) SSE-Endpunkts.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="doc-card" href="FRONTEND-now.html"
+         style="--card-accent: var(--accent-blue); --card-icon-bg: rgba(124,106,247,0.12);">
+        <div class="card-icon">🅰️</div>
+        <div>
+          <div class="card-label">Frontend · now</div>
+          <div class="card-title">Angular-Ist-Zustand</div>
+        </div>
+        <div class="card-desc">
+          <code>NvmStateService</code>, Signal Inputs/Outputs, zoneless,
+          <code>rxResource()</code>, <code>linkedSignal()</code> – und was sich
+          gegenüber FRONTEND.md geändert hat.
+        </div>
+        <div class="card-footer">
+          <span class="card-format">HTML</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       CHANGES-KACHEL
+  ═══════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Refactoring-Dokumentation · sonnet-findings-01 &amp; -02</div>
+
+    <div style="
+      background: rgba(124,106,247,0.05);
+      border: 1px solid rgba(124,106,247,0.15);
+      border-radius: 10px;
+      padding: 1rem 1.3rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    ">
+      Im Rahmen zweier Angular Best-Practice Reviews (03.06.2026) wurden
+      <strong style="color:var(--text)">15 Änderungspakete</strong> umgesetzt –
+      von Signal Inputs über Zoneless Change Detection bis hin zu
+      <code style="background:var(--bg-code);border:1px solid var(--border);padding:0.1em 0.4em;border-radius:3px;font-family:monospace;font-size:0.88em;color:var(--accent-blue-light)">rxResource()</code>
+      und Accessibility. Die drei Dokumente unten beschreiben alle Änderungen gegliedert
+      nach Schicht: Frontend, Backend und API-Vertrag.
+    </div>
+
+    <div class="changes-grid">
+
+      <!-- FRONTEND Changes -->
+      <div class="change-card" style="--card-accent: var(--accent-blue);">
+        <div class="change-card-header">
+          <div class="change-card-icon" style="background: rgba(124,106,247,0.15);">🅰️</div>
+          <div>
+            <div class="change-card-name">Frontend-Changes</div>
+            <div class="change-card-sub">Angular · apps/web/</div>
+          </div>
+        </div>
+        <div class="change-card-body">
+          <p>Alle 15 Angular-Modernisierungsschritte aus beiden Review-Runden.</p>
+          <ul class="change-card-items">
+            <li><span class="item-dot" style="background:#7c6af7"></span>Signal Inputs/Outputs · OnPush · Zoneless</li>
+            <li><span class="item-dot" style="background:#7c6af7"></span>NvmStateService · effect() · linkedSignal()</li>
+            <li><span class="item-dot" style="background:#7c6af7"></span>rxResource() · ESLint · Accessibility</li>
+            <li><span class="item-dot" style="background:#7c6af7"></span>confirm() → Inline-Modal · SCSS DRY</li>
+          </ul>
+        </div>
+        <div class="change-card-links">
+          <a class="link-btn link-btn-html" href="FRONTEND-changes.html">⬡ HTML</a>
+        </div>
+      </div>
+
+      <!-- BACKEND Changes -->
+      <div class="change-card" style="--card-accent: var(--accent-green);">
+        <div class="change-card-header">
+          <div class="change-card-icon" style="background: rgba(16,185,129,0.15);">🖥️</div>
+          <div>
+            <div class="change-card-name">Backend-Changes</div>
+            <div class="change-card-sub">Node.js/Express · apps/api/</div>
+          </div>
+        </div>
+        <div class="change-card-body">
+          <p>Service-Architektur, Performance und vollständige Testinfrastruktur.</p>
+          <ul class="change-card-items">
+            <li><span class="item-dot" style="background:#10b981"></span>handleError + catchError entfernt</li>
+            <li><span class="item-dot" style="background:#10b981"></span>createApp()-Factory für Supertest</li>
+            <li><span class="item-dot" style="background:#10b981"></span>runNvmLsFast – ~2000× Speedup</li>
+            <li><span class="item-dot" style="background:#10b981"></span>111 Tests · Coverage-Schwellenwerte</li>
+          </ul>
+        </div>
+        <div class="change-card-links">
+          <a class="link-btn" style="background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2);" href="BACKEND-changes.html">⬡ HTML</a>
+        </div>
+      </div>
+
+      <!-- API Changes -->
+      <div class="change-card" style="--card-accent: var(--accent-gold);">
+        <div class="change-card-header">
+          <div class="change-card-icon" style="background: rgba(245,158,11,0.15);">🔌</div>
+          <div>
+            <div class="change-card-name">API-Changes</div>
+            <div class="change-card-sub">REST-Vertrag · HTTP-Layer</div>
+          </div>
+        </div>
+        <div class="change-card-body">
+          <p>Neue Endpunkte, geänderte Verhalten und Fehler-Normalisierung.</p>
+          <ul class="change-card-items">
+            <li><span class="item-dot" style="background:#f59e0b"></span>httpErrorInterceptor · Einheitliches Format</li>
+            <li><span class="item-dot" style="background:#f59e0b"></span>5 neue Endpunkte (update, open-dir, LTS …)</li>
+            <li><span class="item-dot" style="background:#f59e0b"></span>POST /use jetzt persistent</li>
+            <li><span class="item-dot" style="background:#f59e0b"></span>rxResource() als GET-Konsumierungsmuster</li>
+          </ul>
+        </div>
+        <div class="change-card-links">
+          <a class="link-btn" style="background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);" href="API-changes.html">⬡ HTML</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Schnellstart ── -->
+  <div class="section">
+    <div class="section-title">Schnellstart</div>
+    <div class="card-grid-2">
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;">
+        <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;">Backend starten</div>
+        <pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;font-size:0.82rem;font-family:'SF Mono','Fira Code',monospace;overflow-x:auto;"><span style="color:#8892a4"># Port 3789</span>
+cd apps/api &amp;&amp; npm run dev</pre>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;">
+        <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;">Frontend starten</div>
+        <pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;font-size:0.82rem;font-family:'SF Mono','Fira Code',monospace;overflow-x:auto;"><span style="color:#8892a4"># Port 4201</span>
+cd apps/web &amp;&amp; npm start</pre>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;">
+        <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;">Beides gleichzeitig</div>
+        <pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;font-size:0.82rem;font-family:'SF Mono','Fira Code',monospace;overflow-x:auto;"><span style="color:#8892a4"># Root – startet beides via concurrently</span>
+npm run dev</pre>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;">
+        <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;">Tests ausführen</div>
+        <pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;font-size:0.82rem;font-family:'SF Mono','Fira Code',monospace;overflow-x:auto;"><span style="color:#8892a4"># API + Web kombiniert</span>
+npm test</pre>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  nvm-manager Dokumentation ·
+  <a href="README.html">README</a>
+  <a href="BACKEND.html">Backend</a>
+  <a href="API.html">API</a>
+  <a href="FRONTEND.html">Frontend</a>
+  <a href="README-now.html">Stand</a>
+  <a href="BACKEND-now.html">Backend-now</a>
+  <a href="API-now.html">API-now</a>
+  <a href="FRONTEND-now.html">Frontend-now</a>
+  <a href="FRONTEND-changes.html">Frontend-Changes</a>
+  <a href="BACKEND-changes.html">Backend-Changes</a>
+  <a href="API-changes.html">API-Changes</a>
+  <a href="AI-SETUP.html">AI-Setup</a>
+</footer>
+
+<script>
+window.addEventListener('storage', function (e) {
+  if (e.key !== 'nvm-docs-theme') return;
+  var isLight = e.newValue === 'light';
+  if (isLight) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  var btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = isLight ? '☾ Dunkel' : '☀ Hell';
+});
+</script>
+</body>
+</html>

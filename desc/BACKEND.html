@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend – nvm-manager API</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Backend – nvm-manager API</h1>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten dieses Dokuments kannst du:</p>
+<ul>
+<li>erklären, wie eine Express-Anwendung aufgebaut wird und wie Middleware funktioniert</li>
+<li>beschreiben, wie Node.js externe Programme und Shell-Befehle ausführt (<code>child_process</code>)</li>
+<li>den Unterschied zwischen <code>execFile</code> (einmalige Ausgabe) und <code>spawn</code> (Datenstrom) benennen</li>
+<li>nachvollziehen, warum und wie man eine Anwendung gegen <strong>Shell-Injection</strong> absichert</li>
+<li>die Rolle von TypeScript-Typen und Validierungsfunktionen für sichere Eingaben einordnen</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li>Grundkenntnisse in JavaScript/TypeScript (Funktionen, Objekte, <code>async</code>/<code>await</code>)</li>
+<li>Verständnis, was ein HTTP-Request grob ist (siehe <a href="API.md">API.md</a>)</li>
+<li>Du weißt, was eine Kommandozeile/Terminal ist</li>
+</ul>
+<blockquote>
+<p>💡 <strong>Konzept: Was ist ein &quot;Backend&quot;?</strong>
+Das Backend ist der Teil der Anwendung, der <strong>nicht</strong> im Browser läuft, sondern
+als eigenständiger Prozess auf einem Rechner. Es hat Zugriff auf Dinge, die der
+Browser aus Sicherheitsgründen nicht darf – hier z.B. das Ausführen von
+Shell-Befehlen auf dem Computer. Das Frontend (Browser) bittet das Backend per
+HTTP, etwas zu tun; das Backend erledigt es und antwortet.</p>
+</blockquote>
+<h2>Überblick</h2>
+<p>Das Backend ist eine schlanke <strong>Express</strong>-Anwendung in TypeScript (<code>apps/api/</code>), die als sicherer Proxy zwischen der Angular-UI und dem lokalen <strong>nvm</strong>-Tool agiert. Es gibt keine Datenbank: nvm selbst – und damit das Dateisystem unter <code>~/.nvm</code> – ist die einzige Quelle der Wahrheit.</p>
+<pre><code>apps/api/
+├── package.json
+├── tsconfig.json
+├── vitest.config.ts
+└── src/
+    ├── server.ts                  ← Express-App-Factory + HTTP-Einstiegspunkt
+    ├── routes/
+    │   └── nvm.routes.ts          ← Alle /api/versions/* Routen
+    └── nvm/
+        ├── nvm.service.ts         ← Shell-Ausführung (execFile / spawn)
+        ├── nvm.parser.ts          ← Parst nvm stdout → TypeScript-Objekte
+        └── nvm.types.ts           ← Typen, NvmError-Klasse, Validierungs-Guards
+</code></pre>
+<h3>Abhängigkeiten</h3>
+<table>
+<thead>
+<tr>
+<th>Paket</th>
+<th>Zweck</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>express</code></td>
+<td>HTTP-Server</td>
+</tr>
+<tr>
+<td><code>cors</code></td>
+<td>Cross-Origin-Headers für den Angular-Dev-Server</td>
+</tr>
+<tr>
+<td><code>morgan</code></td>
+<td>Request-Logging (nur außerhalb von Tests)</td>
+</tr>
+<tr>
+<td><code>tsx</code></td>
+<td>TypeScript-Ausführung ohne Build-Schritt (Dev)</td>
+</tr>
+<tr>
+<td><code>vitest</code> + <code>supertest</code></td>
+<td>Unit- und Integrationstests</td>
+</tr>
+</tbody></table>
+<hr>
+<h2><code>server.ts</code> – App-Factory</h2>
+<h3>Factory-Pattern</h3>
+<pre><code class="language-typescript">export function createApp(): Express {
+  const app = express();
+  // ... Middlewares, Routen
+  return app;
+}
+
+if (process.env[&#39;NODE_ENV&#39;] !== &#39;test&#39;) {
+  createApp().listen(3789, &#39;127.0.0.1&#39;, () =&gt; { ... });
+}
+</code></pre>
+<p><strong>Warum eine Factory-Funktion und kein direktes <code>app.listen()</code>?</strong>
+Vitest und Supertest importieren <code>createApp()</code> und erhalten eine frische, saubere
+Express-Instanz ohne Port-Binding. Der Guard <code>NODE_ENV !== &#39;test&#39;</code> verhindert, dass
+beim Testrun ein tatsächlicher Server auf Port 3789 startet – das würde parallele
+Tests blockieren und Ports belegen.</p>
+<h3>Bind-Adresse: ausschließlich <code>127.0.0.1</code></h3>
+<p>Das Backend führt Shell-Kommandos auf dem Host aus. Ein Bind an <code>0.0.0.0</code> (alle
+Netzwerkschnittstellen) würde es im lokalen Netzwerk erreichbar machen und Dritten
+die Ausführung beliebiger nvm-Kommandos erlauben. <code>127.0.0.1</code> schränkt den Zugriff
+auf den lokalen Rechner ein.</p>
+<h3>Middleware-Stack</h3>
+<blockquote>
+<p>💡 <strong>Konzept: Was ist Middleware?</strong>
+Eine Middleware ist eine Funktion, die jeden eingehenden Request <strong>bearbeitet,
+bevor</strong> er beim eigentlichen Routen-Handler ankommt – wie eine Kette von
+Bearbeitungsstationen. Jede Station kann den Request verändern (z.B. den
+JSON-Body parsen), etwas protokollieren (Logging) oder ihn ablehnen. Express
+ruft die Middlewares in genau der Reihenfolge auf, in der sie mit <code>app.use()</code>
+registriert wurden.</p>
+</blockquote>
+<pre><code>express.json()          ← Request-Body als JSON parsen
+morgan(&#39;dev&#39;)           ← HTTP-Logging (nur außerhalb von Tests)
+cors({ origin: ... })   ← Nur http://localhost:4201 erlaubt (Angular Dev-Server)
+</code></pre>
+<p><strong>Warum CORS?</strong>
+Im Entwicklungsbetrieb laufen Angular (Port 4201) und Express (Port 3789) auf
+verschiedenen Ports → verschiedene Origins. CORS-Header erlauben dem Browser den
+Cross-Origin-Zugriff. Im Produktionsbetrieb könnten beide vom selben Origin
+ausgeliefert werden, und CORS wäre nicht mehr nötig.</p>
+<h3>Fehler-Middleware</h3>
+<pre><code class="language-typescript">const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) =&gt; {
+  const isNvmError = err instanceof NvmError;
+  res.status(500).json({
+    error: err instanceof Error ? err.message : &#39;Interner Fehler&#39;,
+    stdout: isNvmError ? err.stdout : &#39;&#39;,
+    stderr: isNvmError ? err.stderr : &#39;&#39;,
+  });
+};
+</code></pre>
+<p>Alle Route-Handler fangen Fehler per <code>try/catch</code> und leiten sie per <code>next(err)</code>
+weiter. Die zentrale Fehler-Middleware wandelt <code>NvmError</code>-Objekte in strukturierte
+JSON-Antworten um, inklusive der rohen <code>stdout</code>/<code>stderr</code>-Ausgabe – nützlich zur
+Diagnose im Frontend.</p>
+<hr>
+<h2><code>nvm/nvm.service.ts</code> – Shell-Ausführung</h2>
+<h3>Das nvm-Shell-Problem</h3>
+<p><code>nvm</code> ist <strong>keine ausführbare Datei</strong> (kein <code>/usr/bin/nvm</code>), sondern eine
+<strong>Shell-Funktion</strong>, die beim Shell-Start aus <code>~/.nvm/nvm.sh</code> in die aktuelle
+Shell-Session geladen wird. Node.js-<code>child_process</code>-APIs können Shell-Funktionen
+nicht direkt aufrufen.</p>
+<p><strong>Lösung:</strong> Jeder nvm-Aufruf startet eine neue <code>bash -c</code>-Subshell, die zuerst
+alle nötigen Umgebungsvariablen setzt, <code>nvm.sh</code> sourcet und dann den gewünschten
+Befehl ausführt.</p>
+<blockquote>
+<p>💡 <strong>Konzept: Subshell, <code>bash -c</code> und &quot;sourcen&quot;</strong>
+Eine <strong>Subshell</strong> ist eine vom Programm gestartete, frische Shell-Sitzung – wie
+wenn man ein neues Terminalfenster öffnet. Das Flag <code>-c</code> übergibt den auszuführenden
+Befehl als Text. (Das früher genutzte <code>-l</code> für Login-Shell wurde entfernt, weil es
+alle Profil-Dateien lädt und dadurch 15–30 Sekunden dauern kann.)
+<strong>&quot;Sourcen&quot;</strong> (<code>. datei.sh</code> bzw. <code>source datei.sh</code>) bedeutet, ein Shell-Skript
+in der <em>aktuellen</em> Sitzung auszuführen, sodass dessen Funktionen und Variablen
+danach verfügbar sind. Genau das ist nötig, damit die <code>nvm</code>-Funktion in der
+Subshell existiert.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>Konzept: <code>child_process</code> in Node.js</strong>
+Node.js kann mit dem eingebauten Modul <code>node:child_process</code> andere Programme als
+<strong>Kindprozesse</strong> starten. Die wichtigsten Funktionen: <code>execFile</code> sammelt die
+komplette Ausgabe und liefert sie am Ende auf einmal; <code>spawn</code> liefert die Ausgabe
+als kontinuierlichen Datenstrom (Stream), während das Programm noch läuft. Beide
+werden hier genutzt – siehe &quot;Die drei Ausführungsmodi&quot;.</p>
+</blockquote>
+<h3>NVM_HEADER</h3>
+<pre><code class="language-typescript">const NVM_HEADER = `
+  unset npm_config_prefix;
+  unset NPM_CONFIG_PREFIX;
+  export NVM_DIR=&quot;${NVM_DIR}&quot;;
+  export HOME=&quot;${process.env[&#39;HOME&#39;] ?? &#39;&#39;}&quot;;
+  [ -s &quot;$NVM_DIR/nvm.sh&quot; ] &amp;&amp; . &quot;$NVM_DIR/nvm.sh&quot;;
+`;
+</code></pre>
+<p>Dieser Shell-Preamble wird jedem nvm-Aufruf vorangestellt. Er:</p>
+<ol>
+<li><p><strong><code>unset npm_config_prefix</code></strong> – Wenn der Express-Server selbst unter einer
+nvm-verwalteten Node-Version läuft, ist <code>npm_config_prefix</code> auf das
+nvm-Verzeichnis dieser Version gesetzt. Ohne <code>unset</code> schlägt <code>nvm install</code>
+oder <code>nvm use</code> mit einem Konfliktfehler fehl (<code>npm_config_prefix is set to...</code>).</p>
+</li>
+<li><p><strong><code>export NVM_DIR</code></strong> – Setzt das nvm-Verzeichnis explizit, da Subshells
+Umgebungsvariablen ihrer Elternprozesse nicht automatisch erben.</p>
+</li>
+<li><p><strong><code>export HOME</code></strong> – Setzt <code>HOME</code> explizit, da die nicht-login Shell
+(<code>bash -c</code>) es nicht automatisch erhält.</p>
+</li>
+<li><p><strong><code>. &quot;$NVM_DIR/nvm.sh&quot;</code></strong> – Sourcet (lädt) die nvm-Shell-Funktion.</p>
+</li>
+</ol>
+<p><strong>Warum <code>bash -c</code> und nicht <code>bash -lc</code> (Login-Shell)?</strong>
+Die Login-Shell (<code>-l</code>) lädt alle Profil-Dateien (<code>.bash_profile</code>, oh-my-zsh usw.),
+was auf manchen Systemen 15–30 Sekunden dauern kann. Da der <code>NVM_HEADER</code> alle
+benötigten Variablen manuell setzt, ist <code>-l</code> überflüssig. Ohne <code>-l</code> dauert ein
+nvm-Aufruf nur noch Millisekunden statt Sekunden.</p>
+<h3>Shell-Injection-Schutz</h3>
+<blockquote>
+<p>💡 <strong>Konzept: Was ist Shell-Injection?</strong>
+Wenn man Benutzereingaben ungeprüft in einen Shell-Befehl einbaut, kann ein
+Angreifer Sonderzeichen einschleusen, um eigene Befehle auszuführen. Beispiel:
+Gibt jemand als &quot;Version&quot; den Text <code>22; rm -rf ~</code> ein und wird dieser direkt in
+den Befehl eingesetzt, würde nach dem nvm-Aufruf das <code>rm</code>-Kommando ausgeführt –
+mit potenziell katastrophalen Folgen. Schutz bieten zwei Maßnahmen, die hier
+<strong>kombiniert</strong> werden: (1) gefährliche Zeichen <em>escapen</em> (unschädlich machen)
+und (2) Eingaben vorab per <em>Whitelist</em> auf erlaubte Muster prüfen.</p>
+</blockquote>
+<pre><code class="language-typescript">function escapeArgs(args: string[]): string {
+  return args.map((a) =&gt; `&#39;${a.replace(/&#39;/g, &quot;&#39;\\&#39;&#39;&quot;)}&#39;`).join(&#39; &#39;);
+}
+</code></pre>
+<p>Alle Argumente werden single-quote-escaped, bevor sie in den Shell-Befehl
+eingefügt werden. Einfache Anführungszeichen im Argument (<code>&#39;</code>) werden durch die
+Sequenz <code>&#39;\&#39;&#39;</code> (Quote-Ende, Escaped-Quote, Quote-Start) ersetzt.</p>
+<p><strong>Zweite Sicherheitslinie:</strong> Die Whitelist-Validatoren in <code>nvm.types.ts</code> prüfen
+Eingaben per Regex, bevor sie überhaupt <code>escapeArgs</code> erreichen.</p>
+<h3>Die vier Ausführungsmodi</h3>
+<blockquote>
+<p>💡 <strong>Konzept: Promise</strong>
+Ein <strong>Promise</strong> ist ein Platzhalter für einen Wert, der erst <em>später</em> verfügbar
+ist – typisch bei Operationen, die Zeit brauchen (Dateizugriff, Netzwerk,
+Prozessausführung). Ein Promise kann sich <em>erfüllen</em> (<code>resolve</code>, Erfolg) oder
+<em>scheitern</em> (<code>reject</code>, Fehler). Mit <code>await</code> wartet man auf das Ergebnis, ohne den
+Rest des Programms zu blockieren. <code>runNvm</code> verpackt den Kindprozess in ein Promise,
+sodass die Routen einfach <code>const result = await runNvm(...)</code> schreiben können.</p>
+</blockquote>
+<h4><code>runNvm(args)</code> – Standard-Aufruf</h4>
+<pre><code class="language-typescript">export function runNvm(args: string[]): Promise&lt;{ stdout: string; stderr: string }&gt;
+</code></pre>
+<p>Verwendet <code>execFile(&#39;bash&#39;, [&#39;-c&#39;, cmd])</code> mit:</p>
+<ul>
+<li><strong>Timeout:</strong> 3 Minuten (für <code>nvm install</code>, das Downloads durchführt)</li>
+<li><strong>maxBuffer:</strong> 10 MB (Ausgabe von <code>nvm ls-remote</code> kann groß sein)</li>
+</ul>
+<p>Gibt ein Promise zurück, das bei Fehler ein <code>NvmError</code> wirft.</p>
+<h4><code>runNvmLsFast()</code> – Dateisystem-basiertes Versions-Listing</h4>
+<pre><code class="language-typescript">export async function runNvmLsFast(): Promise&lt;InstalledVersionsResponse&gt;
+</code></pre>
+<p><strong>Warum kein Shell-Prozess für <code>nvm ls</code>?</strong></p>
+<p><code>nvm ls</code> dauert auf vielen Systemen 10–30 Sekunden, weil es intern alle Alias-Ketten
+auflöst und durch das gesamte nvm-Alias-Verzeichnis iteriert. Das führte zu Timeouts
+in der UI.</p>
+<p><code>runNvmLsFast()</code> liest die gleichen Informationen direkt aus dem Dateisystem:</p>
+<table>
+<thead>
+<tr>
+<th>Was</th>
+<th>Wie</th>
+<th>Dauer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Installierte Versionen</td>
+<td><code>readdir(~/.nvm/versions/node/)</code></td>
+<td>&lt; 1 ms</td>
+</tr>
+<tr>
+<td>Default-Version</td>
+<td><code>readFile(~/.nvm/alias/default)</code> + Alias-Auflösung</td>
+<td>&lt; 1 ms</td>
+</tr>
+<tr>
+<td>Aktive Version</td>
+<td>aus <code>process.env.PATH</code> extrahieren</td>
+<td>0 ms</td>
+</tr>
+</tbody></table>
+<p><strong>Alias-Auflösung:</strong> Die interne Funktion <code>resolveAlias()</code> löst Ketten auf:
+<code>default → lts/* → v22.14.0</code>. Sie verfolgt maximal 5 Ebenen, um Zyklen zu
+vermeiden.</p>
+<h4><code>setLtsAliasFile(codename, version)</code> – LTS-Alias direkt schreiben</h4>
+<pre><code class="language-typescript">export async function setLtsAliasFile(codename: string, version: string): Promise&lt;void&gt;
+</code></pre>
+<p>Schreibt <code>v&lt;version&gt;</code> in <code>~/.nvm/alias/lts/&lt;codename&gt;</code>. Erstellt das
+<code>lts/</code>-Unterverzeichnis falls nötig.</p>
+<p><strong>Warum direkt ins Dateisystem?</strong> <code>nvm alias lts/&lt;codename&gt; &lt;version&gt;</code> schlägt
+mit „Aliases in subdirectories are not supported&quot; fehl. nvm verwaltet lts-Aliases
+intern als Dateien – dieser Endpunkt tut dasselbe.</p>
+<h4><code>deleteLtsAliasFile(codename)</code> – LTS-Alias direkt löschen</h4>
+<pre><code class="language-typescript">export async function deleteLtsAliasFile(codename: string): Promise&lt;void&gt;
+</code></pre>
+<p>Löscht die Datei <code>~/.nvm/alias/lts/&lt;codename&gt;</code>. <code>nvm unalias lts/&lt;codename&gt;</code>
+schlägt aus demselben Grund fehl wie <code>nvm alias</code>.</p>
+<h4><code>spawnNvm(args)</code> – Streaming-Aufruf</h4>
+<pre><code class="language-typescript">export function spawnNvm(args: string[]): ChildProcess
+</code></pre>
+<p>Verwendet <code>spawn(&#39;bash&#39;, [&#39;-c&#39;, cmd])</code> statt <code>execFile</code>. Gibt den <code>ChildProcess</code>
+direkt zurück, damit die Route den <code>stdout</code>/<code>stderr</code>-Stream über <strong>Server-Sent Events</strong>
+(SSE) live an den Browser weiterleiten kann.</p>
+<hr>
+<h2><code>nvm/nvm.parser.ts</code> – Output-Parsing</h2>
+<p>nvm gibt seine Ausgabe mit <strong>ANSI-Farbcodes</strong> aus. Alle Parser beginnen damit, diese
+zu entfernen:</p>
+<pre><code class="language-typescript">const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
+line.replace(ANSI_ESCAPE, &#39;&#39;)
+</code></pre>
+<h3><code>parseInstalledVersions(stdout)</code></h3>
+<p>Parst die Ausgabe von <code>nvm ls</code>. Echte Versionszeilen folgen dem Muster:</p>
+<pre><code>-&gt;     v22.11.0 (default)
+       v20.18.0
+       v18.20.7
+</code></pre>
+<p>Der Filter <code>/^\s*(-&gt;)?\s*v\d+\.\d+\.\d+/</code> erkennt genau diese Zeilen.
+Alias-Zeilen wie <code>default -&gt; v22.11.0 (-&gt; v22.11.0)</code> werden bewusst ignoriert –
+sie folgen einem anderen Muster (<code>name -&gt; target</code>).</p>
+<p>Jede Versionszeile wird zu einem <code>InstalledNodeVersion</code>-Objekt:</p>
+<pre><code class="language-typescript">{
+  version: string;   // &quot;22.11.0&quot; (ohne &quot;v&quot;)
+  active: boolean;   // line beginnt mit &quot;-&gt;&quot;
+  default: boolean;  // line enthält &quot;(default)&quot;
+  system: boolean;   // line enthält &quot;system&quot;
+}
+</code></pre>
+<h3><code>parseAliases(stdout)</code></h3>
+<p>Parst die Ausgabe von <code>nvm alias</code>. Jede Zeile hat das Format:</p>
+<pre><code>default -&gt; lts/* (-&gt; v22.20.0)
+node    -&gt; stable (-&gt; v22.20.0) (default)
+lts/iron -&gt; v20.19.1 (-&gt; N/A)
+my-project -&gt; v18.18.0
+</code></pre>
+<p>Der Parser extrahiert:</p>
+<ul>
+<li><code>name</code> – Alias-Name (linke Seite des ersten <code>-&gt;</code>)</li>
+<li><code>target</code> – Direkt-Ziel (erster Token nach <code>-&gt;</code>)</li>
+<li><code>resolved</code> – Aufgelöste Semver-Version aus <code>(-&gt; vX.Y.Z)</code>, falls vorhanden</li>
+</ul>
+<p>Flags werden aus dem Namen abgeleitet:</p>
+<pre><code class="language-typescript">const PROTECTED_ALIASES = new Set([&#39;default&#39;, &#39;node&#39;, &#39;stable&#39;, &#39;unstable&#39;, &#39;iojs&#39;]);
+
+editable:  !name.startsWith(&#39;lts/&#39;)           // lts/-Aliases haben eigenen Endpunkt
+deletable: !PROTECTED_ALIASES.has(name)       // Kern-Aliases sind geschützt
+</code></pre>
+<ul>
+<li><code>editable: false</code> nur für <code>lts/</code>-Aliases – alle anderen (auch <code>node</code>, <code>stable</code>,
+<code>unstable</code>, <code>default</code>) sind editierbar. LTS-Aliases haben einen dedizierten Endpunkt.</li>
+<li><code>deletable: false</code> für <code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code> –
+diese Kern-Aliases sind dauerhaft vor dem Löschen geschützt.</li>
+</ul>
+<h3><code>parseRemoteVersions(stdout)</code></h3>
+<p>Parst die Ausgabe von <code>nvm ls-remote</code>. Format:</p>
+<pre><code>   v24.15.0   (LTS: Krypton)
+   v24.16.0   (Latest LTS: Krypton)
+   v25.0.0
+</code></pre>
+<p>Ein einziger Aufruf liefert alle Versionen – LTS-Informationen sind bereits inline.
+Kein separater <code>--lts</code>-Aufruf nötig.</p>
+<p>Die Versionen werden am Ende umgekehrt (<code>.reverse()</code>), um neueste Versionen zuerst
+zu liefern.</p>
+<hr>
+<h2><code>nvm/nvm.types.ts</code> – Typen und Validierung</h2>
+<h3>Typen</h3>
+<pre><code class="language-typescript">InstalledNodeVersion  // { version, active, default, system }
+InstalledVersionsResponse  // { stdout, stderr, versions[] }
+NvmAlias              // { name, target, resolved, editable, deletable }
+AliasesResponse       // { stdout, stderr, aliases[] }
+RemoteNodeVersion     // { version, lts: string | null }
+RemoteVersionsResponse // { stdout, stderr, versions[] }
+NvmStatus             // { ok, nvmVersion?, nvmDir?, error? }
+</code></pre>
+<h3><code>NvmError</code>-Klasse</h3>
+<pre><code class="language-typescript">export class NvmError extends Error {
+  constructor(
+    message: string,
+    public readonly stdout: string,
+    public readonly stderr: string,
+  ) { ... }
+}
+</code></pre>
+<p>Erweitert den Standard-<code>Error</code> um <code>stdout</code> und <code>stderr</code>, damit die Fehler-Middleware
+den vollständigen nvm-Output im HTTP-Response mitliefern kann.</p>
+<h3>Whitelist-Validatoren</h3>
+<blockquote>
+<p>💡 <strong>Konzept: Regulärer Ausdruck (Regex) &amp; &quot;Whitelist&quot;</strong>
+Ein <strong>regulärer Ausdruck</strong> beschreibt ein Suchmuster für Text. Beispiel:
+<code>/^\d+$/</code> bedeutet &quot;von Anfang (<code>^</code>) bis Ende (<code>$</code>) nur Ziffern (<code>\d+</code>)&quot;.
+Eine <strong>Whitelist</strong> (Positivliste) erlaubt <em>ausschließlich</em> das, was explizit
+dem Muster entspricht, und lehnt alles andere ab – das Gegenteil einer Blacklist,
+die nur bekannte schlechte Werte sperrt. Whitelists sind sicherer, weil man nicht
+jeden denkbaren Angriff vorhersehen muss.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>Konzept: Typ-Guard (<code>v is string</code>)</strong>
+Eine Funktion mit Rückgabetyp <code>v is string</code> ist ein <strong>Type Guard</strong>. Gibt sie
+<code>true</code> zurück, &quot;weiß&quot; der TypeScript-Compiler danach, dass <code>v</code> wirklich ein
+<code>string</code> mit gültigem Inhalt ist. So verbinden diese Funktionen Laufzeit-Prüfung
+(Regex) und statische Typsicherheit in einem.</p>
+</blockquote>
+<p>Vier Typ-Guard-Funktionen schützen gegen Shell-Injection auf Anwendungsebene:</p>
+<h4><code>isValidVersionInput(v)</code></h4>
+<pre><code class="language-typescript">/^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/
+</code></pre>
+<p>Erlaubt: <code>node</code>, <code>stable</code>, <code>lts/*</code>, <code>22</code>, <code>22.11</code>, <code>22.11.0</code></p>
+<h4><code>isValidAliasName(v)</code></h4>
+<pre><code class="language-typescript">/^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/
+</code></pre>
+<p>Muss mit einem Buchstaben beginnen, max. 50 Zeichen. Erlaubt Buchstaben, Ziffern,
+Bindestrich, Unterstrich. Verhindert Sonderzeichen, die Shell-Metacharacter sein könnten.</p>
+<h4><code>isValidAliasTarget(v)</code></h4>
+<pre><code class="language-typescript">/^(node|stable|unstable|lts\/[\w.*-]+|v?\d+(\.\d+){0,2})$/
+</code></pre>
+<p>Erlaubt: <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>lts/&lt;codename&gt;</code>, <code>lts/*</code>, <code>v22.11.0</code>, <code>22</code></p>
+<h4><code>isValidLtsCodename(v)</code></h4>
+<pre><code class="language-typescript">/^[\w*-]+$/  (Länge 1–30)
+</code></pre>
+<p>Erlaubt: <code>iron</code>, <code>hydrogen</code>, <code>*</code> – der Teil nach <code>lts/</code> in Requests an
+<code>POST /aliases/lts</code> und <code>DELETE /aliases/lts/:codename</code>.</p>
+<hr>
+<h2>Entwicklungsworkflow</h2>
+<pre><code class="language-bash">cd apps/api
+
+# Entwicklung mit Hot-Reload
+npm run dev        # tsx watch src/server.ts → http://127.0.0.1:3789
+
+# Tests
+npm test           # vitest run (einmalig)
+npm run test:watch # vitest (watch-Modus)
+npm run test:coverage  # mit Coverage-Report
+
+# Produktion
+npm run build      # tsc → dist/
+npm start          # node dist/server.js
+</code></pre>
+<h2>Sicherheitskonzept zusammengefasst</h2>
+<table>
+<thead>
+<tr>
+<th>Maßnahme</th>
+<th>Wo</th>
+<th>Wirkung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bind nur <code>127.0.0.1</code></td>
+<td><code>server.ts</code></td>
+<td>Kein Netzwerkzugriff von außen</td>
+</tr>
+<tr>
+<td>Whitelist-Regex</td>
+<td><code>nvm.types.ts</code></td>
+<td>Nur explizit erlaubte Eingaben</td>
+</tr>
+<tr>
+<td>Single-Quote-Escaping</td>
+<td><code>nvm.service.ts</code></td>
+<td>Shell-Injection verhindert</td>
+</tr>
+<tr>
+<td>CORS eingeschränkt</td>
+<td><code>server.ts</code></td>
+<td>Nur bekannter Origin erlaubt</td>
+</tr>
+<tr>
+<td>Geschützte Kern-Aliases</td>
+<td><code>nvm.routes.ts</code> + <code>nvm.parser.ts</code></td>
+<td><code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code> können nicht gelöscht werden</td>
+</tr>
+<tr>
+<td>Kein Login-Shell-Flag (<code>-l</code>)</td>
+<td><code>nvm.service.ts</code></td>
+<td>Kein Laden von Profil-Dateien, verhindert Timeouts</td>
+</tr>
+<tr>
+<td>Direkte Dateisystem-Operationen für LTS</td>
+<td><code>nvm.service.ts</code></td>
+<td>Umgeht <code>nvm</code>-CLI-Einschränkungen für <code>lts/</code>-Unterverzeichnisse</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Glossar</h2>
+<table>
+<thead>
+<tr>
+<th>Begriff</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Express</strong></td>
+<td>Beliebtes, schlankes Web-Framework für Node.js zum Bauen von Servern und APIs</td>
+</tr>
+<tr>
+<td><strong>Middleware</strong></td>
+<td>Funktion, die einen Request bearbeitet, bevor er den Routen-Handler erreicht</td>
+</tr>
+<tr>
+<td><strong>Routen-Handler</strong></td>
+<td>Funktion, die einen konkreten Endpunkt (z.B. <code>GET /api/status</code>) bedient</td>
+</tr>
+<tr>
+<td><strong>Subshell</strong></td>
+<td>Vom Programm gestartete, eigenständige Shell-Sitzung</td>
+</tr>
+<tr>
+<td><strong><code>bash -c</code></strong></td>
+<td>Startet eine Bash-Subshell und führt den nachfolgenden Befehlstext aus</td>
+</tr>
+<tr>
+<td><strong>sourcen</strong></td>
+<td>Ein Shell-Skript in der aktuellen Sitzung laden (<code>.</code> bzw. <code>source</code>)</td>
+</tr>
+<tr>
+<td><strong><code>child_process</code></strong></td>
+<td>Node.js-Modul zum Starten externer Programme</td>
+</tr>
+<tr>
+<td><strong><code>execFile</code></strong></td>
+<td>Führt ein Programm aus und liefert die gesammelte Ausgabe am Ende</td>
+</tr>
+<tr>
+<td><strong><code>spawn</code></strong></td>
+<td>Führt ein Programm aus und liefert die Ausgabe als Stream (live)</td>
+</tr>
+<tr>
+<td><strong>stdout / stderr</strong></td>
+<td>Standard-Ausgabe-Kanal bzw. Standard-Fehler-Kanal eines Prozesses</td>
+</tr>
+<tr>
+<td><strong>Promise</strong></td>
+<td>Platzhalter für einen erst später verfügbaren (asynchronen) Wert</td>
+</tr>
+<tr>
+<td><strong>Shell-Injection</strong></td>
+<td>Angriff durch Einschleusen von Shell-Befehlen über Eingaben</td>
+</tr>
+<tr>
+<td><strong>Escaping</strong></td>
+<td>Sonderzeichen unschädlich machen, damit sie nicht als Befehl interpretiert werden</td>
+</tr>
+<tr>
+<td><strong>Whitelist</strong></td>
+<td>Positivliste: nur explizit Erlaubtes wird akzeptiert</td>
+</tr>
+<tr>
+<td><strong>Regex</strong></td>
+<td>Regulärer Ausdruck; ein Suchmuster für Text</td>
+</tr>
+<tr>
+<td><strong>Type Guard</strong></td>
+<td>Funktion, die zur Laufzeit prüft und dem Compiler den Typ bestätigt</td>
+</tr>
+<tr>
+<td><strong>SSE</strong></td>
+<td>Server-Sent Events; Server schickt fortlaufend Daten an den Browser (siehe <a href="API.md">API.md</a>)</td>
+</tr>
+<tr>
+<td><strong>ANSI-Escape-Codes</strong></td>
+<td>Unsichtbare Steuerzeichen für Terminalfarben, hier aus der Ausgabe entfernt</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Verständnisfragen</h2>
+<p>Versuche, die Fragen aus dem Gedächtnis zu beantworten, und prüfe dann im Text.</p>
+<ol>
+<li>Warum wird <code>createApp()</code> als Factory-Funktion gebaut, statt den Server direkt zu starten?</li>
+<li>Was würde passieren, wenn der Server an <code>0.0.0.0</code> statt <code>127.0.0.1</code> gebunden wäre?</li>
+<li>Warum kann Node.js <code>nvm</code> nicht direkt als Programm aufrufen?</li>
+<li>Wozu dient <code>unset npm_config_prefix</code> im <code>NVM_HEADER</code>?</li>
+<li>Welche zwei Mechanismen schützen gemeinsam gegen Shell-Injection?</li>
+<li>Worin unterscheiden sich <code>runNvm</code>, <code>runNvmLsFast</code> und <code>spawnNvm</code>?</li>
+<li>Warum liest <code>runNvmLsFast()</code> Versionen und Aliases direkt vom Dateisystem,
+statt <code>nvm ls</code> aufzurufen?</li>
+<li>Was ist der Vorteil einer Whitelist gegenüber einer Blacklist bei der Eingabeprüfung?</li>
+<li>Warum können <code>lts/</code>-Aliases nicht über <code>nvm alias</code>/<code>nvm unalias</code> verwaltet werden,
+und wie löst das Backend dieses Problem?</li>
+</ol>
+<hr>
+<h2>Übungsaufgaben</h2>
+<blockquote>
+<p><strong>Hinweis:</strong> Mache vor Änderungen einen Git-Branch oder eine Sicherung. Diese
+Aufgaben dienen dem Lernen – die bestehende Funktionalität soll erhalten bleiben.</p>
+</blockquote>
+<ol>
+<li><strong>Code lesen:</strong> Öffne <code>apps/api/src/nvm/nvm.service.ts</code> und markiere im
+<code>NVM_HEADER</code> jede der fünf Zeilen mit einem Kommentar, der ihren Zweck erklärt.</li>
+<li><strong>Validierung testen:</strong> Schreibe auf Papier oder im Kopf durch, welche der
+folgenden Eingaben <code>isValidVersionInput</code> akzeptiert: <code>22</code>, <code>v22</code>, <code>lts/iron</code>,
+<code>22.11.0</code>, <code>22; ls</code>, <code>node</code>. Prüfe dann mit dem Regex aus <code>nvm.types.ts</code>.</li>
+<li><strong>Neuer Endpunkt (Konzept):</strong> Skizziere, welche Schritte nötig wären, um einen
+Endpunkt <code>GET /api/versions/current</code> zu bauen, der nur die aktive Version
+zurückgibt. Welche bestehenden Funktionen (Service, Parser) könntest du
+wiederverwenden?</li>
+<li><strong>Fehlerfall nachstellen:</strong> Stoppe das Backend und rufe im Frontend
+&quot;Aktualisieren&quot; auf. Beobachte im Browser-Netzwerk-Tab, welcher Fehler
+ankommt, und finde im Code die Stelle, die ihn erzeugt.</li>
+<li><strong>Vertiefung Tests:</strong> Sieh dir <code>apps/api/src/nvm/nvm.parser.spec.ts</code> an.
+Welche Eingabe-Ausgabe-Paare werden getestet? Ergänze gedanklich einen Testfall
+für eine Alias-Zeile mit <code>(-&gt; N/A)</code>.</li>
+<li><strong>Dateisystem-Modus verstehen:</strong> Öffne <code>runNvmLsFast()</code> in <code>nvm.service.ts</code>.
+Welche Dateien werden gelesen? Wie wird <code>active</code> vs. <code>default</code> ermittelt?
+Welche Fehlerfälle könnten auftreten, wenn <code>~/.nvm/versions/node/</code> fehlt?</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

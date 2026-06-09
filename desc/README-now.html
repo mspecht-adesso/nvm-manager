@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aktueller Stand – nvm-manager (Lernunterlagen)</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <link rel="stylesheet" href="styles-docs.css">
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Aktueller Stand – nvm-manager (Lernunterlagen)</h1>
+<blockquote>
+<p><strong>Stand:</strong> Version 0.8.0 · 2026-06-05
+<strong>Zweck dieses Dokuments:</strong> Eine Momentaufnahme („now&quot;) des Projekts. Während
+die Kerndokumente <a href="BACKEND.md">BACKEND.md</a>, <a href="API.md">API.md</a> und
+<a href="FRONTEND.md">FRONTEND.md</a> die Konzepte zeitlos erklären, beschreibt diese
+Datei <strong>wie</strong> das Projekt <em>heute</em> tatsächlich gebaut ist und <strong>warum</strong> es an
+diesen Punkt gekommen ist.</p>
+</blockquote>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten dieses Dokuments kannst du:</p>
+<ul>
+<li>den aktuellen Funktionsumfang der Anwendung benennen (was kann ein Nutzer heute tun?)</li>
+<li>die aktuelle technische Architektur über alle drei Apps hinweg einordnen</li>
+<li>erklären, <strong>wie</strong> sich der Code seit der ersten Version weiterentwickelt hat und <strong>warum</strong></li>
+<li>unterscheiden, was fertig ist und was bewusst nur <em>vorbereitet</em> wurde</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li>Du hast einen groben Überblick über das Projekt (siehe <a href="README.md">README.md</a>)</li>
+<li>Grundbegriffe Frontend/Backend/API sind dir vertraut</li>
+</ul>
+<blockquote>
+<p>💡 <strong>Konzept: Was bedeutet „Stand der Entwicklung&quot;?</strong>
+Ein Software-Projekt ist nie „fertig&quot;, sondern befindet sich immer in einem
+bestimmten <em>Zustand</em>: Welche Features funktionieren? Welche Technik-Entscheidungen
+gelten aktuell? Was ist Schuld (technische Schulden) und was ist bewusst offen
+gelassen? Diese Momentaufnahme festzuhalten hilft beim Lernen, weil man so den
+Unterschied zwischen <em>Idealbild</em> (Konzept) und <em>Ist-Zustand</em> (Code) sieht.</p>
+</blockquote>
+<h2>Das Projekt in einem Satz</h2>
+<p>nvm-manager ist ein <strong>lokales Web-Dashboard</strong>, das die Kommandozeilen-Funktion
+<strong>nvm</strong> (Node Version Manager) über eine grafische Oberfläche bedienbar macht –
+aufgeteilt in ein <strong>Express-Backend</strong> (führt nvm aus) und ein <strong>Angular-Frontend</strong>
+(zeigt die UI).</p>
+<h2>Was die Anwendung heute kann</h2>
+<p>Diese Funktionen sind <strong>vollständig nutzbar</strong> (UI + API + Tests):</p>
+<table>
+<thead>
+<tr>
+<th>Funktion</th>
+<th>Wie es der Nutzer bedient</th>
+<th>Warum es so gelöst ist</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>nvm-Status anzeigen</td>
+<td>Status-Card beim Start</td>
+<td>Sofortige Rückmeldung, ob nvm überhaupt verfügbar ist</td>
+</tr>
+<tr>
+<td>nvm selbst aktualisieren</td>
+<td>„Aktualisieren&quot;-Button, wenn neuere Version existiert</td>
+<td>git-basiertes Upgrade, weil <code>nvm upgrade</code> versionsübergreifend unzuverlässig ist</td>
+</tr>
+<tr>
+<td>NVM_DIR im Dateimanager öffnen</td>
+<td>Ordner-Icon neben dem Pfad</td>
+<td>Schneller Sprung ins Verzeichnis ohne Terminal</td>
+</tr>
+<tr>
+<td>Installierte Versionen auflisten</td>
+<td>Tabelle „Installierte Versionen&quot;</td>
+<td>Liest direkt das Dateisystem → &lt; 10 ms statt ~20 s</td>
+</tr>
+<tr>
+<td>Version installieren</td>
+<td>Eingabefeld + „Installieren&quot;</td>
+<td>Whitelist-validierte Eingabe, blockierender Aufruf mit Fortschritts-Modal</td>
+</tr>
+<tr>
+<td>Version aktivieren / als Default setzen</td>
+<td>„Verwenden&quot; / „Default&quot;</td>
+<td>Schreibt persistent <code>nvm alias default</code>, nicht das flüchtige <code>nvm use</code></td>
+</tr>
+<tr>
+<td>Version deinstallieren</td>
+<td>„Deinstallieren&quot; (mit Schutz für aktive/System-Version)</td>
+<td>Verhindert das Entfernen der gerade aktiven Version</td>
+</tr>
+<tr>
+<td>Verfügbare Versionen durchsuchen</td>
+<td>„Verfügbare Versionen&quot; (lazy geladen)</td>
+<td>Netzwerkabfrage erst auf Klick, um den Start schnell zu halten</td>
+</tr>
+<tr>
+<td>Aliase verwalten (CRUD)</td>
+<td>Aliases-Card inkl. LTS-Aliase</td>
+<td>Inline-Bearbeitung mit Dropdown statt Freitext</td>
+</tr>
+<tr>
+<td>Aktivitätslog</td>
+<td>Log-Card (max. 20 Einträge)</td>
+<td>Transparenz über jede ausgeführte Aktion</td>
+</tr>
+<tr>
+<td>Hell-/Dunkel-Modus</td>
+<td>Toggle im Header</td>
+<td>Persistiert in <code>localStorage</code>, respektiert System-Präferenz</td>
+</tr>
+</tbody></table>
+<h3>Bewusst nur <em>vorbereitet</em> (noch nicht in der UI)</h3>
+<blockquote>
+<p>💡 <strong>Konzept: „Vorbereitet, aber nicht verdrahtet&quot;</strong>
+Manchmal baut man Infrastruktur, die noch keine sichtbare Funktion hat – als
+Fundament für später. Das ist kein Fehler, sondern eine Investition. Wichtig ist
+nur, es klar zu kennzeichnen, damit niemand denkt, es sei „kaputt&quot;.</p>
+</blockquote>
+<ul>
+<li><strong>SSE-Streaming der Installation</strong> (<code>GET /api/versions/install/stream</code>) ist im
+Backend vollständig implementiert und getestet, aber das Frontend nutzt weiterhin
+den blockierenden <code>POST /install</code>. <em>Warum?</em> Das MVP kam mit dem einfacheren Pfad
+schneller ans Ziel; der Streaming-Endpunkt steht für eine spätere Live-Fortschritts-Anzeige bereit.</li>
+<li><strong>Angular-Router</strong> ist aktiviert (<code>provideRouter</code>), die Routen-Liste ist aber leer.
+<em>Warum?</em> Die App hat nur eine Ansicht; die Router-Infrastruktur ist Fundament für
+z.B. eine spätere Einstellungs-Seite.</li>
+</ul>
+<h2>Architektur auf einen Blick (aktuell)</h2>
+<pre><code>nvm-manager/  (Monorepo, npm workspaces-artig über Prefix-Skripte)
+├── apps/api/   Express 5 · TypeScript · Port 3789 (bind 127.0.0.1)
+├── apps/web/   Angular 21 · Standalone · Signals · Port 4201
+├── apps/e2e/   Playwright (Chromium) · Smoke- + Flow-Tests
+├── desc/       Diese Lernunterlagen (Markdown + HTML)
+└── docs/       Benutzerhandbuch
+</code></pre>
+<h3>Technologiestand (aktuell installiert)</h3>
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Technologie</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Frontend-Framework</td>
+<td>Angular</td>
+<td>^21.2.0</td>
+</tr>
+<tr>
+<td>Backend-Framework</td>
+<td>Express</td>
+<td>^5.2.1</td>
+</tr>
+<tr>
+<td>Sprache</td>
+<td>TypeScript</td>
+<td>~5.9 (web) / ^6.0 (api)</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>Vitest + Supertest + Playwright</td>
+<td>^4.x / ^7.x</td>
+</tr>
+<tr>
+<td>Linting</td>
+<td>ESLint 10 + angular-eslint + typescript-eslint</td>
+<td>flat config</td>
+</tr>
+<tr>
+<td>Reaktivität</td>
+<td>Angular Signals (zoneless)</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>Konzept: „zoneless&quot;</strong>
+Ältere Angular-Apps brauchten die Bibliothek <code>zone.js</code>, um zu erkennen, wann sich
+Daten geändert haben. Diese App kommt <strong>ohne</strong> aus: Sie nutzt durchgängig Signals,
+wodurch Angular präzise weiß, was sich geändert hat. Das spart Bundle-Größe und
+macht das Verhalten vorhersehbarer.</p>
+</blockquote>
+<h2>Wie sich der Code entwickelt hat (und warum)</h2>
+<p>Die wichtigsten Wendepunkte – chronologisch verdichtet aus dem
+<a href="../CHANGELOG.md">CHANGELOG</a>:</p>
+<ol>
+<li><strong>0.1.0 – Grundgerüst.</strong> Frontend + Backend + Monorepo stehen. <em>Warum zuerst?</em>
+Ein durchgehender „vertikaler Schnitt&quot; (UI → API → nvm) beweist, dass die
+Gesamtidee funktioniert.</li>
+<li><strong>0.2.x – Atomic Design + Tests.</strong> Komponenten in Atoms/Molecules/Organisms
+zerlegt; vollständige Testabdeckung aufgebaut. <em>Warum?</em> Wartbarkeit und ein
+Sicherheitsnetz vor weiteren Umbauten.</li>
+<li><strong>0.3.0 – Performance + Aliase.</strong> <code>nvm ls</code> (~20 s) durch direktes Lesen des
+Dateisystems ersetzt (&lt; 10 ms); volle Alias-Verwaltung inkl. LTS. <em>Warum?</em>
+Die langsame Liste machte die App im Alltag unbenutzbar.</li>
+<li><strong>0.5.0 – Self-Service.</strong> nvm-Update, Ordner öffnen, Hell-/Dunkel-Modus.</li>
+<li><strong>0.6.0 – Angular-21-Modernisierung.</strong> God-Component aufgelöst
+(<code>NvmStateService</code>), Signal Inputs/Outputs, OnPush überall, zoneless,
+<code>rxResource()</code>, zentrales Error-Handling, Accessibility. <em>Warum?</em> Den Code auf
+den aktuellen Angular-Standard heben – das eigentliche Lernziel des Projekts.</li>
+<li><strong>0.7.0 – Dokumentation.</strong> Diese Lernunterlagen (Markdown + HTML) entstehen.</li>
+<li><strong>0.8.0 – Feinschliff UI.</strong> Konsistente Badges, Modal-Feedback für alle
+Alias-Änderungen, durchgängig signal-basierte Formfelder.</li>
+</ol>
+<h2>Qualitäts-Stand</h2>
+<ul>
+<li><strong>Tests:</strong> Nach der letzten großen Review-Runde liefen über 200 Tests grün
+(Backend Unit + Integration via Supertest, Frontend Component-Tests via Vitest,
+E2E via Playwright). <em>Wie prüfen?</em> <code>npm test</code> (API + Web) bzw. <code>npm run test:e2e</code>.</li>
+<li><strong>Lint:</strong> 0 Fehler, <code>--max-warnings 0</code> erzwingt Sauberkeit. <em>Wie prüfen?</em> <code>npm run lint</code>.</li>
+<li><strong>Sicherheit:</strong> Bind nur auf <code>127.0.0.1</code>, Whitelist-Validierung + Single-Quote-Escaping
+vor jedem nvm-Aufruf, CORS nur für <code>http://localhost:4201</code>.</li>
+</ul>
+<h2>Schnelleinstieg (zum Mitexperimentieren)</h2>
+<pre><code class="language-bash"># Beides gleichzeitig (aus dem Projekt-Root)
+npm run dev
+
+# oder einzeln:
+cd apps/api &amp;&amp; npm run dev   # Backend → http://127.0.0.1:3789
+cd apps/web &amp;&amp; npm start     # Frontend → http://localhost:4201
+</code></pre>
+<h2>Weiterlesen – die „-now&quot;-Detaildokumente</h2>
+<ul>
+<li><strong><a href="BACKEND-now.md">BACKEND-now.md</a></strong> – aktueller Stand des Express-Backends</li>
+<li><strong><a href="API-now.md">API-now.md</a></strong> – der REST-Vertrag, wie er heute existiert</li>
+<li><strong><a href="FRONTEND-now.md">FRONTEND-now.md</a></strong> – aktueller Stand der Angular-App
+(inkl. der Modernisierung, die in <a href="FRONTEND.md">FRONTEND.md</a> noch nicht steht)</li>
+</ul>
+<h2>Verständnisfragen</h2>
+<ol>
+<li>Welche Funktion ist im Backend fertig, aber im Frontend noch nicht verdrahtet – und warum?</li>
+<li>Warum liest die Anwendung installierte Versionen aus dem Dateisystem statt über <code>nvm ls</code>?</li>
+<li>Was bedeutet „zoneless&quot;, und welcher Mechanismus ersetzt <code>zone.js</code>?</li>
+<li>Welcher Umbau in 0.6.0 verbesserte die Testbarkeit am stärksten und wieso?</li>
+</ol>
+<h2>Übungsaufgaben</h2>
+<ol>
+<li><strong>Stand verifizieren:</strong> Führe <code>npm test</code> aus und vergleiche die tatsächliche
+Testanzahl mit der hier genannten Größenordnung.</li>
+<li><strong>Feature-Landkarte:</strong> Öffne die laufende App und ordne jede sichtbare Card
+einem Eintrag der Funktionstabelle oben zu.</li>
+<li><strong>Lücke schließen (Konzept):</strong> Skizziere, welche Schritte nötig wären, um den
+SSE-Streaming-Endpunkt im Frontend zu nutzen (Stichwort <code>EventSource</code>).</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

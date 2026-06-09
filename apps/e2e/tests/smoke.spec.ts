@@ -15,7 +15,7 @@ test.describe('App-Layout', () => {
   });
 
   test('zeigt den Header', async ({ page }) => {
-    await expect(page.locator('app-app-header')).toBeVisible();
+    await expect(page.locator('app-header')).toBeVisible();
   });
 
   test('zeigt die Status-Card', async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('Aktions-Card – Eingabefeld', () => {
 
   test('enthält einen Installieren-Button', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('app-action-card').getByRole('button', { name: /installieren/i })).toBeVisible();
+    await expect(page.locator('app-action-card').getByRole('button', { name: 'Installieren', exact: true })).toBeVisible();
   });
 
   test('enthält einen Verwenden-Button', async ({ page }) => {

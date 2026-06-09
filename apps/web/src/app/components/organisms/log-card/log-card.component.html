@@ -1,11 +1,11 @@
 <app-card>
   <span card-title>Log</span>
 
-  @if (log.length === 0) {
+  @if (log().length === 0) {
     <p class="text--muted">Noch keine Aktionen ausgeführt.</p>
   } @else {
-    <ul class="log-list">
-      @for (entry of log; track entry.timestamp) {
+    <ul class="log-list" role="log" aria-live="polite" aria-relevant="additions">
+      @for (entry of log(); track entry.timestamp) {
         <li [class]="'log-entry log-entry--' + entry.type">
           <span class="log-entry__time">{{ entry.timestamp | date:'HH:mm:ss' }}</span>
           <span class="log-entry__message">{{ entry.message }}</span>

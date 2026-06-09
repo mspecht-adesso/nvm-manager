@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend – Änderungen im Rahmen der Refactoring-Reviews</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Backend – Änderungen im Rahmen der Refactoring-Reviews</h1>
+<blockquote>
+<p>Dokumentiert alle relevanten Backend-Änderungen, die im Zuge der
+Angular-Modernisierung (sonnet-findings-01.md und sonnet-findings-02.md)
+sowie der dazugehörigen Testinfrastruktur umgesetzt wurden.</p>
+</blockquote>
+<hr>
+<h2>Überblick</h2>
+<p>Die beiden Review-Runden fokussierten sich primär auf das Angular-Frontend.
+Dennoch entstanden auf Backend-Seite bedeutende Änderungen, die durch die
+neuen Frontend-Anforderungen ausgelöst wurden oder strukturell notwendig waren:</p>
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Änderung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NvmApiService</code></td>
+<td>Entfernung von <code>handleError</code> und aller <code>catchError</code>-Pipes</td>
+</tr>
+<tr>
+<td>Service-Architektur</td>
+<td>Schlanke HTTP-Methoden ohne eigene Fehlerbehandlung</td>
+</tr>
+<tr>
+<td>Testinfrastruktur</td>
+<td><code>createApp()</code>-Factory + Supertest-Integration</td>
+</tr>
+<tr>
+<td>Testabdeckung</td>
+<td>111 Backend-Tests (alle grün)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2><code>NvmApiService</code> – Vereinfachung des Service-Layers</h2>
+<p><strong>Datei:</strong> <code>apps/web/src/app/services/nvm-api.service.ts</code></p>
+<blockquote>
+<p>Obwohl der <code>NvmApiService</code> im Frontend (<code>apps/web</code>) liegt, ist er die
+einzige Kommunikationsschicht zum Backend. Änderungen hier wirken sich
+direkt auf das Fehlerverhalten der gesamten API-Kommunikation aus.</p>
+</blockquote>
+<h3>Vorher: Eigene <code>handleError</code>-Methode</h3>
+<p>Jede HTTP-Methode enthielt eine <code>.pipe(catchError(this.handleError))</code>-Kette.
+Das führte zu drei Problemen:</p>
+<ol>
+<li><strong>Fragilar <code>this</code>-Kontext:</strong> <code>catchError(this.handleError)</code> als
+Methodenreferenz – <code>this</code> war nur zufällig nicht relevant.</li>
+<li><strong>Redundanz:</strong> Fehlerbehandlung war auf alle Service-Methoden verteilt.</li>
+<li><strong>Wartbarkeit:</strong> Eine Änderung der Fehler-Normalisierung musste an jeder
+Methode einzeln nachgezogen werden.</li>
+</ol>
+<pre><code class="language-typescript">// Vorher
+getInstalledVersions(): Observable&lt;InstalledVersionsResponse&gt; {
+  return this.http.get&lt;InstalledVersionsResponse&gt;(&#39;/api/versions/installed&#39;)
+    .pipe(catchError(this.handleError));
+}
+
+private handleError(error: HttpErrorResponse): Observable&lt;never&gt; {
+  const message = error.error?.error ?? error.message;
+  return throwError(() =&gt; new Error(message));
+}
+</code></pre>
+<h3>Nachher: Delegierung an den zentralen <code>httpErrorInterceptor</code></h3>
+<p>Alle <code>catchError</code>-Pipes und <code>handleError</code> wurden vollständig entfernt.
+Die Normalisierung von <code>HttpErrorResponse</code> → <code>Error</code> übernimmt der in
+<code>sonnet-findings-02.md Schritt 4</code> eingeführte Interceptor.</p>
+<pre><code class="language-typescript">// Nachher – schlank und direkt
+getInstalledVersions(): Observable&lt;InstalledVersionsResponse&gt; {
+  return this.http.get&lt;InstalledVersionsResponse&gt;(&#39;/api/versions/installed&#39;);
+}
+</code></pre>
+<p><strong>Vorteil:</strong> Der Service enthält nur noch die fachliche Absicht (welcher
+Endpunkt, welches Typen-Mapping). Querschnittsaufgaben wie Fehler-Logging
+und -Normalisierung sind in dedizierten Querschnittsmodulen (<code>core/</code>) gebündelt.</p>
+<hr>
+<h2>Express-Backend: <code>createApp()</code>-Factory</h2>
+<p><strong>Datei:</strong> <code>apps/api/src/server.ts</code></p>
+<p>Im Rahmen der Test-Infrastruktur (Schritt 0.2.2 im Changelog) wurde
+<code>server.ts</code> so refaktoriert, dass die Express-App testbar wurde:</p>
+<pre><code class="language-typescript">// Vorher: App wurde direkt gestartet
+const app = express();
+app.use(cors(...));
+// ...
+app.listen(3789);
+
+// Nachher: Factory-Pattern
+export function createApp(): express.Application {
+  const app = express();
+  app.use(cors(...));
+  // ...
+  return app;
+}
+
+// Nur außerhalb von Tests starten
+if (process.env[&#39;NODE_ENV&#39;] !== &#39;test&#39;) {
+  createApp().listen(3789, &#39;127.0.0.1&#39;, () =&gt; { ... });
+}
+</code></pre>
+<p><strong>Warum wichtig:</strong> Supertest kann die App direkt einbinden, ohne dass ein
+TCP-Port geöffnet wird → keine Port-Konflikte, schnellere Tests, CI-sicher.</p>
+<hr>
+<h2>Testabdeckung Backend</h2>
+<p>Im Zuge des Refactorings entstand eine vollständige Testsuite:</p>
+<h3>Unit-Tests</h3>
+<p><strong><code>nvm.types.spec.ts</code></strong> (24 Tests)</p>
+<ul>
+<li><code>isValidVersionInput</code> – Shell-Injection-Schutz, Whitelist-Regex</li>
+<li><code>isValidAliasName</code>, <code>isValidAliasTarget</code> – Eingabevalidierung</li>
+<li><code>NvmError</code> – Typsicherheit und Fehlerpropagation</li>
+</ul>
+<p><strong><code>nvm.parser.spec.ts</code></strong> (22 Tests)</p>
+<ul>
+<li><code>parseInstalledVersions</code> – ANSI-Escape-Handling, aktive-Version-Erkennung</li>
+<li><code>parseRemoteVersions</code> – Sortierung, LTS-Markierung</li>
+<li><code>parseAliases</code> – <code>editable</code>/<code>deletable</code>-Schutzlogik</li>
+</ul>
+<p><strong><code>nvm.service.spec.ts</code></strong> (14 Tests, nach Migration auf <code>runNvmLsFast</code>)</p>
+<ul>
+<li><code>runNvm</code> und <code>spawnNvm</code> mit gemocktem <code>node:child_process</code></li>
+<li>Argument-Escaping-Verifikation</li>
+<li><code>runNvmLsFast</code> mit gemocktem <code>node:fs/promises</code> (Dateisystem-Reads)</li>
+</ul>
+<h3>Integrationstests</h3>
+<p><strong><code>nvm.routes.spec.ts</code></strong> (51+ Tests via Supertest)</p>
+<ul>
+<li>Alle HTTP-Endpunkte mit 200/400/500-Szenarien</li>
+<li>Eingabe-Validierung (ungültige Versionen, fehlende Body-Felder)</li>
+<li><code>NvmError</code>-Handling (korrekte HTTP-Statuscodes)</li>
+<li>SSE-Endpunkt (<code>GET /api/versions/available</code> Streaming-Verhalten)</li>
+</ul>
+<h3>Konfiguration</h3>
+<p><strong><code>apps/api/vitest.config.ts</code>:</strong></p>
+<pre><code class="language-typescript">thresholds: {
+  lines: 70,
+  functions: 70,
+  branches: 60
+}
+</code></pre>
+<hr>
+<h2><code>bash -lc</code> → <code>bash -c</code> (Performance)</h2>
+<p>Alle nvm-Shell-Aufrufe nutzten ursprünglich <code>bash -lc</code> (Login-Shell).
+Das lädt <code>.bash_profile</code>, <code>.bashrc</code> etc. vollständig — auf manchen Systemen
+dauert das mehrere Sekunden. Gelöst durch manuelle Umgebungsvariablen im
+<code>NVM_HEADER</code>:</p>
+<pre><code class="language-typescript">// Vorher
+execFile(&#39;bash&#39;, [&#39;-lc&#39;, `${NVM_HEADER} nvm ${args.join(&#39; &#39;)}`])
+
+// Nachher
+execFile(&#39;bash&#39;, [&#39;-c&#39;, `${NVM_HEADER} nvm ${args.join(&#39; &#39;)}`])
+// NVM_HEADER setzt NVM_DIR, HOME und sourcet nvm.sh explizit
+</code></pre>
+<hr>
+<h2><code>runNvmLsFast</code> – Dateisystem statt Shell</h2>
+<p><strong>Datei:</strong> <code>apps/api/src/nvm/nvm.service.ts</code></p>
+<p><code>GET /api/versions/installed</code> war zuvor ~20 Sekunden langsam, weil <code>nvm ls</code>
+eine vollständige Shell-Session startete. Ersetzt durch direktes Dateisystem-Lesen:</p>
+<pre><code class="language-typescript">// Vorher: ~20 Sekunden
+async function runNvmLs(): Promise&lt;string&gt; {
+  return runNvm(&#39;ls&#39;);  // Startet bash, sourcet nvm.sh, ruft nvm ls auf
+}
+
+// Nachher: &lt; 10 ms
+async function runNvmLsFast(): Promise&lt;InstalledVersionsResponse&gt; {
+  const nodeDir = path.join(nvmDir, &#39;versions/node&#39;);
+  const aliasDir = path.join(nvmDir, &#39;alias&#39;);
+  // Liest Verzeichniseinträge direkt mit node:fs/promises
+}
+</code></pre>
+<p>Speedup: <strong>~2000×</strong> für den häufigsten Endpunkt.</p>
+<hr>
+<h2>Zusammenfassung der Backend-Änderungen</h2>
+<table>
+<thead>
+<tr>
+<th>Datei</th>
+<th>Art der Änderung</th>
+<th>Warum</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>nvm-api.service.ts</code></td>
+<td><code>handleError</code> + <code>catchError</code> entfernt</td>
+<td>Zentraler Interceptor übernimmt</td>
+</tr>
+<tr>
+<td><code>server.ts</code></td>
+<td><code>createApp()</code>-Factory</td>
+<td>Supertest-Testbarkeit</td>
+</tr>
+<tr>
+<td><code>nvm.service.ts</code></td>
+<td><code>bash -lc</code> → <code>bash -c</code></td>
+<td>Performance</td>
+</tr>
+<tr>
+<td><code>nvm.service.ts</code></td>
+<td><code>runNvmLs</code> → <code>runNvmLsFast</code></td>
+<td>2000× schneller</td>
+</tr>
+<tr>
+<td><code>vitest.config.ts</code></td>
+<td>Coverage-Schwellenwerte</td>
+<td>Qualitätssicherung</td>
+</tr>
+<tr>
+<td><code>*.spec.ts</code> (111 Tests)</td>
+<td>Vollständige Testabdeckung</td>
+<td>CI-Sicherheitsnetz</td>
+</tr>
+</tbody></table>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

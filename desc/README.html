@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nvm-manager – Technische Dokumentation (Lernunterlagen)</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>nvm-manager – Technische Dokumentation (Lernunterlagen)</h1>
+<p>Dieses Verzeichnis enthält detaillierte technische Beschreibungen der
+Implementierung und Architektur des nvm-manager Projekts. Die Dokumente sind
+für die <strong>Aus- und Weiterbildung</strong> aufbereitet: Sie erklären nicht nur <em>was</em>
+der Code tut, sondern auch <em>warum</em> er so gebaut ist und <em>welche Konzepte</em>
+dahinterstehen.</p>
+<h2>Wie diese Unterlagen aufgebaut sind</h2>
+<p>Jedes Dokument folgt der gleichen didaktischen Struktur:</p>
+<ul>
+<li><strong>Lernziele</strong> – Was du nach dem Durcharbeiten verstanden haben solltest</li>
+<li><strong>Voraussetzungen</strong> – Welches Vorwissen hilfreich ist</li>
+<li><strong>Konzept-Boxen</strong> (mit dem Symbol 💡) – Erklären ein zugrundeliegendes Konzept
+(z.B. Promise, Observable, CORS) in wenigen Sätzen, bevor es im Code auftaucht</li>
+<li><strong>Code-Erklärungen</strong> – Der eigentliche Inhalt mit Bezug zu den Quelldateien</li>
+<li><strong>Glossar</strong> – Nachschlagewerk der Fachbegriffe</li>
+<li><strong>Verständnisfragen</strong> – Zur Selbstkontrolle</li>
+<li><strong>Übungsaufgaben</strong> – Zum aktiven Anwenden und Erweitern</li>
+</ul>
+<blockquote>
+<p><strong>Lern-Tipp:</strong> Öffne immer die genannte Quelldatei parallel im Editor und lies
+den echten Code mit. Die Dokumente nennen Dateipfade und Funktionsnamen
+bewusst, damit du hin- und herspringen kannst.</p>
+</blockquote>
+<h2>Empfohlener Lernpfad</h2>
+<p>Die Reihenfolge ist so gewählt, dass jedes Dokument auf dem vorherigen aufbaut:</p>
+<ol>
+<li><strong><a href="BACKEND.md">BACKEND.md</a></strong> – Wie führt eine Node.js/Express-Anwendung sicher
+Shell-Befehle aus? Hier lernst du Server-Grundlagen, Prozesssteuerung und
+Sicherheit kennen.</li>
+<li><strong><a href="API.md">API.md</a></strong> – Welche Schnittstelle (REST) bietet das Backend an?
+Hier lernst du HTTP-Verben, Request/Response-Design und Eingabevalidierung.</li>
+<li><strong><a href="FRONTEND.md">FRONTEND.md</a></strong> – Wie konsumiert eine moderne Angular-Anwendung
+diese API? Hier lernst du Komponenten, Signals und Datenfluss kennen.</li>
+</ol>
+<h2>Das Projekt in einem Satz</h2>
+<p>nvm-manager ist ein lokales Web-Dashboard, das die Kommandozeilen-Funktion <strong>nvm</strong>
+(Node Version Manager) über eine grafische Oberfläche bedienbar macht – aufgeteilt
+in ein <strong>Express-Backend</strong> (führt nvm aus) und ein <strong>Angular-Frontend</strong> (zeigt die UI).</p>
+<h2>Schnelleinstieg (zum Mitexperimentieren)</h2>
+<p>Das Projekt besteht aus zwei unabhängigen Apps:</p>
+<pre><code class="language-bash"># Backend starten
+cd apps/api &amp;&amp; npm run dev     # http://127.0.0.1:3789
+
+# Frontend starten (in separatem Terminal)
+cd apps/web &amp;&amp; npm start       # http://localhost:4201
+</code></pre>
+<p>Das Frontend proxyt <code>/api</code> automatisch an den Backend-Port.</p>
+<h2>Übergreifendes Glossar</h2>
+<p>Begriffe, die in mehreren Dokumenten vorkommen:</p>
+<table>
+<thead>
+<tr>
+<th>Begriff</th>
+<th>Kurzerklärung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>nvm</strong></td>
+<td><em>Node Version Manager</em>; ein Shell-Werkzeug zum Installieren und Wechseln mehrerer Node.js-Versionen</td>
+</tr>
+<tr>
+<td><strong>Backend</strong></td>
+<td>Server-Teil der Anwendung; hier nicht im Browser sichtbar, läuft als Node.js-Prozess</td>
+</tr>
+<tr>
+<td><strong>Frontend</strong></td>
+<td>Browser-Teil der Anwendung; die sichtbare Oberfläche (UI)</td>
+</tr>
+<tr>
+<td><strong>API</strong></td>
+<td><em>Application Programming Interface</em>; die definierte Schnittstelle, über die Frontend und Backend kommunizieren</td>
+</tr>
+<tr>
+<td><strong>REST</strong></td>
+<td>Architekturstil für Web-APIs; nutzt HTTP-Verben (GET, POST, DELETE) auf Ressourcen</td>
+</tr>
+<tr>
+<td><strong>Monorepo</strong></td>
+<td>Ein Git-Repository, das mehrere Anwendungen enthält (hier: <code>apps/api</code>, <code>apps/web</code>, <code>apps/e2e</code>)</td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>JavaScript mit statischen Typen; wird vor der Ausführung in JavaScript übersetzt</td>
+</tr>
+</tbody></table>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

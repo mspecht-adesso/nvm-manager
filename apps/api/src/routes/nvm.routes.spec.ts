@@ -1,5 +1,21 @@
+/**
+ * HTTP integration tests for all API routes.
+ *
+ * Uses `supertest` to issue real HTTP requests against the Express app created
+ * by `createApp()`. Both `nvm.service` and `nvm.parser` are fully mocked at
+ * the module boundary, so tests:
+ *   - run without nvm being installed,
+ *   - are deterministic (no real filesystem or network I/O),
+ *   - run in parallel without port conflicts (supertest uses ephemeral ports).
+ *
+ * Each test group focuses on a single endpoint and verifies:
+ *   1. Input validation (400 for invalid input, no shell call made).
+ *   2. Happy path (200 + expected JSON shape).
+ *   3. Error path (500 when the service throws `NvmError`).
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
+import { EventEmitter } from 'node:events';
 
 vi.mock('../nvm/nvm.service.js');
 vi.mock('../nvm/nvm.parser.js');
@@ -9,21 +25,26 @@ import * as parser from '../nvm/nvm.parser.js';
 import { createApp } from '../server.js';
 import { NvmError } from '../nvm/nvm.types.js';
 
-
 const app = createApp();
 
-const INSTALLED_STDOUT = '->     v22.11.0 (default)\n       v20.5.0';
+/** Sample raw stdout used by alias-related tests. */
 const ALIASES_STDOUT = 'default -> lts/* (-> v22.11.0)\nmy-alias -> v18.18.0';
+/** Sample raw stdout for remote-versions tests. */
 const REMOTE_STDOUT = '   v22.0.0   (Latest LTS: Jod)';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Prevent real GitHub API calls in the status endpoint by default.
   vi.mocked(svc.fetchNvmLatestVersion).mockResolvedValue(null);
   vi.mocked(svc.openNvmDir).mockResolvedValue(undefined);
 });
 
 // ── GET /api/status ────────────────────────────────────────────────────────────
 
+/**
+ * Status endpoint: verifies nvm-version reporting, optional `nvmLatestVersion`
+ * field, and the graceful `ok: false` response when nvm is unreachable.
+ */
 describe('GET /api/status', () => {
   it('gibt 200 mit nvm-Version zurück', async () => {
     vi.mocked(svc.runNvm).mockResolvedValue({ stdout: '0.39.7\n', stderr: '' });
@@ -164,6 +185,10 @@ describe('GET /api/versions/aliases', () => {
 
 // ── POST /api/versions/install ────────────────────────────────────────────────
 
+/**
+ * Install endpoint: covers all validation rejection cases, all valid version
+ * formats from the whitelist, and the 500 path when nvm fails.
+ */
 describe('POST /api/versions/install', () => {
   it('gibt 400 bei ungültiger Version zurück', async () => {
     const res = await request(app).post('/api/versions/install').send({ version: '../evil; rm -rf /' });
@@ -251,6 +276,10 @@ describe('POST /api/versions/uninstall', () => {
 
 // ── POST /api/versions/aliases ────────────────────────────────────────────────
 
+/**
+ * Alias creation endpoint: verifies that `lts/*` names are rejected (must use
+ * the dedicated LTS endpoint) and that both name and target are validated.
+ */
 describe('POST /api/versions/aliases', () => {
   it('gibt 400 bei ungültigem Alias-Namen zurück', async () => {
     const res = await request(app)
@@ -292,6 +321,10 @@ describe('POST /api/versions/aliases', () => {
 
 // ── DELETE /api/versions/aliases/:name ────────────────────────────────────────
 
+/**
+ * Alias deletion endpoint: ensures protected aliases (`default`, `node`,
+ * `stable`, `unstable`, `iojs`) cannot be deleted.
+ */
 describe('DELETE /api/versions/aliases/:name', () => {
   it('gibt 400 bei ungültigem Alias-Namen zurück', async () => {
     const res = await request(app).delete('/api/versions/aliases/1invalid');
@@ -319,8 +352,68 @@ describe('DELETE /api/versions/aliases/:name', () => {
   });
 });
 
+// ── POST /api/versions/aliases/lts ────────────────────────────────────────────
+
+describe('POST /api/versions/aliases/lts', () => {
+  it('gibt 400 bei ungültigem Codename zurück', async () => {
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: '../escape', version: '22' });
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 400 bei ungültigem Ziel zurück', async () => {
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: 'iron', version: '; evil' });
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 200 zurück und schreibt die LTS-Alias-Datei', async () => {
+    vi.mocked(svc.setLtsAliasFile).mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .post('/api/versions/aliases/lts')
+      .send({ codename: 'iron', version: '20.5.0' });
+
+    expect(res.status).toBe(200);
+    expect(svc.setLtsAliasFile).toHaveBeenCalledWith('iron', '20.5.0');
+  });
+});
+
+// ── DELETE /api/versions/aliases/lts/:codename ────────────────────────────────
+
+describe('DELETE /api/versions/aliases/lts/:codename', () => {
+  it('gibt 400 bei ungültigem Codename zurück', async () => {
+    const res = await request(app).delete('/api/versions/aliases/lts/has%20space');
+    expect(res.status).toBe(400);
+  });
+
+  it('gibt 200 zurück und löscht die LTS-Alias-Datei', async () => {
+    vi.mocked(svc.deleteLtsAliasFile).mockResolvedValue(undefined);
+
+    const res = await request(app).delete('/api/versions/aliases/lts/iron');
+
+    expect(res.status).toBe(200);
+    expect(svc.deleteLtsAliasFile).toHaveBeenCalledWith('iron');
+  });
+
+  it('gibt 500 zurück, wenn das Löschen fehlschlägt', async () => {
+    vi.mocked(svc.deleteLtsAliasFile).mockRejectedValue(new NvmError('ENOENT', '', ''));
+
+    const res = await request(app).delete('/api/versions/aliases/lts/ghost');
+    expect(res.status).toBe(500);
+  });
+});
+
 // ── GET /api/versions/install/stream ─────────────────────────────────────────
 
+/**
+ * SSE streaming endpoint: validates the `text/event-stream` response, and that
+ * stdout/stderr chunks and the `done` event appear in the body.
+ * `setImmediate` is used to emit child-process events after the handler has
+ * registered its listeners synchronously, avoiding cross-test timer leaks.
+ */
 describe('GET /api/versions/install/stream', () => {
   it('gibt 400 bei fehlender Version zurück', async () => {
     const res = await request(app).get('/api/versions/install/stream');
@@ -332,5 +425,38 @@ describe('GET /api/versions/install/stream', () => {
       .get('/api/versions/install/stream')
       .query({ version: '; evil' });
     expect(res.status).toBe(400);
+  });
+
+  it('streamt stdout/stderr als SSE und beendet bei close', async () => {
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter;
+      stderr: EventEmitter;
+      kill: () => void;
+    };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+
+    // Emit after the handler has registered its `data`/`close` listeners.
+    // `setImmediate` runs after the current synchronous block, so the listeners
+    // are in place before the events fire – no artificial delays needed.
+    vi.mocked(svc.spawnNvm).mockImplementation(() => {
+      setImmediate(() => {
+        child.stdout.emit('data', Buffer.from('Downloading v22'));
+        child.stderr.emit('data', Buffer.from('warn'));
+        child.emit('close', 0);
+      });
+      return child as never;
+    });
+
+    const res = await request(app)
+      .get('/api/versions/install/stream')
+      .query({ version: '22' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/event-stream');
+    expect(res.text).toContain('Downloading v22');
+    expect(res.text).toContain('"type":"stderr"');
+    expect(res.text).toContain('"type":"done"');
   });
 });

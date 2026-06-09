@@ -1,35 +1,35 @@
-import type { InstalledNodeVersion, NvmAlias, RemoteNodeVersion } from './nvm.types.js';
-
-// Strips ANSI escape sequences (color codes) from a string.
-const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
+import type { NvmAlias, RemoteNodeVersion } from './nvm.types.js';
 
 /**
- * Parses the stdout output of `nvm ls` into structured version objects.
+ * Pure parsers that turn raw nvm stdout into structured objects.
  *
- * Installed versions always appear at the start of a line (optionally with
- * leading whitespace and an optional `->` marker for the active version):
- *   ->     v22.11.0 (default)
- *          v20.18.0
- *          v18.20.7
- *
- * Alias/summary lines such as
- *   default -> v22.11.0 (-> v22.11.0)
- *   node -> stable (-> v22.11.0)
- *   lts/iron -> v20.19.1 (-> N/A)
- * are intentionally ignored.
+ * Kept free of side effects and I/O so they are trivially unit-testable
+ * (see `nvm.parser.spec.ts`).
  */
+
+/** Matches ANSI escape sequences (terminal colour codes) for stripping. */
+const ANSI_ESCAPE = /\x1b\[[0-9;]*[a-zA-Z]/g;
+
+/** Built-in aliases that nvm manages and that the UI must not allow deleting. */
+const PROTECTED_ALIASES = new Set(['default', 'node', 'stable', 'unstable', 'iojs']);
+
 /**
  * Parses the stdout output of `nvm alias` into structured alias objects.
  *
- * Each line format: <name> -> <target> [(-> <resolved>)] [(default)]
+ * Each line has the format: `<name> -> <target> [(-> <resolved>)] [(default)]`.
  * Examples:
- *   default -> lts/* (-> v22.20.0)
- *   node -> stable (-> v22.20.0) (default)
- *   lts/iron -> v20.19.1 (-> N/A)
- *   my-project -> v18.18.0
+ *   - `default -> lts/* (-> v22.20.0)`
+ *   - `node -> stable (-> v22.20.0) (default)`
+ *   - `lts/iron -> v20.19.1 (-> N/A)`
+ *   - `my-project -> v18.18.0`
+ *
+ * Lines without the ` -> ` separator are ignored. `resolved` falls back to the
+ * target itself when the target is already a concrete `vX.Y.Z` version.
+ *
+ * @param stdout - Raw output of `nvm alias` (may contain ANSI colour codes).
+ * @returns The parsed aliases, with `editable`/`deletable` flags derived from
+ *          whether the alias is an LTS or protected built-in alias.
  */
-const PROTECTED_ALIASES = new Set(['default', 'node', 'stable', 'unstable', 'iojs']);
-
 export function parseAliases(stdout: string): NvmAlias[] {
   return stdout
     .split('\n')
@@ -42,9 +42,12 @@ export function parseAliases(stdout: string): NvmAlias[] {
       const name = line.slice(0, arrowIdx).trim();
       const rest = line.slice(arrowIdx + 4);
 
+      // The target is the first whitespace-delimited token after the arrow.
       const targetMatch = /^(\S+)/.exec(rest);
       const target = targetMatch?.[1] ?? '';
 
+      // Prefer the explicit "(-> vX.Y.Z)" resolution; otherwise use the target
+      // if it is itself a concrete version, else leave unresolved (null).
       const resolvedMatch = /\(->\s*(v\d+\.\d+\.\d+)/.exec(rest);
       const resolvedFromMatch = resolvedMatch ? resolvedMatch[1] : null;
       const resolved = resolvedFromMatch ?? (/^v\d+\.\d+\.\d+$/.test(target) ? target : null);
@@ -55,6 +58,7 @@ export function parseAliases(stdout: string): NvmAlias[] {
         name,
         target,
         resolved,
+        // LTS aliases are managed via a dedicated file-based endpoint, not editable inline.
         editable: !isLts,
         deletable: !PROTECTED_ALIASES.has(name),
       };
@@ -66,12 +70,16 @@ export function parseAliases(stdout: string): NvmAlias[] {
  * Parses the stdout output of `nvm ls-remote` into structured version objects.
  *
  * `nvm ls-remote` includes LTS codenames inline, e.g.:
- *   v24.15.0   (LTS: Krypton)
- *   v24.16.0   (Latest LTS: Krypton)
- *   v25.0.0
+ *   - `v24.15.0   (LTS: Krypton)`
+ *   - `v24.16.0   (Latest LTS: Krypton)`
+ *   - `v25.0.0`
  *
- * A single call is sufficient – no separate `--lts` call needed.
- * Returns all versions in descending order (newest first).
+ * A single call is sufficient – no separate `--lts` call is needed. nvm prints
+ * versions oldest-first, so the result is reversed to newest-first for the UI.
+ * Lines without a recognisable version number are skipped.
+ *
+ * @param stdout - Raw output of `nvm ls-remote` (may contain ANSI colour codes).
+ * @returns All available versions, newest first.
  */
 export function parseRemoteVersions(stdout: string): RemoteNodeVersion[] {
   const versions: RemoteNodeVersion[] = [];
@@ -81,6 +89,7 @@ export function parseRemoteVersions(stdout: string): RemoteNodeVersion[] {
     const versionMatch = /v(\d+\.\d+\.\d+)/.exec(clean);
     if (!versionMatch) continue;
 
+    // Matches both "(LTS: Name)" and "(Latest LTS: Name)".
     const ltsMatch = /\((?:Latest\s+)?LTS:\s*([^)]+)\)/i.exec(clean);
 
     versions.push({
@@ -89,20 +98,6 @@ export function parseRemoteVersions(stdout: string): RemoteNodeVersion[] {
     });
   }
 
+  // nvm lists ascending; the UI expects newest first.
   return versions.reverse();
-}
-
-export function parseInstalledVersions(stdout: string): InstalledNodeVersion[] {
-  return stdout
-    .split('\n')
-    .map((line) => line.replace(ANSI_ESCAPE, ''))
-    // Only real version lines: optional whitespace, optional "->", whitespace, then "vX.Y.Z"
-    .filter((line) => /^\s*(->)?\s*v\d+\.\d+\.\d+/.test(line))
-    .map((line) => ({
-      version: (/v(\d+\.\d+\.\d+)/.exec(line) ?? [])[1] ?? '',
-      active: line.trim().startsWith('->'),
-      default: line.includes('(default)'),
-      system: line.includes('system'),
-    }))
-    .filter((v) => v.version !== '');
 }

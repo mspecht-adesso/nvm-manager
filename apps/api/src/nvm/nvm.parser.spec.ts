@@ -1,69 +1,18 @@
+/**
+ * Unit tests for the pure output-parsing functions in `nvm.parser.ts`.
+ *
+ * Tests use fixed stdout strings instead of spawning real nvm processes so
+ * they run instantly, offline, and without nvm being installed.
+ */
 import { describe, it, expect } from 'vitest';
-import { parseInstalledVersions, parseRemoteVersions, parseAliases } from './nvm.parser.js';
-
-// ── parseInstalledVersions ────────────────────────────────────────────────────
-
-describe('parseInstalledVersions', () => {
-  it('parst aktive Default-Version', () => {
-    const stdout = '->     v22.11.0 (default)\n       v20.5.0\n       system';
-    const result = parseInstalledVersions(stdout);
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ version: '22.11.0', active: true, default: true });
-    expect(result[1]).toMatchObject({ version: '20.5.0', active: false, default: false });
-  });
-
-  it('gibt leeres Array bei leerem stdout zurück', () => {
-    expect(parseInstalledVersions('')).toEqual([]);
-  });
-
-  it('ignoriert Alias- und Zusammenfassungszeilen', () => {
-    const stdout = [
-      '->     v22.11.0 (default)',
-      'default -> v22.11.0 (-> v22.11.0)',
-      'node -> stable (-> v22.11.0)',
-      'lts/iron -> v20.19.1 (-> N/A)',
-      '       v18.20.7',
-    ].join('\n');
-    const result = parseInstalledVersions(stdout);
-    expect(result).toHaveLength(2);
-    expect(result.map((v) => v.version)).toEqual(['22.11.0', '18.20.7']);
-  });
-
-  it('entfernt ANSI-Farbcodes', () => {
-    const stdout = '\x1b[32m->\x1b[0m     v20.0.0 (default)';
-    const result = parseInstalledVersions(stdout);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ version: '20.0.0', active: true, default: true });
-  });
-
-  it('markiert keine Version als aktiv wenn kein "->" vorhanden', () => {
-    const stdout = '       v18.20.7\n       v20.5.0';
-    const result = parseInstalledVersions(stdout);
-    expect(result.every((v) => !v.active)).toBe(true);
-  });
-
-  it('gibt system: false für normale Versionszeilen zurück', () => {
-    const stdout = '       v18.20.7';
-    const result = parseInstalledVersions(stdout);
-    expect(result[0].system).toBe(false);
-  });
-
-  it('parst mehrere Versionen korrekt', () => {
-    const stdout = [
-      '->     v22.11.0 (default)',
-      '       v20.18.0',
-      '       v18.20.7',
-    ].join('\n');
-    const result = parseInstalledVersions(stdout);
-    expect(result).toHaveLength(3);
-    expect(result[0].active).toBe(true);
-    expect(result[1].active).toBe(false);
-    expect(result[2].active).toBe(false);
-  });
-});
+import { parseRemoteVersions, parseAliases } from './nvm.parser.js';
 
 // ── parseRemoteVersions ───────────────────────────────────────────────────────
 
+/**
+ * `parseRemoteVersions` – converts raw `nvm ls-remote` stdout into a structured
+ * list of remote versions with optional LTS codenames.
+ */
 describe('parseRemoteVersions', () => {
   it('parst LTS-Versionen mit Codename', () => {
     const stdout = '   v20.19.1   (LTS: Iron)\n   v22.15.0   (Latest LTS: Jod)';
@@ -105,6 +54,10 @@ describe('parseRemoteVersions', () => {
 
 // ── parseAliases ──────────────────────────────────────────────────────────────
 
+/**
+ * `parseAliases` – converts raw `nvm alias` stdout into structured alias objects
+ * with `editable` and `deletable` flags derived from alias category.
+ */
 describe('parseAliases', () => {
   it('parst Standard-Alias mit aufgelöster Version', () => {
     const stdout = 'default -> lts/* (-> v22.20.0)';
@@ -129,7 +82,8 @@ describe('parseAliases', () => {
     ].join('\n');
     const result = parseAliases(stdout);
     result.forEach((a) => {
-      // Core aliases are editable but NOT deletable
+      // Built-in aliases (default, node, stable, unstable, iojs) are inline-editable
+      // but must never be deleted – so editable: true and deletable: false.
       expect(a.editable).toBe(true);
       expect(a.deletable).toBe(false);
     });
@@ -138,7 +92,9 @@ describe('parseAliases', () => {
   it('setzt editable/deletable korrekt für lts-Aliases', () => {
     const stdout = 'lts/iron -> v20.19.1 (-> N/A)';
     const result = parseAliases(stdout);
-    // LTS aliases use a dedicated endpoint → editable: false; but deletable
+    // LTS aliases must be changed via the dedicated POST /aliases/lts endpoint
+    // (nvm rejects `nvm alias lts/…`), so editable: false.
+    // They are not built-in and can be deleted → deletable: true.
     expect(result[0].editable).toBe(false);
     expect(result[0].deletable).toBe(true);
   });
@@ -156,7 +112,8 @@ describe('parseAliases', () => {
   });
 
   it('setzt resolved auf null wenn keine Version auflösbar', () => {
-    // target is not a concrete semver and (-> N/A) yields no resolvable version
+    // `(-> N/A)` means nvm could not resolve the target to a concrete version,
+    // and the target `lts/*` itself is not a semver → resolved must be null.
     const stdout = 'my-alias -> lts/* (-> N/A)';
     const result = parseAliases(stdout);
     expect(result[0].resolved).toBeNull();

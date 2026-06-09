@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontend – nvm-manager Angular-Anwendung</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Frontend – nvm-manager Angular-Anwendung</h1>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten dieses Dokuments kannst du:</p>
+<ul>
+<li>erklären, was eine Single-Page-Application (SPA) ist und wie Angular aufgebaut ist</li>
+<li>den Unterschied zwischen <strong>Standalone Components</strong> und dem alten NgModule-Modell benennen</li>
+<li>beschreiben, wie <strong>Angular Signals</strong> reaktiven Zustand (State) verwalten</li>
+<li>nachvollziehen, wie Komponenten über <code>@Input()</code> und <code>@Output()</code> Daten austauschen</li>
+<li>den Datenfluss von einem Klick bis zum Backend-Aufruf und zurück verfolgen</li>
+<li>das Gestaltungsprinzip <strong>Atomic Design</strong> (Atoms → Molecules → Organisms) einordnen</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li>Grundkenntnisse in TypeScript und HTML</li>
+<li>Du hast <a href="API.md">API.md</a> gelesen oder weißt, wie das Frontend mit dem Backend spricht</li>
+</ul>
+<blockquote>
+<p>💡 <strong>Konzept: Was ist ein &quot;Frontend&quot; und eine SPA?</strong>
+Das <strong>Frontend</strong> ist alles, was im Browser läuft und der Benutzer sieht. Eine
+<strong>Single-Page-Application (SPA)</strong> lädt einmalig eine HTML-Seite und tauscht danach
+nur noch Daten mit dem Server aus (per API), statt für jede Aktion eine komplett
+neue Seite zu laden. Das fühlt sich an wie eine Desktop-App. <strong>Angular</strong> ist ein
+Framework, das beim Bau solcher SPAs hilft – mit Komponenten, Datenbindung und
+Werkzeugen für HTTP-Kommunikation.</p>
+</blockquote>
+<h2>Überblick</h2>
+<p>Das Frontend ist eine <strong>Angular 17+ Single-Page-Application</strong> (<code>apps/web/</code>).
+Sie nutzt ausschließlich <strong>Standalone Components</strong> (kein NgModule), <strong>Angular Signals</strong>
+für State-Management und <code>HttpClient</code> für die Kommunikation mit dem Express-Backend.</p>
+<pre><code>apps/web/src/
+├── main.ts                         ← Bootstrap-Einstiegspunkt
+├── index.html
+├── styles.scss                     ← Globale Styles
+└── app/
+    ├── app.ts                      ← Root-Komponente (State + Aktions-Koordinator)
+    ├── app.html                    ← Root-Template
+    ├── app.scss
+    ├── app.config.ts               ← Angular-Konfiguration (Providers)
+    ├── app.routes.ts               ← Router-Konfiguration (aktuell leer)
+    ├── models/
+    │   └── nvm.models.ts           ← Alle TypeScript-Typen
+    ├── services/
+    │   ├── nvm-api.service.ts      ← HTTP-Service (einzige API-Kommunikation)
+    │   └── theme.service.ts        ← Light-/Dark-Mode-Verwaltung (Signal + localStorage)
+    └── components/
+        ├── atoms/
+        │   ├── spinner/            ← CSS-Spinner
+        │   └── loading-state/     ← Spinner + Nachricht
+        ├── molecules/
+        │   └── card/               ← Generischer Card-Wrapper
+        ├── organisms/
+        │   ├── app-header/         ← Kopfzeile mit aktiver Version
+        │   ├── status-card/        ← nvm-Verbindungsstatus
+        │   ├── action-card/        ← Eingabe für Install/Use/Default/Uninstall
+        │   ├── installed-versions-card/  ← Tabelle installierter Versionen
+        │   ├── aliases-card/       ← Alias-Verwaltung (CRUD)
+        │   ├── remote-versions-card/     ← Verfügbare Versionen + Suche
+        │   └── log-card/           ← Aktivitätslog
+        └── install-modal/          ← Fortschritts-Modal für Aktionen
+</code></pre>
+<h3>Abhängigkeiten</h3>
+<table>
+<thead>
+<tr>
+<th>Paket</th>
+<th>Version</th>
+<th>Zweck</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@angular/core</code></td>
+<td>^21.2.0</td>
+<td>Framework</td>
+</tr>
+<tr>
+<td><code>@angular/common</code></td>
+<td>^21.2.0</td>
+<td><code>DatePipe</code>, HTTP</td>
+</tr>
+<tr>
+<td><code>@angular/forms</code></td>
+<td>^21.2.0</td>
+<td><code>FormsModule</code> (Two-Way-Binding)</td>
+</tr>
+<tr>
+<td><code>@angular/router</code></td>
+<td>^21.2.0</td>
+<td>Router (vorbereitet)</td>
+</tr>
+<tr>
+<td><code>rxjs</code></td>
+<td>~7.8.0</td>
+<td>Observables für HTTP</td>
+</tr>
+<tr>
+<td><code>vitest</code></td>
+<td>^4.0.8</td>
+<td>Unit-Tests</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Bootstrap und Konfiguration</h2>
+<h3><code>main.ts</code></h3>
+<pre><code class="language-typescript">bootstrapApplication(App, appConfig);
+</code></pre>
+<p>Angular 17 Standalone-Bootstrap – kein <code>AppModule</code>. Die Root-Komponente <code>App</code>
+wird direkt mit einer Konfiguration gebootstrappt.</p>
+<blockquote>
+<p>💡 <strong>Konzept: Komponente, Standalone &amp; &quot;bootstrappen&quot;</strong>
+Eine <strong>Komponente</strong> ist ein wiederverwendbarer UI-Baustein aus drei Teilen:
+Logik (<code>.ts</code>), Darstellung (<code>.html</code>-Template) und Stil (<code>.scss</code>). Früher mussten
+Komponenten in <strong>NgModules</strong> (Sammelcontainer) registriert werden. Seit Angular 17
+sind <strong>Standalone Components</strong> der Standard: Jede Komponente deklariert ihre
+Abhängigkeiten selbst über <code>imports: [...]</code> – kein NgModule mehr nötig.
+<strong>Bootstrappen</strong> heißt: die Anwendung starten, indem die oberste Komponente in die
+Seite gehängt wird.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>Konzept: Dependency Injection (DI) &amp; <code>provide...</code></strong>
+Angular erzeugt benötigte Objekte (z.B. den <code>HttpClient</code>) selbst und &quot;spritzt&quot; sie
+dorthin, wo sie gebraucht werden – das nennt man <strong>Dependency Injection</strong>. Mit
+<code>provideHttpClient()</code> und <code>provideRouter()</code> sagt man Angular: &quot;Stelle diese
+Dienste bereit.&quot; Komponenten holen sie sich dann per <code>inject(...)</code>, ohne sie
+selbst zu erzeugen. Das macht Code testbarer und entkoppelt.</p>
+</blockquote>
+<h3><code>app.config.ts</code></h3>
+<pre><code class="language-typescript">export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideRouter(routes),
+    provideHttpClient(),
+  ],
+};
+</code></pre>
+<p><strong><code>provideHttpClient()</code></strong> registriert den <code>HttpClient</code> als Singleton.
+Kein <code>withFetch()</code> – der Standard-XHR-Adapter wird verwendet.</p>
+<p><strong><code>provideRouter(routes)</code></strong> aktiviert den Angular-Router. Die Routen-Konfiguration
+(<code>app.routes.ts</code>) ist aktuell leer (<code>Routes = []</code>) – es gibt nur eine einzige
+Ansicht. Die Router-Infrastruktur ist vorbereitet für spätere Erweiterungen
+(z.B. eine Einstellungs-Seite).</p>
+<h3>Proxy-Konfiguration (<code>proxy.conf.json</code>)</h3>
+<pre><code class="language-json">{ &quot;/api&quot;: { &quot;target&quot;: &quot;http://127.0.0.1:3789&quot;, &quot;secure&quot;: false, &quot;changeOrigin&quot;: true } }
+</code></pre>
+<p>Der Angular-Dev-Server (<code>ng serve</code>) leitet alle Requests an <code>/api/*</code> an den
+Express-Server weiter. Im Browser erscheinen alle Requests auf dem gleichen Origin
+(<code>localhost:4201</code>) – es gibt keine CORS-Probleme aus Sicht des Browsers.</p>
+<hr>
+<h2>State-Management: Angular Signals in der Root-Komponente</h2>
+<blockquote>
+<p>💡 <strong>Konzept: State und Angular Signals</strong>
+<strong>State</strong> (Zustand) sind die Daten, die sich zur Laufzeit ändern und die Anzeige
+bestimmen – z.B. &quot;lädt gerade&quot;, &quot;Liste der Versionen&quot;. Ein <strong>Signal</strong> ist ein
+Container für einen solchen Wert: Mit <code>signal(0)</code> erstellt man ihn, mit <code>wert()</code>
+liest man ihn, mit <code>.set(...)</code> oder <code>.update(...)</code> ändert man ihn. Das Besondere:
+Angular merkt automatisch, <em>wo</em> ein Signal im Template gelesen wird, und
+aktualisiert genau diese Stellen, wenn sich der Wert ändert – das nennt man
+<strong>Reaktivität</strong>. Ein <code>computed(...)</code> ist ein abgeleitetes Signal, das sich
+automatisch neu berechnet, wenn sich seine Quellen ändern.</p>
+</blockquote>
+<h3>Designentscheidung: State in der Root</h3>
+<p>Die <code>App</code>-Komponente hält den gesamten applikationsweiten State als Signals:</p>
+<pre><code class="language-typescript">// apps/web/src/app/app.ts
+readonly log              = signal&lt;LogEntry[]&gt;([]);
+readonly isLoading        = signal(false);
+readonly installedVersions = signal&lt;InstalledNodeVersion[]&gt;([]);
+readonly installedRaw     = signal(&#39;&#39;);
+readonly installedLoading = signal(false);
+readonly installModal     = signal&lt;InstallModalState&gt;(null);
+readonly prefillVersion   = signal(&#39;&#39;);
+readonly aliasesRefreshTrigger = signal(0);
+
+readonly activeVersion    = computed(() =&gt;
+  this.installedVersions().find((v) =&gt; v.active)
+);
+</code></pre>
+<p><strong>Warum State in der Root und nicht in den Cards?</strong>
+Mehrere Cards reagieren auf dieselben Zustandsänderungen:</p>
+<ul>
+<li><code>isLoading</code> blockiert gleichzeitig ActionCard-Buttons und InstalledVersionsCard-Buttons</li>
+<li>Nach <code>onInstall()</code> oder <code>onUseFromList()</code> muss sowohl das Modal aktualisiert
+als auch <code>loadInstalledVersions()</code> aufgerufen werden</li>
+<li><code>installedVersions</code> wird zusätzlich als <code>@Input()</code> an die <code>AliasesCardComponent</code>
+weitergegeben, damit deren Dropdowns alle installierten Versionen auflisten können</li>
+</ul>
+<p>State in der Root macht diese Abhängigkeiten explizit und verhindert Prop-Drilling
+über mehrere Ebenen sowie inkonsistente Zustände zwischen Geschwister-Komponenten.</p>
+<p><strong>Warum Signals statt NgRx oder Akita?</strong>
+Der State ist überschaubar: 7 Signals, 1 computed. Eine externe State-Management-
+Bibliothek würde deutlich mehr Boilerplate erzeugen (Actions, Reducers, Effects,
+Selectors) als die Problemstellung rechtfertigt. Angular Signals sind seit Angular 17
+stabil und first-class, ohne externe Abhängigkeiten.</p>
+<h3><code>aliasesRefreshTrigger</code> – das Cross-Component-Refresh-Pattern</h3>
+<p>Die <code>AliasesCardComponent</code> hat ihren eigenen API-Aufruf (sie verwaltet lokalen
+Alias-Editing-State). Wenn die Root eine Version als Default setzt oder aktiviert,
+ändert sich auch der <code>default</code>-Alias. Die Root kann die Card nicht direkt
+&quot;refreshen&quot; – aber sie kann einen Trigger inkrementieren:</p>
+<pre><code class="language-typescript">this.aliasesRefreshTrigger.update((n) =&gt; n + 1);
+</code></pre>
+<p><code>AliasesCardComponent</code> empfängt dies als <code>@Input() refreshTrigger</code>:</p>
+<pre><code class="language-typescript">@Input() set refreshTrigger(value: number) {
+  if (value &gt; 0) this.load();
+}
+</code></pre>
+<p>Der Setter ruft <code>load()</code> auf, sobald sich der Wert ändert.</p>
+<h3><code>aliasChanged</code> – Rückmeldung nach Alias-Mutationen</h3>
+<p>Umgekehrt gibt die <code>AliasesCardComponent</code> per <code>@Output() aliasChanged</code> Bescheid,
+wenn der Benutzer einen Alias geändert hat. Das Template verbindet:</p>
+<pre><code class="language-html">&lt;app-aliases-card
+  [refreshTrigger]=&quot;aliasesRefreshTrigger()&quot;
+  [installedVersions]=&quot;installedVersions()&quot;
+  (logged)=&quot;onLogged($event)&quot;
+  (aliasChanged)=&quot;loadInstalledVersions()&quot;
+/&gt;
+</code></pre>
+<p><code>loadInstalledVersions()</code> lädt die Versions-Liste neu – dadurch stimmen Default-Badge
+und die Dropdown-Inhalte wieder mit dem aktuellen Zustand überein.</p>
+<hr>
+<h2>ThemeService</h2>
+<p><strong>Datei:</strong> <code>apps/web/src/app/services/theme.service.ts</code></p>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class ThemeService {
+  readonly theme = signal&lt;&#39;light&#39; | &#39;dark&#39;&gt;(this.resolveInitialTheme());
+  toggle(): void { ... }
+}
+</code></pre>
+<p>Verwaltet das UI-Theme der Anwendung:</p>
+<ul>
+<li><strong><code>theme</code></strong> – Signal mit dem aktuellen Theme (<code>&#39;light&#39;</code> | <code>&#39;dark&#39;</code>)</li>
+<li><strong><code>toggle()</code></strong> – wechselt das Theme und schreibt die Wahl in <code>localStorage</code></li>
+<li><strong>Initialisierung</strong> – liest zuerst <code>localStorage</code>; fällt auf <code>prefers-color-scheme</code>
+zurück; Default ist <code>&#39;light&#39;</code></li>
+<li><strong>Anwendung</strong> – ein <code>effect()</code> setzt <code>data-theme</code> auf <code>&lt;html&gt;</code>, sodass alle
+CSS Custom Properties in <code>:root</code> / <code>[data-theme=&quot;dark&quot;]</code> reaktiv greifen</li>
+</ul>
+<p><strong>Warum <code>data-theme</code>-Attribut statt CSS-Klasse?</strong>
+Das Attribut-Selector-Pattern <code>[data-theme=&quot;dark&quot;]</code> macht die Absicht expliziter
+als eine generische <code>.dark</code>-Klasse und vermeidet potenzielle Konflikte mit
+externen CSS-Bibliotheken.</p>
+<p><strong>CSS-Architektur:</strong>
+<code>styles.scss</code> definiert in <code>:root</code> alle farbrelevanten Tokens als CSS Custom
+Properties (<code>--color-primary</code>, <code>--color-surface</code> usw.). <code>[data-theme=&quot;dark&quot;]</code>
+überschreibt diese mit Dunkelton-Werten. Alle Komponenten-SCSS-Dateien nutzen
+ausschließlich <code>var(--color-*)</code> – keine hartcodierten Hex-Werte mehr.</p>
+<hr>
+<h2>NvmApiService</h2>
+<p><strong>Datei:</strong> <code>apps/web/src/app/services/nvm-api.service.ts</code></p>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class NvmApiService {
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = &#39;/api&#39;;
+</code></pre>
+<p><strong><code>providedIn: &#39;root&#39;</code></strong> → Singleton, automatisch im Root-Injector registriert.
+Keine explizite Deklaration in <code>providers</code> nötig.</p>
+<blockquote>
+<p>💡 <strong>Konzept: Observable &amp; RxJS (vs. Promise)</strong>
+Angulars <code>HttpClient</code> liefert ein <strong>Observable</strong> statt eines Promise. Ein
+Observable ist ein &quot;Datenstrom&quot;, den man <strong>abonniert</strong> (<code>.subscribe(...)</code>):
+sobald die Antwort eintrifft, wird der <code>next</code>-Callback aufgerufen; bei einem
+Fehler der <code>error</code>-Callback. Anders als ein Promise kann ein Observable mehrere
+Werte über die Zeit liefern und mit Operatoren wie <code>.pipe(catchError(...))</code>
+verarbeitet werden. Die Bibliothek dahinter heißt <strong>RxJS</strong>. Merksatz: Solange
+niemand <code>subscribe</code> aufruft, passiert nichts – der HTTP-Request wird erst beim
+Abonnieren tatsächlich abgeschickt.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>Konzept: Singleton</strong>
+Ein <strong>Singleton</strong> ist ein Objekt, von dem es in der gesamten Anwendung nur <em>eine</em>
+Instanz gibt. <code>providedIn: &#39;root&#39;</code> macht den <code>NvmApiService</code> zum Singleton – alle
+Komponenten teilen sich denselben Service.</p>
+</blockquote>
+<p>Alle Methoden geben <code>Observable&lt;T&gt;</code> zurück:</p>
+<table>
+<thead>
+<tr>
+<th>Methode</th>
+<th>HTTP</th>
+<th>Endpunkt</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>getStatus()</code></td>
+<td>GET</td>
+<td><code>/api/status</code></td>
+</tr>
+<tr>
+<td><code>getInstalledVersions()</code></td>
+<td>GET</td>
+<td><code>/api/versions/installed</code></td>
+</tr>
+<tr>
+<td><code>getRemoteVersions()</code></td>
+<td>GET</td>
+<td><code>/api/versions/remote</code></td>
+</tr>
+<tr>
+<td><code>installVersion(version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/install</code></td>
+</tr>
+<tr>
+<td><code>useVersion(version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/use</code></td>
+</tr>
+<tr>
+<td><code>setDefaultVersion(version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/default</code></td>
+</tr>
+<tr>
+<td><code>setStableVersion(version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/stable</code></td>
+</tr>
+<tr>
+<td><code>uninstallVersion(version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/uninstall</code></td>
+</tr>
+<tr>
+<td><code>getAliases()</code></td>
+<td>GET</td>
+<td><code>/api/versions/aliases</code></td>
+</tr>
+<tr>
+<td><code>setAlias(name, target)</code></td>
+<td>POST</td>
+<td><code>/api/versions/aliases</code></td>
+</tr>
+<tr>
+<td><code>setLtsAlias(codename, version)</code></td>
+<td>POST</td>
+<td><code>/api/versions/aliases/lts</code></td>
+</tr>
+<tr>
+<td><code>deleteAlias(name)</code></td>
+<td>DELETE</td>
+<td><code>/api/versions/aliases/:name</code></td>
+</tr>
+<tr>
+<td><code>deleteLtsAlias(codename)</code></td>
+<td>DELETE</td>
+<td><code>/api/versions/aliases/lts/:codename</code></td>
+</tr>
+</tbody></table>
+<p><strong>Error-Handling:</strong></p>
+<pre><code class="language-typescript">private handleError(err: HttpErrorResponse): Observable&lt;never&gt; {
+  const message = err.error?.error ?? err.message;
+  return throwError(() =&gt; new Error(message));
+}
+</code></pre>
+<p><code>err.error?.error</code> extrahiert die <code>error</code>-Property aus der JSON-Fehlerantwort
+des Express-Backends. Liegt kein strukturierter Fehler vor (z.B. Netzwerkfehler),
+wird <code>err.message</code> des Angular-<code>HttpErrorResponse</code> verwendet.</p>
+<hr>
+<h2>Komponenten im Detail</h2>
+<blockquote>
+<p>💡 <strong>Konzept: <code>@Input()</code>, <code>@Output()</code> und der Datenfluss</strong>
+Komponenten kommunizieren über zwei Richtungen: Ein <strong><code>@Input()</code></strong> ist ein Wert,
+den die <em>Eltern</em>-Komponente an das <em>Kind</em> hineingibt (Daten fließen <strong>nach unten</strong>).
+Ein <strong><code>@Output()</code></strong> ist ein <code>EventEmitter</code>, mit dem das Kind ein Ereignis an die
+Eltern meldet (Meldungen fließen <strong>nach oben</strong>), z.B. &quot;Button wurde geklickt&quot;. So
+bleibt der Datenfluss vorhersehbar und gerichtet.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>Konzept: &quot;Smart&quot; vs. &quot;Dumb&quot; Components</strong>
+Eine verbreitete Aufteilung: <strong>Dumb</strong> (Präsentations-)Komponenten bekommen alle
+Daten per <code>@Input()</code> und melden Aktionen per <code>@Output()</code> – sie kennen das Backend
+nicht und sind dadurch leicht wiederverwendbar und testbar. <strong>Smart</strong>
+(Container-)Komponenten koordinieren den State und rufen Services/Backend auf.
+Hier ist <code>App</code> die zentrale Smart-Komponente; die meisten Cards sind Dumb.</p>
+</blockquote>
+<h3><code>App</code> – Root-Komponente</h3>
+<p><strong>Selector:</strong> <code>app-root</code>
+<strong>Datei:</strong> <code>apps/web/src/app/app.ts</code></p>
+<p>Die Root-Komponente ist der zentrale Koordinator der Anwendung:</p>
+<ul>
+<li><strong>Hält</strong> den gesamten appweiten State (Signals)</li>
+<li><strong>Koordiniert</strong> alle Aktionen (install, use, setDefault, uninstall)</li>
+<li><strong>Delegiert</strong> Darstellung vollständig an Child-Komponenten</li>
+<li><strong>Verwaltet</strong> das Log (max. 20 Einträge, neueste zuerst)</li>
+</ul>
+<pre><code class="language-typescript">private addLog(message: string, type: LogEntry[&#39;type&#39;]): void {
+  const trimmed = message.replace(/\s+/g, &#39; &#39;).trim();
+  this.log.update((entries) =&gt; [
+    { message: trimmed, type, timestamp: new Date() },
+    ...entries.slice(0, 19),
+  ]);
+}
+</code></pre>
+<p><code>ngOnInit()</code> lädt beim App-Start sofort die installierten Versionen.</p>
+<hr>
+<h3><code>AppHeaderComponent</code> – Kopfzeile</h3>
+<p><strong>Selector:</strong> <code>app-app-header</code>
+<strong>Input:</strong> <code>activeVersion: InstalledNodeVersion | undefined</code></p>
+<p>Zeigt den App-Titel, die aktuell aktive Node-Version und den Theme-Toggle-Button.
+Kein eigener State, keine eigenen HTTP-Aufrufe. Injiziert den <code>ThemeService</code>, um
+den Toggle-Button an <code>themeService.toggle()</code> zu binden und das aktuelle Symbol
+reaktiv aus <code>themeService.theme()</code> zu lesen.</p>
+<hr>
+<h3><code>StatusCardComponent</code> – nvm-Status</h3>
+<p><strong>Selector:</strong> <code>app-status-card</code>
+<strong>Eigener State:</strong></p>
+<ul>
+<li><code>status = signal&lt;NvmStatus | null&gt;(null)</code> – nvm-Status inkl. aktueller und neuester Version</li>
+<li><code>loading = signal(false)</code></li>
+<li><code>openingDir = signal(false)</code> – Lade-Zustand für „Ordner öffnen&quot;-Aktion</li>
+<li><code>openDirError = signal&lt;string | null&gt;(null)</code> – Fehlermeldung, auto-cleared nach 5 s</li>
+<li><code>updateAvailable = computed(...)</code> – <code>true</code> wenn <code>nvmVersion !== nvmLatestVersion</code></li>
+</ul>
+<p><strong>Output:</strong> <code>nvmUpdate: EventEmitter&lt;string&gt;</code> – emittiert die Zielversion wenn der Update-Button geklickt wird</p>
+<p>Lädt in <code>ngOnInit()</code> automatisch via <code>NvmApiService.getStatus()</code>.
+Zeigt nvm-Version, NVM_DIR und Verbindungsstatus an. Wenn <code>nvmLatestVersion</code> vorhanden
+und von <code>nvmVersion</code> verschieden ist, wird ein „Aktualisieren&quot;-Button eingeblendet.
+Klick auf diesen Button emittiert <code>nvmUpdate</code> mit der Zielversion nach oben an <code>App</code>.</p>
+<p>Neben dem NVM_DIR-Pfad befindet sich ein Icon-Button (Ordner-Symbol), der via
+<code>POST /api/nvm/open-dir</code> den Ordner im nativen Dateimanager öffnet (Finder auf macOS,
+xdg-open auf Linux). Der Button ist vollständig in der Komponente selbst abgewickelt –
+kein Event nach außen, da kein Modal benötigt wird.</p>
+<p>Hat eine eigene <code>load()</code>-Methode für manuelles Neuladen des Status. <code>ngOnDestroy</code>
+räumt den Error-Auto-Clear-Timer auf.</p>
+<p><strong>Warum eigenständig?</strong>
+Der Status ist unabhängig vom Rest der Anwendung und ändert sich nicht durch
+normale Benutzeraktionen. Er wird einmalig beim Start geladen und kann manuell
+aktualisiert werden – kein Grund, ihn in der Root-Komponente zu halten.
+Das nvm-Update wird hingegen über den <code>nvmUpdate</code>-Output nach oben delegiert,
+da die Root-Komponente das globale Modal steuert.</p>
+<hr>
+<h3><code>ActionCardComponent</code> – Aktions-Eingabe</h3>
+<p><strong>Selector:</strong> <code>app-action-card</code>
+<strong>Inputs:</strong></p>
+<ul>
+<li><code>isLoading: boolean</code> – deaktiviert Buttons während laufender Aktion</li>
+<li><code>set prefillVersion(v: string)</code> – befüllt das Eingabefeld (z.B. nach Klick auf eine Version in der Liste)</li>
+</ul>
+<p><strong>Outputs:</strong> <code>install</code>, <code>use</code>, <code>setDefault</code>, <code>uninstall</code> – alle <code>EventEmitter&lt;string&gt;</code></p>
+<pre><code class="language-typescript">@Input() set prefillVersion(v: string) {
+  if (v) this.versionInput = v;
+}
+</code></pre>
+<p>Der Setter prüft auf Nicht-Leer-String, um ein Zurücksetzen des Feldes beim
+initialen <code>&#39;&#39;</code>-Wert zu verhindern.</p>
+<p>Die Komponente ist eine reine <strong>Smart-Input-Komponente</strong>: Sie verwaltet das
+Eingabefeld lokal (<code>versionInput = &#39;22&#39;</code>) und emittiert den Wert nach oben.
+Sie führt selbst keine HTTP-Aufrufe durch.</p>
+<hr>
+<h3><code>InstalledVersionsCardComponent</code> – Installierte Versionen</h3>
+<p><strong>Selector:</strong> <code>app-installed-versions-card</code>
+<strong>Inputs:</strong> <code>versions</code>, <code>raw</code>, <code>loading</code>, <code>isLoading</code>
+<strong>Outputs:</strong> <code>useVersion: EventEmitter&lt;string&gt;</code>, <code>uninstallVersion: EventEmitter&lt;string&gt;</code>, <code>refresh: EventEmitter&lt;void&gt;</code></p>
+<p>Zeigt eine Tabelle aller installierten Node-Versionen mit Badges für <code>Aktiv</code>,
+<code>Default</code>, <code>stable</code>, <code>unstable</code> und <code>iojs</code>. Jede Zeile hat zwei Aktionsbuttons:</p>
+<ul>
+<li><strong>Verwenden</strong> – deaktiviert wenn <code>isLoading</code> oder <code>v.active</code></li>
+<li><strong>Deinstallieren</strong> – deaktiviert wenn <code>isLoading</code>, <code>v.active</code> oder <code>v.system</code>; emittiert <code>uninstallVersion</code></li>
+</ul>
+<p>Die Aktionsspalte nutzt <code>.td-actions</code> (Flexbox mit <code>gap</code>) für einheitlichen Button-Abstand.</p>
+<p>Nutzt das Angular 17 <strong>Control Flow Template-Syntax</strong> (<code>@if</code>, <code>@for</code>, <code>@else</code>):</p>
+<pre><code class="language-html">@if (loading) {
+  &lt;app-loading-state message=&quot;Lade installierte Versionen ...&quot; /&gt;
+} @else if (versions.length &gt; 0) {
+  &lt;table ...&gt;
+    @for (v of versions; track v.version) { ... }
+  &lt;/table&gt;
+}
+</code></pre>
+<p>Zeigt optional die rohe nvm-Ausgabe in einem <code>&lt;details&gt;</code>-Element.</p>
+<hr>
+<h3><code>AliasesCardComponent</code> – Alias-Verwaltung</h3>
+<p><strong>Selector:</strong> <code>app-aliases-card</code>
+<strong>Inputs:</strong></p>
+<ul>
+<li><code>set refreshTrigger(value: number)</code> – Trigger von der Root für externen Refresh</li>
+<li><code>installedVersions: InstalledNodeVersion[]</code> – Liste aller installierten Versionen für Dropdowns</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li><code>logged: EventEmitter&lt;LogEvent&gt;</code> – Fehler und Infos an die Root-Komponente</li>
+<li><code>aliasChanged: EventEmitter&lt;void&gt;</code> – nach jeder Alias-Änderung, triggert Root-Refresh</li>
+</ul>
+<p><strong>Eigener State:</strong> <code>aliases</code>, <code>loading</code>, <code>editingAlias</code>, <code>editingLtsAlias</code>, <code>ltsEditVersion</code> (alle Signals)</p>
+<p>Die komplexeste Card – sie verwaltet vollständiges CRUD für Aliases:</p>
+<ul>
+<li><strong>Laden:</strong> <code>load()</code> ruft <code>getAliases()</code> auf und setzt <code>aliases</code>-Signal</li>
+<li><strong>Inline-Editing (reguläre Aliases):</strong> <code>startEdit(alias)</code> öffnet Dropdown mit
+allen <code>installedVersions</code>; vorselektiert die aktuell aufgelöste Version.
+<code>saveAlias()</code> ruft <code>setAlias()</code> auf. <code>cancelEdit()</code> bricht ab.</li>
+<li><strong>LTS-Alias bearbeiten:</strong> <code>startLtsEdit(alias)</code> öffnet Dropdown mit nur den
+<strong>kompatiblen Versionen</strong> (passende Major-Version). <code>saveLtsAlias()</code> ruft
+<code>setLtsAlias(codename, version)</code> auf.</li>
+<li><strong>Default/Stable setzen:</strong> <code>setAsDefault(alias)</code> und <code>setAsStable(alias)</code> rufen
+<code>setDefaultVersion(alias.name)</code> bzw. <code>setStableVersion(alias.name)</code> auf.</li>
+<li><strong>Erstellen:</strong> Formular mit <code>newAliasName</code>/<code>newAliasTarget</code>, abgesetzt via <code>createAlias()</code></li>
+<li><strong>Löschen:</strong> <code>deleteAlias(name)</code> mit <code>confirm()</code>-Dialog; leitet <code>lts/</code>-Namen
+automatisch an <code>deleteLtsAlias(codename)</code> weiter.</li>
+<li><strong>Refresh:</strong> Nach jeder erfolgreichen Änderung emittiert die Komponente
+<code>aliasChanged</code> – die Root-Komponente reagiert mit <code>loadInstalledVersions()</code>.</li>
+</ul>
+<p><strong><code>ltsCompatibleVersions(alias)</code>:</strong></p>
+<pre><code class="language-typescript">ltsCompatibleVersions(alias: NvmAlias): InstalledNodeVersion[] {
+  if (alias.name === &#39;lts/*&#39;) return this.installedVersions;
+  const majorMatch = /^v?(\d+)\./.exec(alias.target);
+  const major = majorMatch?.[1];
+  const filtered = this.installedVersions.filter((v) =&gt; v.version.startsWith(`${major}.`));
+  return filtered.length &gt; 0 ? filtered : this.installedVersions;
+}
+</code></pre>
+<p>Filtert <code>installedVersions</code> auf die zum LTS passende Major-Version (z.B. nur 20.x
+für <code>lts/iron</code>). Fällt auf alle Versionen zurück, falls keine passenden gefunden werden.</p>
+<p><strong>Warum eigenständiger HTTP-Aufruf statt State von der Root?</strong>
+Alias-State interagiert mit Alias-spezifischem UI-State (welcher Alias wird gerade
+editiert, neue Alias-Eingabefelder). Dieser lokale State gehört zur Komponente.
+Die Root greift via <code>aliasesRefreshTrigger</code> ein, wenn sich externe Aliases
+(z.B. <code>default</code>) geändert haben, und wird via <code>aliasChanged</code> über Mutations informiert.</p>
+<p>Fehler werden nicht per Log-Signal nach oben propagiert, sondern via
+<code>@Output() logged</code>-EventEmitter – das Root-Template verbindet diesen mit
+<code>(logged)=&quot;onLogged($event)&quot;</code>.</p>
+<hr>
+<h3><code>RemoteVersionsCardComponent</code> – Verfügbare Versionen</h3>
+<p><strong>Selector:</strong> <code>app-remote-versions-card</code>
+<strong>Inputs:</strong> <code>installedVersions: InstalledNodeVersion[]</code>, <code>isLoading: boolean</code>
+<strong>Outputs:</strong> <code>install: EventEmitter&lt;string&gt;</code>, <code>logged: EventEmitter&lt;LogEvent&gt;</code></p>
+<p><strong>Wichtig:</strong> Lädt <strong>nicht</strong> automatisch beim Initialisieren – kein <code>ngOnInit()</code>.
+Nur bei explizitem Benutzerklick wird <code>load()</code> aufgerufen.</p>
+<p><strong>Warum lazy?</strong> <code>nvm ls-remote</code> macht eine Netzwerkanfrage an nodejs.org und kann
+mehrere Sekunden dauern. Beim App-Start würde das die wahrgenommene Performance
+verschlechtern und unnötig Netzwerktraffic erzeugen.</p>
+<p><strong>Filterung via computed Signals:</strong></p>
+<pre><code class="language-typescript">readonly filteredVersions = computed(() =&gt; {
+  const installedSet = new Set(this.installedVersions.map((v) =&gt; v.version));
+  const query = this.remoteSearch().trim().toLowerCase();
+  const available = this.remoteVersions().filter((v) =&gt; !installedSet.has(v.version));
+  if (query) {
+    return available
+      .filter((v) =&gt; v.version.includes(query) || (v.lts?.toLowerCase().includes(query) ?? false))
+      .slice(0, 100);
+  }
+  return available.slice(0, 30);
+});
+</code></pre>
+<ul>
+<li>Zeigt nur Versionen, die noch <strong>nicht</strong> installiert sind (filtert <code>installedSet</code> heraus)</li>
+<li>Ohne Suche: max. <strong>30</strong> Versionen (Performance bei &gt;500 Versionen)</li>
+<li>Mit Suche: max. <strong>100</strong> Versionen</li>
+<li>Suche funktioniert über Versionsnummer <strong>und</strong> LTS-Codename</li>
+</ul>
+<p><code>availableCount</code> (computed) zählt alle nicht-installierten Versionen für die UI-Anzeige.</p>
+<hr>
+<h3><code>LogCardComponent</code> – Aktivitätslog</h3>
+<p><strong>Selector:</strong> <code>app-log-card</code>
+<strong>Input:</strong> <code>log: LogEntry[]</code></p>
+<p>Reines Anzeigelement. Rendert <code>LogEntry[]</code> als zeitgestempelte Liste mit
+farblicher Kennzeichnung nach <code>type</code> (<code>success</code>, <code>error</code>, <code>info</code>).
+Nutzt <code>DatePipe</code> aus <code>@angular/common</code> für die Zeitstempel-Formatierung.</p>
+<p>Max. 20 Einträge (begrenzt in <code>App.addLog()</code> via <code>.slice(0, 19)</code>).</p>
+<hr>
+<h3><code>InstallModalComponent</code> – Fortschritts-Modal</h3>
+<p><strong>Selector:</strong> <code>app-install-modal</code>
+<strong>Input:</strong> <code>state: InstallModalState</code>
+<strong>Output:</strong> <code>closed: EventEmitter&lt;void&gt;</code></p>
+<p><code>InstallModalState</code> ist ein diskriminiertes Union-Type:</p>
+<pre><code class="language-typescript">type InstallModalState =
+  | { action: &#39;install&#39; | &#39;use&#39; | &#39;uninstall&#39; | &#39;nvm-update&#39;; phase: &#39;running&#39; | &#39;success&#39; | &#39;error&#39;; version: string; errorMessage?: string }
+  | null;
+</code></pre>
+<p>Drei Phasen:</p>
+<ul>
+<li><code>running</code> – Spinner, laufende Aktion; Modal <strong>nicht schließbar</strong></li>
+<li><code>success</code> – Erfolgsmeldung, <strong>Auto-Close nach 3 Sekunden</strong></li>
+<li><code>error</code> – Fehlermeldung + intelligente Hilfetext-Generierung + aufklappbare technische Details + Schließen-Button</li>
+</ul>
+<p>Alle vier <code>action</code>-Werte haben jeweils eigene Texte für jede Phase (z.B. „Installation läuft&quot; / „Deinstallation läuft&quot; / „Version wird aktiviert&quot; / „nvm wird aktualisiert&quot;).</p>
+<p><strong>Auto-Close-Mechanismus via <code>OnChanges</code>:</strong></p>
+<pre><code class="language-typescript">ngOnChanges(changes: SimpleChanges): void {
+  if (changes[&#39;state&#39;]) {
+    clearTimeout(this.autoCloseTimer);
+    if (this.state?.phase === &#39;success&#39;) {
+      this.autoCloseTimer = setTimeout(() =&gt; this.closed.emit(), 3000);
+    }
+  }
+}
+ngOnDestroy(): void {
+  clearTimeout(this.autoCloseTimer);
+}
+</code></pre>
+<p>Der Timer wird bei jeder State-Änderung zuerst gecancelt. Das verhindert, dass
+ein alter Timer feuert, wenn schnell hintereinander Aktionen ausgeführt werden.
+<code>ngOnDestroy</code> räumt auf, um Memory-Leaks zu verhindern.</p>
+<p><strong>Intelligente Fehlertexte (<code>getErrorInstructions()</code>):</strong></p>
+<p>Die Methode analysiert <code>action</code> und <code>errorMessage</code> und gibt kontextbezogene Hilfe:</p>
+<table>
+<thead>
+<tr>
+<th>action</th>
+<th>Fehlermuster</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>install</code></td>
+<td><code>npm_config_prefix</code></td>
+<td><code>unset</code>-Anleitung</td>
+</tr>
+<tr>
+<td><code>install</code></td>
+<td><code>ETIMEDOUT</code>/<code>ENOTFOUND</code></td>
+<td>Netzwerk-Hinweis</td>
+</tr>
+<tr>
+<td><code>install</code></td>
+<td><code>already installed</code></td>
+<td>Liste neu laden</td>
+</tr>
+<tr>
+<td><code>use</code></td>
+<td><code>not installed</code>/<code>not found</code></td>
+<td>Zuerst installieren</td>
+</tr>
+<tr>
+<td><code>uninstall</code></td>
+<td><code>not installed</code>/<code>not found</code></td>
+<td>Bereits deinstalliert, Liste neu laden</td>
+</tr>
+<tr>
+<td><code>uninstall</code></td>
+<td><code>currently active</code>/<code>in use</code></td>
+<td>Erst zu anderer Version wechseln</td>
+</tr>
+<tr>
+<td><code>nvm-update</code></td>
+<td><code>ETIMEDOUT</code>/<code>ENOTFOUND</code></td>
+<td>Netzwerk-Hinweis</td>
+</tr>
+<tr>
+<td><code>nvm-update</code></td>
+<td><code>upgrade</code>/<code>not found</code></td>
+<td>Manuelle Upgrade-Anleitung mit <code>curl</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h3>Atom-Komponenten</h3>
+<blockquote>
+<p>💡 <strong>Konzept: Atomic Design</strong>
+<strong>Atomic Design</strong> ist ein Ordnungsprinzip für UI-Komponenten, angelehnt an die
+Chemie: <strong>Atoms</strong> sind die kleinsten Bausteine (Spinner, Button), <strong>Molecules</strong>
+kombinieren Atome zu kleinen Einheiten (eine Card mit Titel), <strong>Organisms</strong> sind
+größere, eigenständige Bereiche (eine komplette Versions-Karte mit Tabelle). Diese
+Hierarchie findest du im Ordner <code>components/</code> wieder (<code>atoms/</code>, <code>molecules/</code>,
+<code>organisms/</code>) und macht klar, wie &quot;groß&quot; und wiederverwendbar eine Komponente ist.</p>
+</blockquote>
+<h4><code>SpinnerComponent</code></h4>
+<pre><code class="language-typescript">template: `&lt;span class=&quot;spinner&quot;&gt;&lt;/span&gt;`
+</code></pre>
+<p>Reine CSS-Spinner-Animation, keine Inputs.</p>
+<h4><code>LoadingStateComponent</code></h4>
+<pre><code class="language-typescript">template: `
+  &lt;div class=&quot;loading-state&quot;&gt;
+    &lt;app-spinner /&gt;
+    &lt;span&gt;{{ message }}&lt;/span&gt;
+  &lt;/div&gt;
+`
+@Input({ required: true }) message!: string;
+</code></pre>
+<p>Kombiniert Spinner mit einem erforderlichen Lade-Text. <code>required: true</code> bei <code>@Input</code>
+ist ein Angular 17-Feature, das Compile-Zeit-Fehler erzeugt, wenn der Input fehlt.</p>
+<h3><code>CardComponent</code> – Molecule</h3>
+<blockquote>
+<p>💡 <strong>Konzept: <code>&lt;ng-content&gt;</code> (Content Projection)</strong>
+<code>&lt;ng-content&gt;</code> ist ein Platzhalter, an den Angular Inhalt einsetzt, den die
+<em>Eltern</em>-Komponente zwischen die Tags der Komponente schreibt. So wird <code>CardComponent</code>
+zu einer leeren Hülle (&quot;Rahmen&quot;), die beliebigen Inhalt aufnehmen kann. Mit
+<code>select=&quot;[card-title]&quot;</code> lassen sich mehrere Einsetzpunkte unterscheiden. Das nennt
+man <strong>Content Projection</strong> und ist der Schlüssel zu wiederverwendbaren Layout-Bausteinen.</p>
+</blockquote>
+<pre><code class="language-html">&lt;!-- card.component.html --&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;div class=&quot;card__header&quot;&gt;
+    &lt;ng-content select=&quot;[card-title]&quot; /&gt;
+    &lt;ng-content select=&quot;[card-actions]&quot; /&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;card__body&quot;&gt;
+    &lt;ng-content /&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<p>Generischer Card-Wrapper mit drei <code>ng-content</code>-Slots:</p>
+<ul>
+<li><code>[card-title]</code> – Titel links im Header</li>
+<li><code>[card-actions]</code> – Aktionen rechts im Header (z.B. Buttons)</li>
+<li>Default-Slot – Card-Body</li>
+</ul>
+<hr>
+<h2>Datenfluss (Gesamtbild)</h2>
+<p><strong>Beispiel: Installation</strong></p>
+<pre><code>Benutzeraktion (z.B. Klick &quot;Installieren&quot;)
+    ↓
+ActionCardComponent.onInstall()
+    ↓ @Output install.emit(&#39;22&#39;)
+App.onInstall(&#39;22&#39;)
+    ↓ isLoading.set(true), installModal.set({action:&#39;install&#39;, phase:&#39;running&#39;,...})
+    ↓ addLog(&#39;Installiere Node 22 ...&#39;)
+NvmApiService.installVersion(&#39;22&#39;)
+    ↓ POST /api/versions/install
+Express-Backend → nvm install 22
+    ↓ Response { stdout, stderr }
+App.onInstall() next-Handler
+    ↓ addLog(&#39;Node 22 installiert.&#39;)
+    ↓ isLoading.set(false)
+    ↓ installModal.set({action:&#39;install&#39;, phase:&#39;success&#39;,...})
+    ↓ loadInstalledVersions()  ← Refresh der installierten Liste
+InstallModalComponent (Auto-Close nach 3s)
+</code></pre>
+<p><strong>Beispiel: Deinstallation</strong></p>
+<pre><code>Benutzeraktion (Klick &quot;Deinstallieren&quot; in InstalledVersionsCard)
+    ↓
+InstalledVersionsCardComponent
+    ↓ @Output uninstallVersion.emit(&#39;20.5.0&#39;)
+App.onUninstall(&#39;20.5.0&#39;)
+    ↓ isLoading.set(true), installModal.set({action:&#39;uninstall&#39;, phase:&#39;running&#39;,...})
+    ↓ addLog(&#39;Deinstalliere Node 20.5.0 ...&#39;)
+NvmApiService.uninstallVersion(&#39;20.5.0&#39;)
+    ↓ POST /api/versions/uninstall
+Express-Backend → nvm uninstall 20.5.0
+    ↓ Response { stdout, stderr }
+App.onUninstall() next-Handler
+    ↓ addLog(&#39;Node 20.5.0 deinstalliert.&#39;)
+    ↓ isLoading.set(false)
+    ↓ installModal.set({action:&#39;uninstall&#39;, phase:&#39;success&#39;,...})
+    ↓ loadInstalledVersions()  ← Version verschwindet aus der Liste
+InstallModalComponent (Auto-Close nach 3s)
+</code></pre>
+<hr>
+<h2>Entwicklungsworkflow</h2>
+<pre><code class="language-bash">cd apps/web
+
+# Entwicklung (Port 4201, Proxy auf 3789)
+npm start              # ng serve --port 4201
+
+# Build
+npm run build          # ng build
+
+# Tests
+npm test               # ng test (via vitest)
+</code></pre>
+<p><strong>Ports:</strong></p>
+<ul>
+<li>Angular Dev-Server: <code>4201</code> (nicht der Standard <code>4200</code>)</li>
+<li>Express-Backend: <code>3789</code></li>
+</ul>
+<p>Der Angular-Dev-Server proxyt automatisch alle <code>/api</code>-Anfragen an den
+Express-Server – kein CORS-Problem im Entwicklungsbetrieb.</p>
+<hr>
+<h2>Glossar</h2>
+<table>
+<thead>
+<tr>
+<th>Begriff</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SPA</strong></td>
+<td>Single-Page-Application; lädt eine Seite, tauscht danach nur Daten aus</td>
+</tr>
+<tr>
+<td><strong>Angular</strong></td>
+<td>Framework zum Bau von Frontend-Anwendungen</td>
+</tr>
+<tr>
+<td><strong>Komponente</strong></td>
+<td>Wiederverwendbarer UI-Baustein aus Logik, Template und Stil</td>
+</tr>
+<tr>
+<td><strong>Standalone Component</strong></td>
+<td>Komponente ohne NgModule, die ihre Abhängigkeiten selbst importiert</td>
+</tr>
+<tr>
+<td><strong>Template</strong></td>
+<td>Das HTML einer Komponente mit Angular-Syntax (<code>@if</code>, <code>{{ }}</code>)</td>
+</tr>
+<tr>
+<td><strong>Bootstrappen</strong></td>
+<td>Die Anwendung starten (oberste Komponente einhängen)</td>
+</tr>
+<tr>
+<td><strong>Dependency Injection</strong></td>
+<td>Angular stellt benötigte Objekte bereit und reicht sie ein</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>Klasse für Logik, die mehrere Komponenten teilen (hier: HTTP)</td>
+</tr>
+<tr>
+<td><strong>Singleton</strong></td>
+<td>Objekt, von dem es genau eine Instanz in der App gibt</td>
+</tr>
+<tr>
+<td><strong>State</strong></td>
+<td>Veränderlicher Zustand, der die Anzeige bestimmt</td>
+</tr>
+<tr>
+<td><strong>Signal</strong></td>
+<td>Reaktiver Wert-Container (<code>signal</code>, <code>computed</code>)</td>
+</tr>
+<tr>
+<td><strong>Reaktivität</strong></td>
+<td>Anzeige aktualisiert sich automatisch bei State-Änderung</td>
+</tr>
+<tr>
+<td><strong>Observable / RxJS</strong></td>
+<td>Abonnierbarer Datenstrom für asynchrone Werte (HTTP)</td>
+</tr>
+<tr>
+<td><strong><code>@Input()</code></strong></td>
+<td>Wert von der Eltern- an die Kind-Komponente (Daten nach unten)</td>
+</tr>
+<tr>
+<td><strong><code>@Output()</code></strong></td>
+<td>Ereignis von der Kind- an die Eltern-Komponente (Meldung nach oben)</td>
+</tr>
+<tr>
+<td><strong>Smart/Dumb Component</strong></td>
+<td>Container mit Logik vs. reine Präsentationskomponente</td>
+</tr>
+<tr>
+<td><strong>Atomic Design</strong></td>
+<td>Komponenten-Hierarchie: Atoms → Molecules → Organisms</td>
+</tr>
+<tr>
+<td><strong>Content Projection</strong></td>
+<td>Inhalt per <code>&lt;ng-content&gt;</code> in eine Komponente einsetzen</td>
+</tr>
+<tr>
+<td><strong>Proxy</strong></td>
+<td>Leitet <code>/api</code>-Anfragen im Dev-Betrieb an das Backend weiter</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Verständnisfragen</h2>
+<ol>
+<li>Was unterscheidet eine Standalone Component von einer Komponente im alten
+NgModule-Modell?</li>
+<li>Wie liest und wie ändert man den Wert eines Signals? Nenne je ein Beispiel aus
+<code>app.ts</code>.</li>
+<li>Warum liegt der meiste State in der <code>App</code>-Komponente und nicht in den einzelnen
+Cards?</li>
+<li>In welche Richtung fließen Daten bei <code>@Input()</code>, in welche bei <code>@Output()</code>?</li>
+<li>Warum lädt die <code>RemoteVersionsCardComponent</code> ihre Daten <em>nicht</em> automatisch beim
+Start?</li>
+<li>Was bedeutet es, ein Observable zu &quot;abonnieren&quot;, und warum passiert ohne
+<code>subscribe</code> kein HTTP-Request?</li>
+<li>Welche Komponenten in diesem Projekt würdest du als &quot;Dumb&quot; einordnen, welche als
+&quot;Smart&quot;?</li>
+<li>Wozu dient <code>&lt;ng-content&gt;</code> in der <code>CardComponent</code>?</li>
+</ol>
+<hr>
+<h2>Übungsaufgaben</h2>
+<blockquote>
+<p><strong>Hinweis:</strong> Lege vor Änderungen einen Git-Branch an. Frontend mit
+<code>cd apps/web &amp;&amp; npm start</code> starten.</p>
+</blockquote>
+<ol>
+<li><strong>Datenfluss nachverfolgen:</strong> Klicke in der UI auf &quot;Installieren&quot; und verfolge im
+Code den Weg: <code>action-card.component.ts</code> → <code>app.ts</code> (<code>onInstall</code>) →
+<code>nvm-api.service.ts</code> → Backend. Notiere bei jedem Schritt, welche Methode
+aufgerufen wird.</li>
+<li><strong>Signal beobachten:</strong> Suche in <code>app.ts</code> das Signal <code>isLoading</code>. Finde im Code
+alle Stellen, an denen es mit <code>.set(...)</code> geändert wird, und überlege, welche
+UI-Elemente dadurch (de)aktiviert werden.</li>
+<li><strong>Komponente einordnen:</strong> Wähle drei Komponenten und bestimme für jede: Ist sie
+Atom, Molecule oder Organism? Ist sie Smart oder Dumb? Begründe.</li>
+<li><strong>Datenfluss verfolgen:</strong> Der &quot;Deinstallieren&quot;-Button ist bereits implementiert.
+Verfolge im Code den Weg von <code>installed-versions-card.component.html</code> →
+<code>app.html</code> → <code>app.ts (onUninstall)</code> → <code>nvm-api.service.ts</code> → Backend.
+Notiere bei jedem Schritt, welche Methode aufgerufen wird.</li>
+<li><strong>Reaktivität verstehen:</strong> Erkläre anhand von <code>activeVersion</code> (ein <code>computed</code>),
+warum sich die Kopfzeile automatisch aktualisiert, sobald <code>installedVersions</code>
+neu gesetzt wird.</li>
+<li><strong>Tests lesen:</strong> Öffne eine <code>*.component.spec.ts</code>-Datei und finde heraus, wie die
+Komponente im Test erstellt und welche Eingaben/Ausgaben geprüft werden.</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

@@ -5,6 +5,17 @@
       {
         "command": ".cursor/hooks/security-check.sh",
         "failClosed": false
+      },
+      {
+        "command": ".cursor/hooks/npm-guard.sh",
+        "matcher": "npm (install|i |add |update |ci )",
+        "failClosed": false
+      }
+    ],
+    "beforeReadFile": [
+      {
+        "command": ".cursor/hooks/protect-secrets.sh",
+        "failClosed": false
       }
     ],
     "afterFileEdit": [
@@ -15,18 +26,22 @@
       {
         "command": ".cursor/hooks/lint-reminder.sh",
         "matcher": "Write"
+      },
+      {
+        "command": ".cursor/hooks/a11y-check.sh",
+        "matcher": "Write"
       }
     ],
     "sessionStart": [
       {
         "type": "prompt",
-        "prompt": "The user is working on the 'nvm-manager' project: a local web tool with an Angular frontend (apps/web/, port 4200) and an Express backend (apps/api/, port 3789) for managing nvm Node.js versions.\n\n## Architecture Context\n\nnvm is a shell function, not a binary. The backend spawns a 'bash -c' subshell for every nvm call (apps/api/src/nvm/nvm.service.ts). Binding to 127.0.0.1 ONLY. No database – nvm itself is the single source of truth. Angular Signals instead of NgRx for state management. 'nvm use' is implemented internally as 'nvm alias default' (persistent switch). Shell injection protection is two-layered: whitelist regex (nvm.types.ts) + single-quote escaping (nvm.service.ts).\n\n## Component Overview\n\nAngular: App (root with Signals) → Organisms (StatusCard, ActionCard, InstalledVersionsCard, AliasesCard, RemoteVersionsCard, LogCard) → Molecules (Card) → Atoms (Spinner, LoadingState) + InstallModalComponent.\nExpress: server.ts → routes/nvm.routes.ts → nvm/nvm.service.ts + nvm/nvm.parser.ts + nvm/nvm.types.ts.\n\n## Available Skills\n- 'project-explainer': Detailed explanation of architecture, components, design decisions\n- 'angular-expert': Angular 17+ Standalone, Signals, HttpClient\n- 'nodejs-express-expert': Express, Child Process, SSE, error handling\n- 'formatting-linting-expert': Prettier, ESLint Flat Config, angular-eslint\n- 'testing-expert': Vitest, Supertest, @testing-library/angular, Playwright\n- 'documentation-expert': TSDoc, OpenAPI/Swagger, user handbook\n\nSecurity is critical: backend only on 127.0.0.1, exclusively whitelist-approved nvm commands, strict input validation."
+        "prompt": "The user is working on the 'nvm-manager' project: a local web tool with an Angular frontend (apps/web/, port 4200) and an Express backend (apps/api/, port 3789) for managing nvm Node.js versions.\n\n## Architecture Context\n\nnvm is a shell function, not a binary. The backend spawns a 'bash -c' subshell for every nvm call (apps/api/src/nvm/nvm.service.ts). Binding to 127.0.0.1 ONLY. No database – nvm itself is the single source of truth. Angular Signals instead of NgRx for state management. 'nvm use' is implemented internally as 'nvm alias default' (persistent switch). Shell injection protection is two-layered: whitelist regex (nvm.types.ts) + single-quote escaping (nvm.service.ts).\n\n## Component Overview\n\nAngular: App (root with Signals) → Organisms (StatusCard, ActionCard, InstalledVersionsCard, AliasesCard, RemoteVersionsCard, LogCard) → Molecules (Card) → Atoms (Spinner, LoadingState) + InstallModalComponent.\nExpress: server.ts → routes/nvm.routes.ts → nvm/nvm.service.ts + nvm/nvm.parser.ts + nvm/nvm.types.ts.\n\n## Available Skills\n- 'project-explainer': Detailed explanation of architecture, components, design decisions\n- 'angular-expert': Angular 17+ Standalone, Signals, HttpClient\n- 'nodejs-express-expert': Express, Child Process, SSE, error handling\n- 'formatting-linting-expert': Prettier, ESLint Flat Config, angular-eslint\n- 'testing-expert': Vitest, Supertest, @testing-library/angular, Playwright\n- 'documentation-expert': TSDoc, OpenAPI/Swagger, user handbook\n- 'a11y-expert': WCAG 2.1 AA, ARIA roles, focus management, live regions, accessible tables/modals/buttons\n- 'debugging-expert': Angular Signals debugging, Express child_process stderr, SSE diagnostics, nvm runtime errors, test failures\n- 'refactoring-expert': Code smells, component/service extraction, safe rename/move, type alignment between frontend and backend\n- 'code-review-expert': Structured diff/PR review with severity grading, security/a11y/architecture and test-coverage checks\n\nSecurity is critical: backend only on 127.0.0.1, exclusively whitelist-approved nvm commands, strict input validation."
       }
     ],
     "stop": [
       {
         "type": "prompt",
-        "prompt": "Check whether the following points are addressed after the latest changes:\n1. Are new public functions/methods annotated with TSDoc comments?\n2. Were new API endpoints documented with @openapi annotations?\n3. Are unit tests present or planned for new logic units (parsers, validators)?\n4. Are there open TypeScript lint errors (no-explicit-any, no-floating-promises)?\nIf not: briefly point out to the user what might still be missing.",
+        "prompt": "Check whether the following points are addressed after the latest changes:\n1. Are new public functions/methods annotated with TSDoc comments?\n2. Were new API endpoints documented with @openapi annotations?\n3. Are unit tests present or planned for new logic units (parsers, validators)?\n4. Are there open TypeScript lint errors (no-explicit-any, no-floating-promises)?\n5. If Angular HTML templates were changed: do interactive elements (buttons, inputs) have accessible names? Are there aria-live regions for dynamic content? Do tables have scope attributes and aria-label? Are decorative SVGs hidden with aria-hidden?\n6. If Angular components were changed or created: do they declare ChangeDetectionStrategy.OnPush? Do all @for loops use a stable track key (not $index)? Are there any function calls in templates that should be computed() instead?\n7. If a git commit is appropriate: does it follow Conventional Commits format (type(scope): subject)?\nIf not: briefly point out to the user what might still be missing.",
         "loop_limit": 1
       },
       {

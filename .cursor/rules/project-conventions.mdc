@@ -32,6 +32,12 @@ alwaysApply: true
 - Strictly validate all version inputs before nvm calls
 - Allow CORS only for `http://localhost:4200`
 
+## Dependency Management
+
+- **Never use `"latest"`** as a version range in any `package.json`. Always pin to a caret range (e.g. `"^5.2.1"`) based on the currently installed version.
+- **No unused devDependencies**: run `knip` before adding packages; remove any that are no longer referenced.
+- **No duplicate type definitions**: types that are shared conceptually but used only within a single app stay in that app. The frontend (`apps/web`) and backend (`apps/api`) are separate npm packages — do not add shared types to one that are only consumed by the other. If a type is exported from a module but never imported anywhere in the same package, either remove it or drop the `export`.
+
 ## API Prefix
 
 All backend endpoints under `/api/` (e.g. `/api/status`, `/api/versions/installed`)

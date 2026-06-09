@@ -2,13 +2,22 @@ import { TestBed } from '@angular/core/testing';
 import { LogCardComponent } from './log-card.component';
 import type { LogEntry } from '../../../models/nvm.models';
 
+/** Sample log entries covering all three entry types (success / error / info). */
 const ENTRIES: LogEntry[] = [
   { message: 'Node 22 installiert.', type: 'success', timestamp: new Date('2026-06-02T12:00:00') },
   { message: 'Fehler aufgetreten.', type: 'error', timestamp: new Date('2026-06-02T12:01:00') },
   { message: 'Installiere Node 20 ...', type: 'info', timestamp: new Date('2026-06-02T12:02:00') },
 ];
 
+/**
+ * Unit tests for {@link LogCardComponent}.
+ *
+ * Verifies the default empty state and placeholder text, that entries passed via
+ * the `log` input are rendered, and that each entry type maps to its
+ * corresponding `.log-entry--*` CSS modifier class.
+ */
 describe('LogCardComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [LogCardComponent],
@@ -25,19 +34,19 @@ describe('LogCardComponent', () => {
 
   it('hat leeres Log als Default', async () => {
     const { comp } = await setup();
-    expect(comp.log).toEqual([]);
+    expect(comp.log()).toEqual([]);
   });
 
   it('nimmt Log-Einträge als Input entgegen', async () => {
     const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
-    expect(comp.log).toHaveLength(3);
+    expect(comp.log()).toHaveLength(3);
   });
 
   it('rendert alle Log-Einträge', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -46,8 +55,8 @@ describe('LogCardComponent', () => {
   });
 
   it('rendert Platzhalter-Text wenn Log leer ist', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = [];
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', []);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -55,8 +64,8 @@ describe('LogCardComponent', () => {
   });
 
   it('setzt korrekte CSS-Klassen je Eintragstyp', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = ENTRIES;
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', ENTRIES);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -66,8 +75,8 @@ describe('LogCardComponent', () => {
   });
 
   it('zeigt die Nachricht des Log-Eintrags an', async () => {
-    const { fixture, comp } = await setup();
-    comp.log = [ENTRIES[0]];
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('log', [ENTRIES[0]]);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;

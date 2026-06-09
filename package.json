@@ -7,15 +7,22 @@
     "dev:web": "npm --prefix apps/web start",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "install:all": "npm install && npm --prefix apps/api install && npm --prefix apps/web install && npm --prefix apps/e2e install",
+    "install:browsers": "npm --prefix apps/e2e run install:browsers",
     "test:api": "npm --prefix apps/api run test",
     "test:api:coverage": "npm --prefix apps/api run test:coverage",
     "test:web": "npm --prefix apps/web run test",
     "test:e2e": "npm --prefix apps/e2e run test",
+    "test:e2e:headed": "npm --prefix apps/e2e run test:headed",
+    "test:e2e:ui": "npm --prefix apps/e2e run test:ui",
+    "test:e2e:report": "npm --prefix apps/e2e run report",
     "test": "npm run test:api && npm run test:web",
+    "lint:api": "npm --prefix apps/api run lint",
+    "lint:web": "npm --prefix apps/web run lint",
+    "lint": "npm run lint:api && npm run lint:web",
     "docs:build": "node scripts/build-docs.mjs"
   },
   "devDependencies": {
-    "concurrently": "latest",
+    "concurrently": "^10.0.3",
     "marked": "^18.0.4"
   }
 }

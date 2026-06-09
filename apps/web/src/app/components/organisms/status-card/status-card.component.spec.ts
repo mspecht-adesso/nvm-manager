@@ -5,6 +5,13 @@ import { StatusCardComponent } from './status-card.component';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
 
+/**
+ * Builds a mock {@link NvmApiService} returning a healthy status and a
+ * successful "open dir" by default. Tests override `getStatus`/`openNvmDir`
+ * to simulate update availability, errors, or pending requests.
+ *
+ * @param overrides - Per-method replacements.
+ */
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getStatus: vi.fn().mockReturnValue(of({ ok: true, nvmVersion: '0.39.7', nvmDir: '/home/.nvm' })),
@@ -13,7 +20,18 @@ function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   };
 }
 
+/**
+ * Unit tests for {@link StatusCardComponent}.
+ *
+ * Covers the status load lifecycle (loading → value / error), the
+ * `updateAvailable` comparison logic, the `nvmUpdate` emission (with `'latest'`
+ * fallback), and the `openDir` flow including its transient error state.
+ */
 describe('StatusCardComponent', () => {
+  /**
+   * Compiles the component with a mocked API service.
+   * @param svcOverrides - Optional per-method API mock overrides.
+   */
   async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
     const mockSvc = buildSvc(svcOverrides);
     await TestBed.configureTestingModule({
@@ -57,19 +75,21 @@ describe('StatusCardComponent', () => {
     expect(comp.loading()).toBe(false);
   });
 
-  it('setzt status.ok auf false bei Fehler', async () => {
+  it('setzt statusError bei Fehler', async () => {
     const { fixture, comp } = await setup({
       getStatus: vi.fn().mockReturnValue(throwError(() => new Error('Verbindungsfehler'))),
     });
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(comp.status()?.ok).toBe(false);
-    expect(comp.status()?.error).toBe('Verbindungsfehler');
+    expect(comp.status()).toBeUndefined();
+    expect(comp.statusError()).toBe('Verbindungsfehler');
     expect(comp.loading()).toBe(false);
   });
 
   it('startet im Ladezustand', async () => {
+    // Keep the status request deliberately unresolved so we can observe the
+    // intermediate loading=true state before completing it.
     let resolveStatus!: (v: unknown) => void;
     const pendingStatus = new Promise((r) => (resolveStatus = r));
     const { fixture, comp } = await setup({

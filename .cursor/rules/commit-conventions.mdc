@@ -1,0 +1,63 @@
+---
+description: Conventional Commits format for all git commits in nvm-manager
+alwaysApply: true
+---
+
+# Commit Conventions
+
+Format: `<type>(<scope>): <subject>`
+
+## Types
+
+| Type | When |
+|------|------|
+| `feat` | New feature visible to users or API consumers |
+| `fix` | Bug fix |
+| `perf` | Performance improvement |
+| `refactor` | Code restructuring without behaviour change |
+| `test` | Tests added or corrected |
+| `docs` | Documentation only |
+| `chore` | Build, deps, tooling, config (no production code) |
+| `style` | Formatting/whitespace only (no logic change) |
+| `a11y` | Accessibility improvement |
+| `ci` | CI/CD pipeline |
+
+## Scopes (optional but recommended)
+
+- `web` – Angular frontend (`apps/web/`)
+- `api` – Express backend (`apps/api/`)
+- `e2e` – Playwright tests (`apps/e2e/`)
+- `a11y` – Accessibility changes
+- `deps` – Dependency updates
+- `hooks` – `.cursor/hooks/` changes
+- `rules` – `.cursor/rules/` changes
+
+## Subject Rules
+
+- Imperative mood: "add", "fix", "remove" – not "added", "fixes"
+- Lowercase, no period at end
+- Max 72 characters
+- Body optional: explain *why*, not *what*
+
+## Examples
+
+```
+feat(web): add keyboard shortcut to refresh versions list
+fix(api): prevent shell injection via alias name input
+perf(api): replace nvm ls with direct fs.readdir scan
+refactor(web): extract version-badge to standalone component
+test(api): add supertest coverage for POST /versions/use
+a11y(web): add aria-live region to installed-versions-card
+docs: update CHANGELOG for v1.3.0
+chore(deps): update @angular/* to 21.3.0
+```
+
+## What NOT to do
+
+```
+// ❌
+git commit -m "fix stuff"
+git commit -m "WIP"
+git commit -m "Update"
+git commit -m "Fixed the bug in the component"
+```

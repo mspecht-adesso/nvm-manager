@@ -1,0 +1,32 @@
+---
+description: Definition of Done – verification gate before declaring a task complete
+alwaysApply: true
+---
+
+# Definition of Done
+
+Before reporting a coding task as finished, verify these – do not just claim them:
+
+## Verify (run the commands, don't assume)
+
+- **Type check / build**: API `npm run build --prefix apps/api`; Web `npm run build --prefix apps/web`
+- **Lint**: `npm run lint` (root) – zero errors, no new warnings
+- **Tests**: `npm test` – all green; add/adjust tests for new logic (parsers, validators, services, components)
+
+## Code quality
+
+- No `any` – use `unknown` + type guard
+- Explicit return types on public functions
+- Code comments in English (see `comments-english`)
+- New public functions/methods have TSDoc; new endpoints have `@openapi`
+
+## Project specifics
+
+- Version inputs validated via `isValidVersionInput()` before any nvm call
+- Angular templates meet WCAG 2.1 AA (see `a11y` rule)
+- `CHANGELOG.md` updated under `[Unreleased]` for user/developer-relevant changes
+
+## When something fails
+
+State it explicitly. Never silently skip a failing step or mark a task done with red tests.
+If a step cannot be run (e.g. environment limitation), say so clearly instead of assuming success.

@@ -1,7 +1,6 @@
-// ── Main Layout ───────────────────────────────────────────────
-$spacing-lg: 1.5rem;
-$spacing-xl: 2rem;
+@use '../styles/variables' as *;
 
+// ── Main Layout ───────────────────────────────────────────────
 .main {
   max-width: 960px;
   margin: $spacing-xl auto;

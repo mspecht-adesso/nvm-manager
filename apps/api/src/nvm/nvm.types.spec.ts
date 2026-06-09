@@ -1,8 +1,19 @@
+/**
+ * Unit tests for the input-validation type guards in `nvm.types.ts`.
+ *
+ * These guards are the first shell-injection defence layer. The test suite
+ * verifies both the happy path (known safe inputs) and rejection cases
+ * (path traversal, shell metacharacters, wrong types, etc.).
+ */
 import { describe, it, expect } from 'vitest';
 import { isValidVersionInput, isValidAliasName, isValidAliasTarget, NvmError } from './nvm.types.js';
 
 // ── isValidVersionInput ───────────────────────────────────────────────────────
 
+/**
+ * `isValidVersionInput` – whitelist guard for the `version` field used in
+ * install/use/uninstall calls.
+ */
 describe('isValidVersionInput', () => {
   it.each(['22', '22.11', '22.11.0', 'node', 'stable', 'lts/*'])(
     'akzeptiert "%s"',
@@ -22,6 +33,8 @@ describe('isValidVersionInput', () => {
   });
 
   it('verhindert Shell-Injection-Versuche', () => {
+    // Command substitution, backtick injection, and semicolon-based chaining
+    // must all be rejected before the value reaches the shell.
     expect(isValidVersionInput('$(whoami)')).toBe(false);
     expect(isValidVersionInput('`id`')).toBe(false);
     expect(isValidVersionInput('22; cat /etc/passwd')).toBe(false);
@@ -30,6 +43,10 @@ describe('isValidVersionInput', () => {
 
 // ── isValidAliasName ──────────────────────────────────────────────────────────
 
+/**
+ * `isValidAliasName` – whitelist guard for user-defined alias names.
+ * Must start with a letter and be at most 50 characters.
+ */
 describe('isValidAliasName', () => {
   it.each(['default', 'myAlias', 'my-alias', 'my_alias', 'project123'])(
     'akzeptiert "%s"',
@@ -58,6 +75,10 @@ describe('isValidAliasName', () => {
 
 // ── isValidAliasTarget ────────────────────────────────────────────────────────
 
+/**
+ * `isValidAliasTarget` – whitelist guard for alias targets (broader than
+ * `isValidVersionInput` because it also accepts symbolic names and LTS paths).
+ */
 describe('isValidAliasTarget', () => {
   it.each(['node', 'stable', 'unstable', 'lts/*', 'lts/iron', 'lts/hydrogen', 'v22.11.0', '22', '22.11', '22.11.0'])(
     'akzeptiert "%s"',
@@ -78,6 +99,10 @@ describe('isValidAliasTarget', () => {
 
 // ── NvmError ──────────────────────────────────────────────────────────────────
 
+/**
+ * `NvmError` – custom error class that carries `stdout`/`stderr` from failed
+ * nvm commands for inclusion in error middleware JSON responses.
+ */
 describe('NvmError', () => {
   it('erstellt Instanz mit korrekten Eigenschaften', () => {
     const err = new NvmError('Fehlermeldung', 'stdout-text', 'stderr-text');

@@ -1,5 +1,4 @@
-$spacing-md: 1rem;
-$spacing-xs: 0.25rem;
+@use '../../../../styles/variables' as *;
 
 .remote-toolbar {
   display: flex;

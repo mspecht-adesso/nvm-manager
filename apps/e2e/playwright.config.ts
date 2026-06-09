@@ -1,5 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Slows every browser action down (in ms) so the click flow can be followed by
+// eye in headed mode. Set via `PW_SLOWMO` (the `test:headed` script uses 400).
+const slowMo = Number(process.env['PW_SLOWMO'] ?? 0);
+
+// Visual mode records a trace + video for every test so a run can be replayed
+// afterwards via `npm run report`. Enabled by the `test:headed` script; kept off
+// by default to keep the plain (CI) run fast and free of artifacts.
+const visual = process.env['PW_VISUAL'] === '1';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -9,7 +18,9 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4201',
-    trace: 'on-first-retry',
+    trace: visual ? 'on' : 'on-first-retry',
+    video: visual ? 'on' : 'retain-on-failure',
+    launchOptions: { slowMo },
   },
   projects: [
     {

@@ -1,0 +1,100 @@
+---
+description: WCAG 2.1 AA accessibility rules for Angular templates and components in nvm-manager
+globs: apps/web/**/*.html,apps/web/**/*.ts
+alwaysApply: false
+---
+
+# Accessibility (WCAG 2.1 AA)
+
+## Interactive Elements Must Have Accessible Names
+
+```html
+<!-- ❌ Button in a table row – ambiguous label -->
+<button (click)="useVersion.emit(v.version)">Verwenden</button>
+
+<!-- ✅ Disambiguated with aria-label -->
+<button
+  (click)="useVersion.emit(v.version)"
+  [attr.aria-label]="'Version ' + v.version + ' verwenden'"
+>Verwenden</button>
+```
+
+- Icon-only buttons: `aria-label` on `<button>`, `aria-hidden="true" focusable="false"` on SVG
+- Inputs: always paired with `<label for="…">` + hint via `aria-describedby`
+
+## Decorative SVGs
+
+```html
+<!-- ❌ SVG announced as unlabelled image -->
+<svg width="28" height="28" viewBox="0 0 24 24">…</svg>
+
+<!-- ✅ Hidden from AT -->
+<svg aria-hidden="true" focusable="false" width="28" height="28">…</svg>
+```
+
+## Tables
+
+```html
+<!-- ❌ Missing structure -->
+<table><tr><th>Version</th>…</tr></table>
+
+<!-- ✅ Full accessible table -->
+<table aria-label="Installierte Node.js-Versionen">
+  <thead>
+    <tr>
+      <th scope="col">Version</th>
+      <th scope="col">Status</th>
+      <th scope="col">Aktionen</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr [attr.aria-current]="v.active ? 'true' : null">…</tr>
+  </tbody>
+</table>
+```
+
+## Live Regions for Dynamic Content
+
+```html
+<!-- Loading -->
+<div aria-live="polite" aria-atomic="true" class="visually-hidden">
+  @if (isLoading()) { Lade Daten … }
+</div>
+
+<!-- Errors (assertive = immediate interruption) -->
+<div role="alert" aria-live="assertive">
+  @if (errorMessage()) { {{ errorMessage() }} }
+</div>
+```
+
+## Modals
+
+Required attributes on the modal container:
+- `role="dialog"` + `aria-modal="true"`
+- `aria-labelledby` → `id` on `<h2>`
+- `aria-describedby` → `id` on body `<p>`
+- `cdkTrapFocus` + `cdkTrapFocusAutoCapture` (Angular CDK)
+- Escape key closes via `@HostListener('keydown.escape')`
+- Focus returns to trigger element on close
+
+## Keyboard Navigation
+
+- No `tabindex > 0`
+- Focus ring never removed without a visible replacement
+- All functionality operable via keyboard only
+
+## Visually Hidden Helper
+
+Add to `styles.scss` if not already present:
+
+```scss
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+```
