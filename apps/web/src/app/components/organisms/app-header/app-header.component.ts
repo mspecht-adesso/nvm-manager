@@ -12,7 +12,6 @@ import { ThemeService } from '../../../services/theme.service';
  */
 @Component({
   selector: 'app-header',
-  standalone: true,
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

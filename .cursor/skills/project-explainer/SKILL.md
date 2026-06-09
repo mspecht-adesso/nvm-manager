@@ -19,7 +19,7 @@ It is a complete monorepo with three apps:
 ```
 apps/
   api/   – Express REST API (port 3789, binds to 127.0.0.1 ONLY)
-  web/   – Angular 17+ SPA (port 4200, proxies /api → 3789)
+  web/   – Angular 22 SPA (port 4200, proxies /api → 3789)
   e2e/   – Playwright end-to-end tests
 ```
 
@@ -41,8 +41,8 @@ A database would introduce sync problems. Instead, the API queries nvm live on e
 
 ### Why Angular Signals instead of NgRx/Akita?
 The app has manageable state (active version, log, modal status).
-Signals (Angular 17+) are sufficient for this scope and reduce boilerplate significantly.
-No separate state management package needed.
+Signals + `computed()` (with `httpResource()` for server reads) are sufficient for this
+scope and reduce boilerplate significantly. No separate state management package needed.
 
 ## Reference Documentation
 

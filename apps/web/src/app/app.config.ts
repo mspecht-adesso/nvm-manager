@@ -5,7 +5,7 @@ import {
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { httpErrorInterceptor } from './core/http-error.interceptor';
@@ -30,9 +30,10 @@ export const appConfig: ApplicationConfig = {
     // Router is provided for completeness; the app is currently single-view
     // (see app.routes.ts) but this keeps routing available without re-bootstrapping.
     provideRouter(routes),
-    // Use the modern fetch backend and register the global error interceptor so
-    // all HTTP failures are normalised to plain Errors (see httpErrorInterceptor).
-    provideHttpClient(withFetch(), withInterceptors([httpErrorInterceptor])),
+    // Register the global error interceptor so all HTTP failures are normalised
+    // to plain Errors (see httpErrorInterceptor). Since Angular v22 the fetch
+    // backend is the default, so withFetch() is no longer needed.
+    provideHttpClient(withInterceptors([httpErrorInterceptor])),
     // Replace Angular's default ErrorHandler with our logging safety net.
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
   ],

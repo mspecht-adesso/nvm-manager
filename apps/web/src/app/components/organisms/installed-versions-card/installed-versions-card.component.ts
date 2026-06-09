@@ -13,7 +13,6 @@ import type { InstalledNodeVersion } from '../../../models/nvm.models';
  */
 @Component({
   selector: 'app-installed-versions-card',
-  standalone: true,
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './installed-versions-card.component.html',
   styleUrl: './installed-versions-card.component.scss',

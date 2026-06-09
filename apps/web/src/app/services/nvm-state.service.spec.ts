@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { ApplicationRef } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { NvmStateService } from './nvm-state.service';
 import { NvmApiService } from './nvm-api.service';
+import { httpErrorInterceptor } from '../core/http-error.interceptor';
 import type { InstalledVersionsResponse } from '../models/nvm.models';
 
 /** Canned installed-versions response with one active/default version and one inactive. */
@@ -16,9 +19,10 @@ const INSTALLED_VERSION_RESPONSE: InstalledVersionsResponse = {
 };
 
 /**
- * Builds a mock {@link NvmApiService} whose methods return synchronous,
- * successful observables (`of(...)`) by default. Individual tests pass
- * `overrides` to simulate failures or alternative payloads.
+ * Builds a mock {@link NvmApiService} whose *mutation* methods return synchronous,
+ * successful observables (`of(...)`) by default. The installed-versions list is
+ * fetched via `httpResource`, so it is flushed with {@link HttpTestingController}
+ * rather than mocked here.
  *
  * Note: because the mocks resolve synchronously, an action like `onInstall`
  * progresses through `running → success` within a single tick, so assertions
@@ -28,18 +32,11 @@ const INSTALLED_VERSION_RESPONSE: InstalledVersionsResponse = {
  */
 function makeApiMock(overrides: Partial<Record<keyof NvmApiService, unknown>> = {}) {
   return {
-    getInstalledVersions: vi.fn().mockReturnValue(of(INSTALLED_VERSION_RESPONSE)),
-    getStatus: vi.fn().mockReturnValue(of({ ok: true, nvmVersion: '0.39.7' })),
     installVersion: vi.fn().mockReturnValue(of({ stdout: 'installed', stderr: '' })),
     useVersion: vi.fn().mockReturnValue(of({ stdout: 'now using', stderr: '' })),
     setDefaultVersion: vi.fn().mockReturnValue(of({ stdout: 'default set', stderr: '' })),
     uninstallVersion: vi.fn().mockReturnValue(of({ stdout: 'uninstalled', stderr: '' })),
     updateNvm: vi.fn().mockReturnValue(of({ stdout: 'nvm upgraded', stderr: '' })),
-    getAliases: vi.fn().mockReturnValue(of({ stdout: '', stderr: '', aliases: [] })),
-    setAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
-    deleteAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
-    getRemoteVersions: vi.fn().mockReturnValue(of({ stdout: '', stderr: '', versions: [] })),
-    deleteLtsAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     ...overrides,
   };
 }
@@ -47,14 +44,17 @@ function makeApiMock(overrides: Partial<Record<keyof NvmApiService, unknown>> = 
 /**
  * Unit tests for {@link NvmStateService}, the central state facade.
  *
- * Covers the initial state, the auto-loading installed-versions resource (incl.
- * error logging), every `on*` action handler (modal lifecycle, logging, refresh
- * triggers), modal control, and the activity log's ordering and 20-entry cap.
- * The {@link NvmApiService} is fully mocked via {@link makeApiMock}.
+ * Covers the initial state, the auto-loading installed-versions `httpResource`
+ * (incl. error logging), every `on*` action handler (modal lifecycle, logging,
+ * refresh triggers), modal control, and the activity log's ordering and
+ * 20-entry cap. Mutations use a mocked {@link NvmApiService}; the GET resource is
+ * flushed via {@link HttpTestingController}.
  */
 describe('NvmStateService', () => {
   let service: NvmStateService;
   let apiMock: ReturnType<typeof makeApiMock>;
+  let httpMock: HttpTestingController;
+  let appRef: ApplicationRef;
 
   /**
    * Configures the testing module with a fresh API mock and injects the service.
@@ -63,15 +63,45 @@ describe('NvmStateService', () => {
   function setup(overrides: Partial<Record<keyof NvmApiService, unknown>> = {}) {
     apiMock = makeApiMock(overrides);
     TestBed.configureTestingModule({
-      providers: [NvmStateService, { provide: NvmApiService, useValue: apiMock }],
+      providers: [
+        NvmStateService,
+        { provide: NvmApiService, useValue: apiMock },
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(NvmStateService);
+    httpMock = TestBed.inject(HttpTestingController);
+    appRef = TestBed.inject(ApplicationRef);
   }
 
-  /** Lets the auto-loading rxResource (and its effects) settle. */
-  async function flush() {
-    await TestBed.inject(ApplicationRef).whenStable();
+  /**
+   * Lets the auto-loading `httpResource` issue its request, flushes it, then
+   * awaits stability so the result propagates into computed signals / effects.
+   * `httpResource` applies its value on a microtask, so callers must `await` this.
+   */
+  async function flushInstalled(
+    response: InstalledVersionsResponse = INSTALLED_VERSION_RESPONSE,
+    opts?: { error?: boolean },
+  ): Promise<void> {
+    appRef.tick();
+    const req = httpMock.expectOne('/api/versions/installed');
+    if (opts?.error) {
+      req.flush({ error: 'Netzwerkfehler' }, { status: 500, statusText: 'Server Error' });
+    } else {
+      req.flush(response);
+    }
+    await appRef.whenStable();
   }
+
+  // Drain any installed-versions requests triggered by reloads so each test
+  // ends with no outstanding HTTP expectations.
+  afterEach(() => {
+    httpMock.match(() => true).forEach((req) => {
+      if (!req.cancelled) req.flush(INSTALLED_VERSION_RESPONSE);
+    });
+    httpMock.verify();
+  });
 
   describe('Initialzustand', () => {
     it('log ist leer', () => {
@@ -100,51 +130,53 @@ describe('NvmStateService', () => {
     });
   });
 
-  describe('loadInstalledVersions (rxResource)', () => {
+  describe('loadInstalledVersions (httpResource)', () => {
     it('setzt installedVersions nach erfolgreichem Laden', async () => {
       setup();
-      await flush();
+      await flushInstalled();
       expect(service.installedVersions()).toHaveLength(2);
       expect(service.installedVersions()[0].version).toBe('22.11.0');
     });
 
     it('setzt installedRaw nach erfolgreichem Laden', async () => {
       setup();
-      await flush();
+      await flushInstalled();
       expect(service.installedRaw()).toBe('-> v22.11.0 (default)');
     });
 
     it('berechnet activeVersion nach dem Laden', async () => {
       setup();
-      await flush();
+      await flushInstalled();
       expect(service.activeVersion()?.version).toBe('22.11.0');
     });
 
     it('installedLoading ist false nach abgeschlossenem Laden', async () => {
       setup();
-      await flush();
+      await flushInstalled();
       expect(service.installedLoading()).toBe(false);
     });
 
     it('reload() löst einen erneuten Abruf aus', async () => {
       setup();
-      await flush();
-      expect(apiMock.getInstalledVersions).toHaveBeenCalledTimes(1);
+      await flushInstalled();
+
       service.loadInstalledVersions();
-      await flush();
-      expect(apiMock.getInstalledVersions).toHaveBeenCalledTimes(2);
+      appRef.tick();
+      const req = httpMock.expectOne('/api/versions/installed');
+      expect(req.request.method).toBe('GET');
+      req.flush(INSTALLED_VERSION_RESPONSE);
     });
 
-    it('schreibt Fehler ins Log wenn API fehlschlägt', async () => {
-      setup({ getInstalledVersions: vi.fn().mockReturnValue(throwError(() => new Error('Netzwerkfehler'))) });
-      await flush();
+    it('schreibt Fehler ins Log wenn das Laden fehlschlägt', async () => {
+      setup();
+      await flushInstalled(undefined, { error: true });
       expect(service.log().length).toBeGreaterThan(0);
       expect(service.log()[0].type).toBe('error');
     });
 
     it('installedLoading ist false nach Fehler', async () => {
-      setup({ getInstalledVersions: vi.fn().mockReturnValue(throwError(() => new Error('err'))) });
-      await flush();
+      setup();
+      await flushInstalled(undefined, { error: true });
       expect(service.installedLoading()).toBe(false);
     });
   });
@@ -308,24 +340,20 @@ describe('NvmStateService', () => {
 
   describe('activeVersion (computed)', () => {
     it('gibt undefined zurück wenn keine aktive Version vorhanden', async () => {
-      setup({
-        getInstalledVersions: vi.fn().mockReturnValue(
-          of({
-            stdout: '',
-            stderr: '',
-            versions: [
-              { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
-            ],
-          }),
-        ),
+      setup();
+      await flushInstalled({
+        stdout: '',
+        stderr: '',
+        versions: [
+          { version: '20.5.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
+        ],
       });
-      await flush();
       expect(service.activeVersion()).toBeUndefined();
     });
 
     it('gibt die aktive Version zurück', async () => {
       setup();
-      await flush();
+      await flushInstalled();
       expect(service.activeVersion()?.version).toBe('22.11.0');
     });
   });

@@ -6,6 +6,23 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Geändert
+
+- **Upgrade auf Angular 22** – `@angular/*`, `@angular/cli`, `@angular/build`, `angular-eslint` auf `^22` und TypeScript auf `~6.0.3` angehoben. Die App läuft weiterhin zoneless; `OnPush` ist nun der Framework-Default (bleibt zur Klarheit explizit deklariert).
+- **Datenabruf auf `httpResource` umgestellt** – die lesenden Endpunkte (`/api/status`, `/api/versions/installed`, `/api/versions/remote`, `/api/versions/aliases`) werden jetzt deklarativ über das in v22 stabile `httpResource()` geladen (signal-basiert, mit `reload()` und Lazy-Loading) statt über `rxResource`/manuelle Subscriptions. Die GET-Methoden in `nvm-api.service.ts` entfielen; der Service kapselt nur noch Mutations-Endpunkte.
+- **Signal Forms für die Versionseingabe** – die `action-card` nutzt jetzt Signal Forms (`@angular/forms/signals`, `FormField`) mit `required`/`pattern`-Validierung und client-seitigem Fehler-Feedback (gespiegelt zur Backend-Validierung) statt `ngModel`.
+- **`withFetch()` entfernt** – der Fetch-Backend ist in Angular 22 Standard; `provideHttpClient(withInterceptors([httpErrorInterceptor]))` genügt.
+- **Redundantes `standalone: true` aus allen Angular-Komponenten entfernt** – seit Angular 19+ sind Komponenten standardmäßig standalone, das explizite Flag ist überflüssig. Betrifft alle Komponenten in `apps/web/` (Atoms, Molecules, Organisms, Root- und Modal-Komponente) sowie die Test-Host-Komponente.
+- **Cursor-Rules, -Skills und -Hooks auf den aktuellen Stack ausgerichtet** – dedizierte Aktualisierung auf Angular 22 (httpResource, Signal Forms, zoneless, OnPush-Default), Node.js ≥ 22 / TypeScript 6 und Express 5 (Async-Error-Forwarding, read-only `req.query`, benannte Routen-Wildcards). Betrifft u. a. `angular-standalone`, `performance`, `nodejs-typescript`, `express-api`, `testing`, `formatting`, `project-architecture` sowie die Skills `angular-expert`, `nodejs-express-expert`, `testing-expert` u. a. und die `sessionStart`/`stop`-Hooks.
+
+### Tests
+
+- **Unit-Tests an `httpResource` angepasst** – die betroffenen Specs nutzen jetzt `HttpTestingController` (Flush-Pattern) statt gemockter Service-GET-Methoden und warten die Microtask-Propagierung der Resource via `whenStable()` ab (`status-card`, `remote-versions-card`, `aliases-card`, `nvm-state.service`). Alle Suites grün (Web 199, API 137).
+
+---
+
 ## [0.10.0] – 2026-06-09
 
 ### Hinzugefügt

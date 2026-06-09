@@ -8,8 +8,8 @@ alwaysApply: true
 ## Monorepo Structure
 
 ```
-apps/api/   – Express REST API   (port 3789, bind: 127.0.0.1)
-apps/web/   – Angular 17+ SPA    (port 4200, proxies /api → 3789)
+apps/api/   – Express 5 REST API   (Node ≥ 22, TS 6; port 3789, bind: 127.0.0.1)
+apps/web/   – Angular 22 SPA        (zoneless; port 4200, proxies /api → 3789)
 apps/e2e/   – Playwright E2E tests
 ```
 
@@ -29,6 +29,8 @@ The API queries nvm live on every request.
 **Angular Signals instead of NgRx.**
 The app-wide state is manageable (active version, log, modal, loading flags).
 Signals + computed() are fully sufficient without an external state management library.
+Server reads use `httpResource()` (signal-backed GET); mutations use a thin `HttpClient`
+service; validated inputs use Signal Forms (`@angular/forms/signals`). All stable in v22.
 
 **`nvm use` → internally `nvm alias default`.**
 `nvm use` only changes the version for the current shell process (lost immediately).

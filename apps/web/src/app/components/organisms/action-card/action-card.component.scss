@@ -21,6 +21,11 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
   }
+
+  &__error {
+    font-size: 0.75rem;
+    color: var(--color-danger);
+  }
 }
 
 .action-buttons {

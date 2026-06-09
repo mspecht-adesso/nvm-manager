@@ -13,7 +13,6 @@ import type { LogEntry } from '../../../models/nvm.models';
  */
 @Component({
   selector: 'app-log-card',
-  standalone: true,
   imports: [DatePipe, CardComponent],
   templateUrl: './log-card.component.html',
   styleUrl: './log-card.component.scss',

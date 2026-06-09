@@ -1,16 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import type {
-  NvmStatus,
-  NvmCommandResult,
-  InstalledVersionsResponse,
-  AliasesResponse,
-  RemoteVersionsResponse,
-} from '../models/nvm.models';
+import type { NvmCommandResult } from '../models/nvm.models';
 
 /**
- * Thin HTTP client layer for communicating with the nvm-manager Express backend.
+ * Thin HTTP client layer for the nvm-manager Express backend's **mutation**
+ * endpoints (install, use, set default/stable, uninstall, alias management,
+ * nvm self-update, open dir).
+ *
+ * Read-only endpoints (status, installed/remote versions, aliases) are fetched
+ * declaratively via `httpResource` (stable since Angular v22) in the components
+ * and {@link NvmStateService} that own that state, so they are not wrapped here.
  *
  * Every method returns a cold `Observable` that executes the HTTP request only
  * when subscribed to. Callers (components or {@link NvmStateService}) are
@@ -30,54 +30,12 @@ export class NvmApiService {
   private readonly baseUrl = '/api';
 
   // ---------------------------------------------------------------------------
-  // Status
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Fetches the nvm installation status and version information.
-   *
-   * Used by the status card to determine whether nvm is available and whether
-   * a newer version of nvm itself can be installed.
-   *
-   * @returns Observable of {@link NvmStatus}, including `nvmVersion` and
-   *          `nvmLatestVersion` when nvm is reachable.
-   */
-  getStatus(): Observable<NvmStatus> {
-    return this.http.get<NvmStatus>(`${this.baseUrl}/status`);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Installed versions
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Lists all locally installed Node.js versions by running `nvm ls`.
-   *
-   * The response includes structured metadata per version (active, default,
-   * stable flags) as well as the raw `stdout` for display in the log.
-   *
-   * @returns Observable of {@link InstalledVersionsResponse}.
-   */
-  getInstalledVersions(): Observable<InstalledVersionsResponse> {
-    return this.http.get<InstalledVersionsResponse>(`${this.baseUrl}/versions/installed`);
-  }
-
-  /**
-   * Lists all LTS versions available on the nvm remote index (`nvm ls-remote --lts`).
-   *
-   * This request can be slow (~1–3 s) because it fetches data from the GitHub
-   * raw content CDN. The result is not cached server-side; the UI should avoid
-   * polling it frequently.
-   *
-   * @returns Observable of {@link RemoteVersionsResponse}.
-   */
-  getRemoteVersions(): Observable<RemoteVersionsResponse> {
-    return this.http.get<RemoteVersionsResponse>(`${this.baseUrl}/versions/remote`);
-  }
-
-  // ---------------------------------------------------------------------------
   // Version lifecycle: install / use / default / uninstall
   // ---------------------------------------------------------------------------
+  //
+  // Note: read-only endpoints (status, installed/remote versions, aliases) are
+  // consumed directly via `httpResource` in the respective components/services,
+  // so this service only wraps the imperative mutation endpoints.
 
   /**
    * Installs a Node.js version via `nvm install <version>`.
@@ -143,16 +101,6 @@ export class NvmApiService {
   // ---------------------------------------------------------------------------
   // Aliases
   // ---------------------------------------------------------------------------
-
-  /**
-   * Returns all nvm aliases (`nvm alias`), including built-ins (`default`,
-   * `stable`, `node`, `lts/*`) and any user-defined aliases.
-   *
-   * @returns Observable of {@link AliasesResponse}.
-   */
-  getAliases(): Observable<AliasesResponse> {
-    return this.http.get<AliasesResponse>(`${this.baseUrl}/versions/aliases`);
-  }
 
   /**
    * Creates or updates a user-defined nvm alias (`nvm alias <name> <target>`).

@@ -8,20 +8,24 @@ alwaysApply: false
 
 ## Angular Frontend
 
-### Change Detection – Always OnPush
+### Change Detection – Always declare OnPush
 
-Every component must declare `ChangeDetectionStrategy.OnPush`. Signals + OnPush = zero wasted re-renders:
+In Angular 22 `OnPush` is already the **default**, and the app runs **zoneless**
+(`provideZonelessChangeDetection()`). We still declare `OnPush` explicitly on every
+component so the intent is visible and the guarantee survives any future config change.
+Signals + OnPush = zero wasted re-renders:
 
 ```typescript
-// ✅ CORRECT
+// ✅ CORRECT – explicit, even though it is the v22 default
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   ...
 })
-
-// ❌ WRONG – default strategy re-renders on every event
-@Component({ /* no changeDetection */ })
 ```
+
+Under zoneless, change detection is driven entirely by signals (and resource/form
+state, which are signal-backed). Avoid patterns that rely on Zone.js ticking, e.g.
+mutating fields from `setTimeout`/`Promise` callbacks without writing to a signal.
 
 ### @for – Track by stable identity
 
@@ -59,16 +63,25 @@ All routes beyond the root shell must use `loadComponent()`:
 { path: 'settings', component: SettingsComponent }
 ```
 
-### rxResource() for HTTP Resources
+### httpResource() for read data (preferred in v22)
 
-Prefer `rxResource()` over manual `ngOnInit` + subscribe for data that maps 1:1 to an HTTP call:
+Prefer **`httpResource()`** over manual `ngOnInit` + `subscribe` for data that maps
+1:1 to a GET endpoint. It issues the request itself and exposes `value` / `isLoading`
+/ `error` as signals, integrating with zoneless change detection:
 
 ```typescript
-readonly versions = rxResource({
-  loader: () => this.nvmApi.getInstalledVersions()
-});
-// versions.value() / versions.isLoading() / versions.error() available as signals
+import { httpResource } from '@angular/common/http';
+
+private readonly versions = httpResource<InstalledVersionsResponse>(
+  () => '/api/versions/installed',
+);
+// versions.value() / versions.isLoading() / versions.error() / versions.reload()
 ```
+
+- Use `rxResource()` only when the source is already an `Observable` you cannot avoid.
+- Use plain `HttpClient` for imperative one-shot **mutations** (POST/DELETE), not for
+  reactive reads.
+- For lazy loading, return `undefined` from the URL factory until a trigger signal flips.
 
 ---
 

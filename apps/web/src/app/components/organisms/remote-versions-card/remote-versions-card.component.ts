@@ -1,10 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, inject } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import { httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
-import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models';
+import type {
+  InstalledNodeVersion,
+  LogEvent,
+  RemoteVersionsResponse,
+} from '../../../models/nvm.models';
 
 /**
  * Remote-versions card (organism) that lets the user browse and search the
@@ -20,15 +23,12 @@ import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models'
  */
 @Component({
   selector: 'app-remote-versions-card',
-  standalone: true,
   imports: [FormsModule, CardComponent, LoadingStateComponent],
   templateUrl: './remote-versions-card.component.html',
   styleUrl: './remote-versions-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RemoteVersionsCardComponent {
-  private readonly nvmApi = inject(NvmApiService);
-
   /** Locally installed versions, used to hide already-installed entries. */
   readonly installedVersions = input<InstalledNodeVersion[]>([]);
 
@@ -46,16 +46,16 @@ export class RemoteVersionsCardComponent {
 
   /**
    * Gate that keeps the resource idle until the first {@link load} call.
-   * `rxResource` only runs its stream when `params()` returns a defined value,
-   * so this flag implements lazy loading without a manual subscription.
+   * `httpResource` only issues a request when its URL factory returns a defined
+   * value, so returning `undefined` until this flag flips implements lazy
+   * loading without a manual subscription.
    */
   private readonly shouldLoad = signal(false);
 
   /** Reactive source for the remote-versions endpoint; idle until {@link shouldLoad} is set. */
-  private readonly remoteResource = rxResource({
-    params: () => (this.shouldLoad() ? true : undefined),
-    stream: () => this.nvmApi.getRemoteVersions(),
-  });
+  private readonly remoteResource = httpResource<RemoteVersionsResponse>(() =>
+    this.shouldLoad() ? '/api/versions/remote' : undefined,
+  );
 
   /** Full list of remote versions, or an empty array while idle/loading/on error. */
   readonly remoteVersions = computed(() =>

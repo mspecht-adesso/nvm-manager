@@ -18,18 +18,18 @@ if echo "$file" | grep -qE "\.spec\.ts$|\.test\.ts$"; then
   exit 0
 fi
 
-# API files: backend lint hints
+# API files: backend lint hints (Node 22+ / Express 5 / TS 6)
 if echo "$file" | grep -q "apps/api/"; then
   echo '{
-    "additional_context": "TypeScript file in API changed. Lint hints: no '\''any'\'', await all Promises or use void-casts (@typescript-eslint/no-floating-promises), explicit return types on public functions, no console.log in handlers."
+    "additional_context": "TypeScript file in API changed (Node 22+, Express 5, TS 6, ESM). Lint hints: no '\''any'\'' (use unknown + guard), await all Promises or void-cast (@typescript-eslint/no-floating-promises), explicit return types on exported functions, no console.log in handlers, .js extensions on relative imports (NodeNext). Express 5: async handlers auto-forward rejections; req.query is read-only; named wildcards in routes (/path/*splat)."
   }'
   exit 0
 fi
 
-# Angular TypeScript files: frontend lint hints
+# Angular TypeScript files: frontend lint hints (Angular 22, zoneless)
 if echo "$file" | grep -q "apps/web/" && echo "$file" | grep -qE "\.ts$"; then
   echo '{
-    "additional_context": "Angular TypeScript file changed. Lint hints: standalone: true on components (@angular-eslint/prefer-standalone), Signals instead of BehaviorSubject, @if/@for instead of *ngIf/*ngFor, no any types in HttpClient calls. A11y: use LiveAnnouncer for dynamic announcements, cdkTrapFocus for modals, FocusMonitor to restore focus on close."
+    "additional_context": "Angular 22 TypeScript file changed. Lint hints: OMIT redundant standalone: true (default since v19); declare ChangeDetectionStrategy.OnPush explicitly; signal-based input()/output()/model() over decorators; httpResource() for GET reads, HttpClient only for mutations; Signal Forms (@angular/forms/signals, FormField directive) over ngModel; signals/computed instead of BehaviorSubject; @if/@for instead of *ngIf/*ngFor; no any in HTTP calls. A11y: LiveAnnouncer for dynamic announcements, cdkTrapFocus for modals, FocusMonitor to restore focus on close."
   }'
   exit 0
 fi

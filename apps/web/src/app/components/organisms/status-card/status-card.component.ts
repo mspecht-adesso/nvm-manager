@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, output, signal, computed, inject } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { httpResource } from '@angular/common/http';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
+import type { NvmStatus } from '../../../models/nvm.models';
 
 /**
  * Status card (organism) showing nvm's installation state and version.
  *
  * Responsibilities:
- * - Fetch and display the nvm status (version, install directory) via `rxResource`.
+ * - Fetch and display the nvm status (version, install directory) via `httpResource`.
  * - Detect whether a newer nvm version is available and offer a self-update,
  *   delegated to the parent through the {@link nvmUpdate} output.
  * - Open the `NVM_DIR` in the OS file manager, with transient inline error feedback.
@@ -18,7 +19,6 @@ import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.c
  */
 @Component({
   selector: 'app-status-card',
-  standalone: true,
   imports: [CardComponent, LoadingStateComponent],
   templateUrl: './status-card.component.html',
   styleUrl: './status-card.component.scss',
@@ -34,10 +34,8 @@ export class StatusCardComponent implements OnDestroy {
    */
   readonly nvmUpdate = output<string>();
 
-  /** Reactive source for the `/api/status` endpoint. */
-  private readonly statusResource = rxResource({
-    stream: () => this.nvmApi.getStatus(),
-  });
+  /** Reactive source for the `/api/status` endpoint (httpResource, stable in v22). */
+  private readonly statusResource = httpResource<NvmStatus>(() => '/api/status');
 
   /** Current status payload, or `undefined` while loading / on error. */
   readonly status = computed(() =>

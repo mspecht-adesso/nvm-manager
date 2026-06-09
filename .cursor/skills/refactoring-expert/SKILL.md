@@ -17,8 +17,8 @@ Extract when **two or more** of these are true:
 | Template has multiple distinct sections | Header + filter + table + pagination |
 
 **Extraction checklist:**
-1. Create the new component with `standalone: true`
-2. Move `@Input` signals + `@Output` events to the new component
+1. Create the new component (standalone is the default in v22 — omit `standalone: true`)
+2. Move `input()` signals + `output()` events to the new component
 3. Parent passes data down, listens for events up – no direct service injection in deeply nested atoms/molecules
 4. Move the spec file, update describe block name
 5. Remove unused imports from the parent
@@ -37,20 +37,17 @@ Extract when a component holds **non-UI logic** that:
 **Pattern for shared state service:**
 
 ```typescript
-// nvm-state.service.ts
+// nvm-state.service.ts — read state via httpResource (Angular 22)
 @Injectable({ providedIn: 'root' })
 export class NvmStateService {
-  readonly versions    = signal<InstalledNodeVersion[]>([]);
-  readonly activeVersion = computed(() => this.versions().find(v => v.active));
-  readonly isLoading   = signal(false);
+  private readonly installed = httpResource<InstalledVersionsResponse>(
+    () => '/api/versions/installed',
+  );
+  readonly versions      = computed(() => this.installed.value()?.versions ?? []);
+  readonly activeVersion = computed(() => this.versions().find((v) => v.active));
+  readonly isLoading     = this.installed.isLoading;
 
-  load(): void {
-    this.isLoading.set(true);
-    this.nvmApi.getInstalledVersions().subscribe({
-      next: data => { this.versions.set(data.versions); this.isLoading.set(false); },
-      error: ()  => this.isLoading.set(false),
-    });
-  }
+  refresh(): void { this.installed.reload(); }
 }
 ```
 

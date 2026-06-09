@@ -81,6 +81,11 @@ export default tseslint.config(
 );
 ```
 
+`angular-eslint` and `typescript-eslint` track the framework: with Angular 22 use
+`angular-eslint@^22`. Since standalone is the default in v22, components should
+**omit the explicit `standalone: true` flag** entirely (see `angular-standalone.mdc`);
+`prefer-standalone` still guards against opting back out via `standalone: false`/NgModules.
+
 ## EditorConfig (`.editorconfig` in project root)
 
 ```ini

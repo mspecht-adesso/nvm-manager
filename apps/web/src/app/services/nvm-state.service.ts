@@ -1,8 +1,9 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { httpResource } from '@angular/common/http';
 import { NvmApiService } from './nvm-api.service';
 import type {
   InstallModalState,
+  InstalledVersionsResponse,
   LogEntry,
   LogEvent,
   NvmCommandResult,
@@ -77,13 +78,15 @@ export class NvmStateService {
   /**
    * Reactive data source for the installed-versions endpoint.
    *
-   * `rxResource` manages the full request lifecycle (loading, value, error)
-   * as Signals, eliminating manual subscription management. The resource is
-   * reloaded by calling `installedResource.reload()`.
+   * `httpResource` (stable since Angular v22) issues the GET request and exposes
+   * the full lifecycle (loading, value, error) as Signals, keeping the async
+   * state inside the signal graph without any manual subscription. HTTP failures
+   * are normalised to `Error` by the global `httpErrorInterceptor`. The resource
+   * is reloaded by calling `installedResource.reload()`.
    */
-  private readonly installedResource = rxResource({
-    stream: () => this.nvmApi.getInstalledVersions(),
-  });
+  private readonly installedResource = httpResource<InstalledVersionsResponse>(
+    () => '/api/versions/installed',
+  );
 
   /**
    * The structured list of installed Node.js versions.

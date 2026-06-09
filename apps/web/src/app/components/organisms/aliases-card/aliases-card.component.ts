@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, inject } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { CardComponent } from '../../molecules/card/card.component';
 import { LoadingStateComponent } from '../../atoms/loading-state/loading-state.component';
 import type {
   NvmAlias,
+  AliasesResponse,
   LogEvent,
   InstalledNodeVersion,
   InstallModalState,
@@ -33,7 +34,6 @@ import type {
  */
 @Component({
   selector: 'app-aliases-card',
-  standalone: true,
   imports: [FormsModule, CardComponent, LoadingStateComponent],
   templateUrl: './aliases-card.component.html',
   styleUrl: './aliases-card.component.scss',
@@ -61,11 +61,14 @@ export class AliasesCardComponent {
   /** Drives the shared install/progress modal during alias edits. */
   readonly modalStateChange = output<InstallModalState>();
 
-  /** Reactive source for the aliases endpoint; reloads on every {@link refreshTrigger} change. */
-  private readonly aliasesResource = rxResource({
-    params: () => this.refreshTrigger(),
-    stream: () => this.nvmApi.getAliases(),
-  });
+  /**
+   * Reactive source for the aliases endpoint (httpResource, stable in v22).
+   * Auto-loads once on creation; an effect in the constructor reloads it whenever
+   * {@link refreshTrigger} changes.
+   */
+  private readonly aliasesResource = httpResource<AliasesResponse>(
+    () => '/api/versions/aliases',
+  );
 
   /** The current list of aliases, or an empty array while loading / on error. */
   readonly aliases = computed(() =>
@@ -97,6 +100,19 @@ export class AliasesCardComponent {
   readonly newAliasTarget = signal('');
 
   constructor() {
+    // The resource auto-loads once on creation. Reload it whenever the parent
+    // bumps refreshTrigger after an external operation that can change aliases.
+    // The initial trigger value is captured so the very first run does not
+    // issue a redundant duplicate request.
+    let previousTrigger = this.refreshTrigger();
+    effect(() => {
+      const trigger = this.refreshTrigger();
+      if (trigger !== previousTrigger) {
+        previousTrigger = trigger;
+        this.aliasesResource.reload();
+      }
+    });
+
     // Surface alias-list load failures in the central activity log.
     effect(() => {
       const err = this.aliasesResource.error();

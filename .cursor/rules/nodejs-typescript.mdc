@@ -1,10 +1,21 @@
 ---
-description: Node.js TypeScript standards, async/await, error handling and child process security
+description: Node.js (22+) and TypeScript 6 standards, async/await, error handling and child process security for the Express API
 globs: apps/api/**/*.ts
 alwaysApply: false
 ---
 
 # Node.js TypeScript Rules
+
+## Runtime & toolchain
+
+- **Node.js ≥ 22** (developed/tested on Node 24). Node 20 is end-of-life for this
+  project — use modern built-ins freely (native `fetch`, `node:` import prefixes,
+  `structuredClone`, stable test runner, etc.).
+- **TypeScript 6** (`"typescript": "^6.0.3"`), aligned with the Angular 22 frontend.
+- **ESM only** (`"type": "module"`): use `import`/`export`, `.js` extensions in
+  relative imports, and `import.meta` instead of `__dirname`/`require`.
+- **`tsx`** for development (`tsx watch src/server.ts`); `tsc` for builds. No `ts-node`.
+- Express **5** is the web framework — see `express-api.mdc` for v5-specific behaviour.
 
 ## Async / Await
 
@@ -59,5 +70,7 @@ const NVM_DIR = process.env.NVM_DIR ?? `${process.env.HOME}/.nvm`;
 
 - `target: ES2022`, `module: NodeNext`, `moduleResolution: NodeNext`
 - `strict: true`, `noImplicitAny: true`, `strictNullChecks: true`
-- `outDir: ./dist`, `rootDir: ./src`
-- `tsx` for development, no `ts-node`
+- `outDir: ./dist`, `rootDir: ./src`, `esModuleInterop: true`
+- TypeScript 6: keep `skipLibCheck: true` to avoid third-party `@types` drift; no `any`
+  (use `unknown` + a type guard), explicit return types on exported functions.
+- `tsx` for development, no `ts-node`.

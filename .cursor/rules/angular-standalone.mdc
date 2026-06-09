@@ -1,31 +1,50 @@
 ---
-description: Angular standalone architecture, Signals, HttpClient and SCSS conventions for nvm-manager
+description: Angular 22 architecture (standalone, Signals, httpResource, Signal Forms, zoneless) and SCSS conventions for nvm-manager
 globs: apps/web/**/*.ts,apps/web/**/*.html,apps/web/**/*.scss
 alwaysApply: false
 ---
 
-# Angular Standalone Rules
+# Angular 22 Rules
+
+The frontend (`apps/web/`) targets **Angular 22** and runs **zoneless**
+(`provideZonelessChangeDetection()`, no `zone.js`).
+
+## Angular 22 defaults — do not re-add removed boilerplate
+
+| Concern | Angular ≤ 21 | Angular 22 (this project) |
+|---|---|---|
+| `standalone: true` | required flag | **default — omit it** |
+| `changeDetection` | `Default` (eager) | **`OnPush` is the default**; we still declare it explicitly (see `performance.mdc`) |
+| `provideHttpClient(withFetch())` | opt-in fetch backend | **fetch is the default — drop `withFetch()`** |
+| Async data | `HttpClient` + `subscribe` | **`httpResource()` for GET**, `HttpClient` for mutations |
+| Forms | Reactive / template-driven | **Signal Forms** (`@angular/forms/signals`) where validation/state matters |
+
+These APIs (`httpResource`, `resource`, `rxResource`, Signal Forms) are **stable**
+since v22 — no experimental imports or flags.
 
 ## Components
 
-Always `standalone: true`, never `NgModule`:
+Standalone components only, never `NgModule`. Since Angular 19+ standalone is the
+default, so **omit the redundant `standalone: true`** flag (it is implied):
 
 ```typescript
-// ✅ CORRECT
+// ✅ CORRECT – standalone is the default, no explicit flag needed
 @Component({
   selector: 'app-version-card',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './version-card.component.html',
   styleUrl: './version-card.component.scss',
 })
 export class VersionCardComponent {}
 
+// ❌ WRONG – redundant standalone: true
+@Component({ selector: 'app-version-card', standalone: true, /* ... */ })
+
 // ❌ WRONG – no NgModule
 @NgModule({ declarations: [VersionCardComponent] })
 ```
 
-## Signals (preferred since Angular 17+)
+## Signals (signal-first state)
 
 ```typescript
 // State as Signals
@@ -35,32 +54,84 @@ readonly errorMessage = signal<string | null>(null);
 
 // Computed values
 readonly hasVersions = computed(() => this.versions().length > 0);
+
+// linkedSignal: writable state derived from another signal
+readonly versionInput = linkedSignal(() => this.prefillVersion());
 ```
 
-## HttpClient
+Use the **signal-based primitives**, not the legacy decorators:
 
-Always typed, prefer `inject()` over constructor injection:
+- `input()` / `input.required()` instead of `@Input()`
+- `output()` instead of `@Output()` / `EventEmitter`
+- `model()` for two-way bindings, `viewChild()` / `contentChild()` for queries
+- `inject()` instead of constructor DI
+
+## Data fetching — `httpResource` for reads, `HttpClient` for writes
+
+Read-only endpoints are fetched declaratively with **`httpResource`** (stable in
+v22). It keeps the async state (`value` / `isLoading` / `error`) inside the signal
+graph — no manual subscription, no `ngOnInit`:
+
+```typescript
+import { httpResource } from '@angular/common/http';
+
+// GET resource — auto-loads, reactive, reloadable via .reload()
+private readonly installed = httpResource<InstalledVersionsResponse>(
+  () => '/api/versions/installed',
+);
+readonly versions = computed(() =>
+  this.installed.hasValue() ? (this.installed.value()?.versions ?? []) : [],
+);
+
+// Lazy: return undefined from the URL factory until a trigger flips
+private readonly remote = httpResource<RemoteVersionsResponse>(
+  () => (this.shouldLoad() ? '/api/versions/remote' : undefined),
+);
+```
+
+Imperative **mutations** (POST/DELETE: install, use, uninstall, alias edits)
+stay on a thin typed `HttpClient` service (`nvm-api.service.ts`):
 
 ```typescript
 private readonly http = inject(HttpClient);
 
-getInstalledVersions(): Observable<InstalledVersionsResponse> {
-  return this.http.get<InstalledVersionsResponse>(`${this.baseUrl}/versions/installed`);
+installVersion(version: string): Observable<NvmCommandResult> {
+  return this.http.post<NvmCommandResult>(`${this.baseUrl}/versions/install`, { version });
 }
 ```
 
-## Error Handling
+HTTP errors are normalised to `Error` once, globally, by `httpErrorInterceptor`
+(`provideHttpClient(withInterceptors([httpErrorInterceptor]))`) — components/services
+do not need their own `catchError`. Surface a resource's failure via its `error()`
+signal (e.g. log it in an `effect`); never swallow it.
+
+## Signal Forms (`@angular/forms/signals`)
+
+For inputs that need validation or form state, prefer **Signal Forms** over
+`FormsModule`/`ngModel` and Reactive Forms:
 
 ```typescript
-// ❌ Swallowing errors
-catchError(() => EMPTY)
+import { form, FormField, required, pattern } from '@angular/forms/signals';
 
-// ✅ Making errors visible
-catchError((err: HttpErrorResponse) => {
-  this.errorMessage.set(err.error?.message ?? err.message);
-  return EMPTY;
-})
+// In @Component({ imports: [FormField] })
+readonly version = signal('22');
+readonly versionForm = form(this.version, (f) => {
+  required(f, { message: 'Bitte eine Version angeben.' });
+  pattern(f, /^(node|stable|lts\/\*|\d+(\.\d+){0,2})$/, { message: 'Ungültiges Format.' });
+});
 ```
+
+```html
+<input [formField]="versionForm" />
+@let field = versionForm();
+@if (field.touched() && field.invalid()) {
+  <span role="alert">@for (e of field.errors(); track e.kind) { {{ e.message }} }</span>
+}
+<button [disabled]="field.invalid()">Installieren</button>
+```
+
+Mirror backend validators (e.g. the version `VERSION_PATTERN`) client-side for
+instant feedback — the backend still validates independently (defence in depth).
 
 ## SCSS
 
@@ -71,9 +142,10 @@ catchError((err: HttpErrorResponse) => {
 
 ## Template Rules
 
-- `@if` / `@for` instead of `*ngIf` / `*ngFor` (Angular 17+ control flow)
+- `@if` / `@for` / `@switch` and `@let` instead of `*ngIf` / `*ngFor` (built-in control flow)
 - No inline styles in templates
 - Disable buttons during active operations with `[disabled]="isLoading()"`
+  (or, for Signal Forms, `[disabled]="form().invalid()"`)
 
 ## Accessibility (WCAG 2.1 AA)
 

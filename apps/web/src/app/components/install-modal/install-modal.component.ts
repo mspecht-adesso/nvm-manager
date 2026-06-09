@@ -36,7 +36,6 @@ import type { InstallModalAction, InstallModalState } from '../../models/nvm.mod
  */
 @Component({
   selector: 'app-install-modal',
-  standalone: true,
   templateUrl: './install-modal.component.html',
   styleUrl: './install-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -25,7 +25,6 @@ import { AppFooterComponent } from './components/organisms/app-footer/app-footer
  */
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [
     InstallModalComponent,
     AppHeaderComponent,

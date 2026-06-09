@@ -135,21 +135,87 @@ if (process.env.NODE_ENV !== 'test') { createApp().listen(3789, '127.0.0.1'); }
 npm install --save-dev vitest @vitest/browser @testing-library/angular jsdom --prefix apps/web
 ```
 
-## Angular – Component Test
+## Angular – Component Test (mocked mutation service)
+
+`NvmApiService` now only wraps **mutations**, so mock those methods directly:
 
 ```typescript
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
+import { of } from 'rxjs';
 import { NvmApiService } from '../services/nvm-api.service';
-import { AppComponent } from './app';
+import { ActionCardComponent } from './action-card.component';
 
-describe('AppComponent', () => {
-  it('displays nvm status', async () => {
-    const mockSvc = { getStatus: vi.fn().mockReturnValue(of({ ok: true, nvmVersion: '0.39.7' })) };
-    await render(AppComponent, { providers: [{ provide: NvmApiService, useValue: mockSvc }] });
-    expect(await screen.findByText(/0\.39\.7/)).toBeInTheDocument();
+describe('ActionCardComponent', () => {
+  it('calls installVersion on click', async () => {
+    const mockSvc = { installVersion: vi.fn().mockReturnValue(of({ stdout: 'ok', stderr: '' })) };
+    await render(ActionCardComponent, {
+      providers: [{ provide: NvmApiService, useValue: mockSvc }],
+    });
+    await userEvent.click(screen.getByRole('button', { name: /installieren/i }));
+    expect(mockSvc.installVersion).toHaveBeenCalledWith('22');
   });
 });
+```
+
+## Angular – Testing `httpResource` (zoneless)
+
+Read endpoints use `httpResource`, which issues a real `HttpClient` request — test
+with `HttpTestingController`, not a service mock. A pending request keeps the app
+unstable (so `whenStable()` hangs): trigger the request, **flush**, then re-run
+change detection. Errors flow through `httpErrorInterceptor` onto `error()`.
+
+```typescript
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { httpErrorInterceptor } from '../../../interceptors/http-error.interceptor';
+import { StatusCardComponent } from './status-card.component';
+
+describe('StatusCardComponent', () => {
+  it('renders the nvm version after the resource resolves', async () => {
+    await TestBed.configureTestingModule({
+      imports: [StatusCardComponent],
+      providers: [
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(StatusCardComponent);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    fixture.detectChanges();                                  // resource issues GET
+    httpMock.expectOne('/api/status').flush({ ok: true, nvmVersion: '0.39.7' });
+    fixture.detectChanges();                                  // propagate value
+
+    expect(fixture.nativeElement.textContent).toContain('0.39.7');
+    httpMock.verify();
+  });
+});
+```
+
+For a **service** (no fixture), drive effects with `ApplicationRef.tick()` instead of
+`detectChanges()`. Drain reload requests in `afterEach`:
+
+```typescript
+afterEach(() => {
+  httpMock.match(() => true).forEach((r) => { if (!r.cancelled) r.flush(EMPTY_RESPONSE); });
+  httpMock.verify();
+});
+```
+
+## Angular – Testing Signal Forms
+
+Signals recompute on read, so set the model and assert validity synchronously:
+
+```typescript
+comp.versionInput.set('22');
+expect(comp.versionForm().valid()).toBe(true);
+
+comp.versionInput.set('rm -rf /');
+expect(comp.versionForm().invalid()).toBe(true);
+expect(comp.versionForm().errors().some((e) => e.kind === 'pattern')).toBe(true);
 ```
 
 ## Playwright E2E

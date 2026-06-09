@@ -1,9 +1,37 @@
 ---
 name: nodejs-express-expert
-description: Expert-level Node.js and Express guidance for nvm-manager backend. Covers Express routing, middleware, typed request handlers, child process management for nvm commands, input validation, error handling, SSE streaming, and TypeScript configuration for apps/api/. Use when building API routes, executing nvm shell commands, handling errors, implementing streaming, or configuring the Express server.
+description: Expert-level Node.js 22+ and Express 5 guidance for the nvm-manager backend. Covers Express 5 routing, middleware, typed request handlers, child process management for nvm commands, input validation, error handling, SSE streaming, and TypeScript 6 configuration for apps/api/. Use when building API routes, executing nvm shell commands, handling errors, implementing streaming, or configuring the Express server.
 ---
 
 # Node.js & Express Expert – nvm-manager
+
+Stack: **Node ≥ 22** (tested on Node 24), **Express 5** (`^5.2.1`), **TypeScript 6**,
+ESM (`"type": "module"`). Dev with `tsx watch`, build with `tsc`.
+
+## Express 5 essentials (vs. Express 4)
+
+- **Async handlers auto-forward rejections** to the error middleware. `next(err)` in a
+  `catch` is optional, but we keep explicit `try/catch … next(err)` to attach
+  `stdout`/`stderr`. Never leave a floating promise (`@typescript-eslint/no-floating-promises`).
+- **`req.query` is a read-only getter** — read/validate, don't reassign.
+- **Routing via `path-to-regexp` v8**: wildcards must be **named** (`/files/*splat`),
+  not bare `/*`. Avoid inline regex-in-path syntax.
+- Renamed/removed: `app.del()`→`app.delete()`, `res.sendfile()`→`res.sendFile()`,
+  `res.json(status, obj)`→`res.status(status).json(obj)`.
+- `res.status()` only accepts valid integer status codes.
+
+## ESM in Node 22+
+
+```typescript
+import { fileURLToPath } from 'node:url';
+// No __dirname in ESM:
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+// Relative imports need the .js extension even from .ts sources (NodeNext):
+import versionsRouter from './routes/nvm.routes.js';
+```
+
+Native `fetch`, `structuredClone`, `node:test` and `AbortController` are available
+without polyfills on Node 22+.
 
 ## Server Setup (`server.ts`)
 
@@ -156,7 +184,7 @@ export function isValidVersionInput(v: unknown): v is string {
 - Export only what is actually imported elsewhere in the same package. Types built inline in route handlers (e.g. `res.json({ ok: true, nvmVersion })`) do not need a corresponding exported type.
 - Run `npx knip` after changes to catch unused exports and unused devDependencies early.
 
-## tsconfig.json for API
+## tsconfig.json for API (TypeScript 6)
 
 ```json
 {
@@ -165,12 +193,19 @@ export function isValidVersionInput(v: unknown): v is string {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true
   }
 }
 ```
+
+`NodeNext` requires `.js` extensions on relative imports. Keep `skipLibCheck: true`
+so third-party `@types` (e.g. `@types/express@5`, `@types/node@25`) don't break the
+build on TS 6.
 
 ## Parsing nvm Output (`nvm.parser.ts`)
 

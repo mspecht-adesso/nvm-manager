@@ -1,9 +1,8 @@
-import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { RemoteVersionsCardComponent } from './remote-versions-card.component';
-import { NvmApiService } from '../../../services/nvm-api.service';
-import { of, throwError } from 'rxjs';
+import { httpErrorInterceptor } from '../../../core/http-error.interceptor';
 import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models';
 
 /**
@@ -21,44 +20,50 @@ const INSTALLED: InstalledNodeVersion[] = [
 ];
 
 /**
- * Builds a mock {@link NvmApiService} returning {@link REMOTE_VERSIONS} by default.
- * @param overrides - Per-method replacements (e.g. an error or custom version set).
- */
-function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
-  return {
-    getRemoteVersions: vi.fn().mockReturnValue(
-      of({ stdout: '', stderr: '', versions: REMOTE_VERSIONS }),
-    ),
-    ...overrides,
-  };
-}
-
-/**
  * Unit tests for {@link RemoteVersionsCardComponent}.
  *
- * Verifies lazy loading via `load()` (first call loads, subsequent calls
- * reload), error forwarding to the `logged` output, and the `filteredVersions` /
- * `availableCount` computed logic: installed-version exclusion, the empty-query
- * 30-item cap, the `v`-prefix version search, and LTS-codename search.
+ * The remote list is now fetched via `httpResource`, so requests are intercepted
+ * and flushed with `HttpTestingController` rather than mocking a service method.
+ * Verifies lazy loading via `load()` (first call loads, subsequent calls reload),
+ * error forwarding to the `logged` output, and the `filteredVersions` /
+ * `availableCount` computed logic.
  */
 describe('RemoteVersionsCardComponent', () => {
-  /**
-   * Compiles the component with a mocked API service.
-   * @param svcOverrides - Optional per-method API mock overrides.
-   */
-  async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
-    const mockSvc = buildSvc(svcOverrides);
+  /** Compiles the component with the HTTP testing backend. */
+  async function setup() {
     await TestBed.configureTestingModule({
       imports: [RemoteVersionsCardComponent],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
-        { provide: NvmApiService, useValue: mockSvc },
       ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(RemoteVersionsCardComponent);
-    return { fixture, comp: fixture.componentInstance, mockSvc };
+    const httpMock = TestBed.inject(HttpTestingController);
+    return { fixture, comp: fixture.componentInstance, httpMock };
+  }
+
+  /**
+   * Runs change detection so the lazy resource issues its GET, then flushes a
+   * single `/api/versions/remote` response (or an error). `httpResource` applies
+   * the value on a microtask, so we await stability before propagating it.
+   */
+  async function flushRemote(
+    fixture: ComponentFixture<RemoteVersionsCardComponent>,
+    httpMock: HttpTestingController,
+    versions: { version: string; lts: string | null }[] = REMOTE_VERSIONS,
+    opts?: { error?: string },
+  ): Promise<void> {
+    fixture.detectChanges();
+    const req = httpMock.expectOne('/api/versions/remote');
+    if (opts?.error) {
+      req.flush({ error: opts.error }, { status: 500, statusText: 'Server Error' });
+    } else {
+      req.flush({ stdout: '', stderr: '', versions });
+    }
+    await fixture.whenStable();
+    fixture.detectChanges();
   }
 
   it('erstellt die Komponente', async () => {
@@ -79,35 +84,33 @@ describe('RemoteVersionsCardComponent', () => {
   // ── load() ──────────────────────────────────────────────────────────────────
 
   it('lädt Remote-Versionen und setzt loading zurück', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     expect(comp.remoteVersions()).toHaveLength(40);
     expect(comp.loading()).toBe(false);
   });
 
   it('lädt bei wiederholtem load() erneut (reload)', async () => {
-    const { fixture, comp, mockSvc } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
     expect(comp.remoteVersions()).toHaveLength(40);
-    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(1);
 
+    // A second load() reloads the resource, issuing a fresh request.
     comp.load();
-    await fixture.whenStable();
-    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(2);
+    await flushRemote(fixture, httpMock);
+    expect(comp.remoteVersions()).toHaveLength(40);
   });
 
-  it('emittiert Fehler-Log wenn getRemoteVersions fehlschlägt', async () => {
-    const { fixture, comp } = await setup({
-      getRemoteVersions: vi.fn().mockReturnValue(throwError(() => new Error('Timeout'))),
-    });
+  it('emittiert Fehler-Log wenn das Laden fehlschlägt', async () => {
+    const { fixture, comp, httpMock } = await setup();
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock, [], { error: 'Timeout' });
 
     expect(logged[0].type).toBe('error');
     expect(logged[0].message).toContain('Timeout');
@@ -117,27 +120,27 @@ describe('RemoteVersionsCardComponent', () => {
   // ── filteredVersions (computed) ──────────────────────────────────────────────
 
   it('filtert installierte Versionen heraus', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     const versions = comp.filteredVersions();
     expect(versions.find((v) => v.version === '22.0.0')).toBeUndefined();
   });
 
   it('begrenzt ohne Suche auf 30 Einträge', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     expect(comp.filteredVersions().length).toBeLessThanOrEqual(30);
   });
 
   it('gibt bis zu 100 Treffer bei aktiver Suche zurück', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     comp.remoteSearch.set('2');
     expect(comp.filteredVersions().length).toBeGreaterThan(0);
@@ -145,9 +148,9 @@ describe('RemoteVersionsCardComponent', () => {
   });
 
   it('filtert nach Versionsnummer', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     comp.remoteSearch.set('22');
     const result = comp.filteredVersions();
@@ -155,9 +158,9 @@ describe('RemoteVersionsCardComponent', () => {
   });
 
   it('zeigt bei alleinigem "v" alle verfügbaren Versionen', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     comp.remoteSearch.set('v');
     const result = comp.filteredVersions();
@@ -166,22 +169,14 @@ describe('RemoteVersionsCardComponent', () => {
   });
 
   it('filtert mit "v19" nur Versionen, die mit "19." beginnen', async () => {
-    const { fixture, comp } = await setup({
-      getRemoteVersions: vi.fn().mockReturnValue(
-        of({
-          stdout: '',
-          stderr: '',
-          versions: [
-            { version: '19.0.0', lts: null },
-            { version: '19.9.0', lts: null },
-            { version: '1.19.0', lts: null },
-            { version: '20.0.0', lts: null },
-          ],
-        }),
-      ),
-    });
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock, [
+      { version: '19.0.0', lts: null },
+      { version: '19.9.0', lts: null },
+      { version: '1.19.0', lts: null },
+      { version: '20.0.0', lts: null },
+    ]);
 
     comp.remoteSearch.set('v19');
     const result = comp.filteredVersions();
@@ -189,9 +184,9 @@ describe('RemoteVersionsCardComponent', () => {
   });
 
   it('filtert nach LTS-Codename', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     comp.remoteSearch.set('jod');
     const result = comp.filteredVersions();
@@ -201,10 +196,10 @@ describe('RemoteVersionsCardComponent', () => {
   // ── availableCount (computed) ────────────────────────────────────────────────
 
   it('berechnet die Anzahl nicht installierter Versionen', async () => {
-    const { fixture, comp } = await setup();
+    const { fixture, comp, httpMock } = await setup();
     fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
-    await fixture.whenStable();
+    await flushRemote(fixture, httpMock);
 
     expect(comp.availableCount()).toBe(39);
   });

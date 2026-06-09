@@ -8,7 +8,6 @@ import { CardComponent } from './card.component';
  * each piece of projected content lands in the correct part of the card.
  */
 @Component({
-  standalone: true,
   imports: [CardComponent],
   template: `
     <app-card>

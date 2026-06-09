@@ -107,10 +107,12 @@ root component and is semantically clearer than an `effect()` for I/O management
 ## App Configuration (Standalone Bootstrap)
 
 `apps/web/src/app/app.config.ts` configures:
-- `provideHttpClient(withFetch())` – modern fetch API instead of XMLHttpRequest
+- `provideHttpClient(withInterceptors([httpErrorInterceptor]))` – the fetch backend is
+  the default in Angular 22, so `withFetch()` is no longer needed
+- `provideZonelessChangeDetection()` – the app runs without Zone.js
 - `provideRouter(routes)` – routing (currently one route, prepared for extensions)
 
-There is no `AppModule`. Angular 17 standalone components no longer need NgModule.
+There is no `AppModule`. Standalone components (the default since Angular 19+) need no NgModule.
 
 ## Component Highlights
 

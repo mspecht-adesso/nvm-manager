@@ -1,10 +1,27 @@
 ---
-description: Express API conventions, error handling, security and route structure for nvm-manager
+description: Express 5 API conventions, error handling, security and route structure for nvm-manager
 globs: apps/api/**/*.ts
 alwaysApply: false
 ---
 
 # Express API Rules
+
+The backend uses **Express 5** (`"express": "^5.2.1"`) on **Node ≥ 22** (ESM).
+
+## Express 5 specifics (watch out vs. Express 4)
+
+- **Async handlers auto-forward rejections.** A rejected promise from an
+  `async` handler is automatically passed to the error middleware, so `next(err)`
+  in a `catch` is optional. We still keep explicit `try/catch … next(err)` for
+  clarity and to attach `stdout`/`stderr` context — but never leave a floating promise.
+- **`req.query` is a read-only getter** — do not assign to it. Read and validate,
+  then pass validated values onward.
+- **Path matching uses `path-to-regexp` v8.** Wildcards must be **named**: use
+  `/files/*splat` (or `/files/{*splat}` for optional), not the bare `/files/*`.
+  Avoid unnamed `*`/`?`/`(...)` regex-in-path syntax.
+- Removed/renamed APIs: `app.del()` → `app.delete()`, `res.sendfile()` →
+  `res.sendFile()`, `res.json(status, obj)` → `res.status(status).json(obj)`.
+- `res.status()` rejects non-integer / out-of-range codes — pass real status numbers.
 
 ## Route Structure
 

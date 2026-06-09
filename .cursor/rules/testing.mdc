@@ -86,6 +86,50 @@ describe('VersionCardComponent', () => {
 });
 ```
 
+## Testing `httpResource` (Angular 22, zoneless)
+
+`httpResource` issues a real HTTP request through `HttpClient`, so test it with
+`HttpTestingController` — **not** by mocking a service method. Two zoneless gotchas:
+
+1. A pending request keeps the app **unstable**, so `await whenStable()` hangs
+   until the request is flushed. Trigger the request (via `detectChanges()` for a
+   component, or `ApplicationRef.tick()` for a service), then `expectOne(...).flush(...)`,
+   then run change detection again to propagate the value.
+2. Errors arrive through `httpErrorInterceptor` (include it in providers) and land
+   on the resource's `error()` signal — flush with a non-2xx status to test them.
+
+```typescript
+TestBed.configureTestingModule({
+  providers: [
+    provideHttpClient(withInterceptors([httpErrorInterceptor])),
+    provideHttpClientTesting(),
+  ],
+});
+const fixture = TestBed.createComponent(StatusCardComponent);
+const httpMock = TestBed.inject(HttpTestingController);
+
+fixture.detectChanges();                                   // issue GET
+httpMock.expectOne('/api/status').flush({ ok: true, nvmVersion: '0.39.7' });
+fixture.detectChanges();                                   // propagate
+expect(fixture.componentInstance.status()?.ok).toBe(true);
+```
+
+Drain any reload requests in `afterEach` and call `httpMock.verify()`.
+
+## Testing Signal Forms
+
+Set the model signal, then read the field state synchronously (signals recompute
+on read — no `detectChanges()` needed for validity):
+
+```typescript
+comp.version.set('22');
+expect(comp.versionForm().valid()).toBe(true);
+
+comp.version.set('not a version');
+expect(comp.versionForm().invalid()).toBe(true);
+expect(comp.versionForm().errors().some((e) => e.kind === 'pattern')).toBe(true);
+```
+
 ## Vitest Configuration (API – `vitest.config.ts`)
 
 ```typescript

@@ -32,50 +32,6 @@ describe('NvmApiService', () => {
   // Ensure every test consumed exactly the requests it expected.
   afterEach(() => httpMock.verify());
 
-  describe('getStatus', () => {
-    it('sendet GET /api/status', () => {
-      service.getStatus().subscribe();
-      const req = httpMock.expectOne('/api/status');
-      expect(req.request.method).toBe('GET');
-      req.flush({ ok: true, nvmVersion: '0.39.7' });
-    });
-
-    it('gibt NvmStatus zurück', async () => {
-      const promise = firstValueFrom(service.getStatus());
-      httpMock.expectOne('/api/status').flush({ ok: true, nvmVersion: '0.39.7' });
-      const s = await promise;
-      expect(s.ok).toBe(true);
-      expect(s.nvmVersion).toBe('0.39.7');
-    });
-
-    it('mappt HTTP-Fehler auf Error', async () => {
-      const promise = firstValueFrom(service.getStatus());
-      httpMock.expectOne('/api/status').flush(
-        { error: 'nvm nicht gefunden' },
-        { status: 500, statusText: 'Internal Server Error' },
-      );
-      await expect(promise).rejects.toBeInstanceOf(Error);
-    });
-  });
-
-  describe('getInstalledVersions', () => {
-    it('sendet GET /api/versions/installed', () => {
-      service.getInstalledVersions().subscribe();
-      const req = httpMock.expectOne('/api/versions/installed');
-      expect(req.request.method).toBe('GET');
-      req.flush({ stdout: '', stderr: '', versions: [] });
-    });
-  });
-
-  describe('getRemoteVersions', () => {
-    it('sendet GET /api/versions/remote', () => {
-      service.getRemoteVersions().subscribe();
-      const req = httpMock.expectOne('/api/versions/remote');
-      expect(req.request.method).toBe('GET');
-      req.flush({ stdout: '', stderr: '', versions: [] });
-    });
-  });
-
   describe('installVersion', () => {
     it('sendet POST /api/versions/install mit Version im Body', () => {
       service.installVersion('22').subscribe();
@@ -116,15 +72,6 @@ describe('NvmApiService', () => {
     });
   });
 
-  describe('getAliases', () => {
-    it('sendet GET /api/versions/aliases', () => {
-      service.getAliases().subscribe();
-      const req = httpMock.expectOne('/api/versions/aliases');
-      expect(req.request.method).toBe('GET');
-      req.flush({ stdout: '', stderr: '', aliases: [] });
-    });
-  });
-
   describe('setAlias', () => {
     it('sendet POST /api/versions/aliases mit Name und Ziel im Body', () => {
       service.setAlias('myAlias', '22').subscribe();
@@ -153,8 +100,8 @@ describe('NvmApiService', () => {
 
   describe('Fehlerbehandlung (httpErrorInterceptor)', () => {
     it('extrahiert error-Eigenschaft aus der Fehlerantwort', async () => {
-      const promise = firstValueFrom(service.getStatus());
-      httpMock.expectOne('/api/status').flush(
+      const promise = firstValueFrom(service.installVersion('22'));
+      httpMock.expectOne('/api/versions/install').flush(
         { error: 'nvm nicht verfügbar' },
         { status: 503, statusText: 'Service Unavailable' },
       );
@@ -163,8 +110,10 @@ describe('NvmApiService', () => {
     });
 
     it('fällt auf err.message zurück wenn keine error-Eigenschaft vorhanden', async () => {
-      const promise = firstValueFrom(service.getStatus());
-      httpMock.expectOne('/api/status').flush(null, { status: 500, statusText: 'Server Error' });
+      const promise = firstValueFrom(service.installVersion('22'));
+      httpMock
+        .expectOne('/api/versions/install')
+        .flush(null, { status: 500, statusText: 'Server Error' });
       const err = await promise.catch((e: Error) => e);
       expect((err as Error).message).toBeTruthy();
     });

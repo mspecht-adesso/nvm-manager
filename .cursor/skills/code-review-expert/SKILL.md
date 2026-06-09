@@ -41,11 +41,13 @@ This backend executes shell commands. Scrutinise every change touching `apps/api
 - [ ] No `any`; explicit return types on exported functions
 - [ ] New logic (parser/validator) has Vitest unit tests; routes have Supertest tests
 
-## Angular / Web Checklist
+## Angular / Web Checklist (Angular 22)
 
-- [ ] `standalone: true`, no NgModule; `inject()` over constructor DI
-- [ ] State via Signals/`computed()`; `@if`/`@for` control flow
-- [ ] HTTP errors surfaced (not swallowed into `EMPTY`)
+- [ ] No redundant `standalone: true` (default in v22), no NgModule; `inject()` over constructor DI
+- [ ] `ChangeDetectionStrategy.OnPush` declared explicitly; zoneless-safe (no Zone.js-dependent ticking)
+- [ ] State via Signals/`computed()`; signal-based `input()`/`output()`/`model()`; `@if`/`@for` control flow
+- [ ] GET reads via `httpResource()`; mutations via `HttpClient`; validated inputs via Signal Forms
+- [ ] HTTP errors surfaced (not swallowed into `EMPTY`); resource `error()` handled
 - [ ] A11y: accessible button names, `scope` on `<th>`, `aria-live` for dynamic content, modal focus trap (see `a11y` rule / `a11y-expert` skill)
 - [ ] No duplicated model types; `nvm.models.ts` is the single source
 

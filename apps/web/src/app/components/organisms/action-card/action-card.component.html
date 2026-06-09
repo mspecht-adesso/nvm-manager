@@ -2,30 +2,59 @@
   <span card-title>Aktion</span>
 
   <div class="action-form">
+    @let versionField = versionForm();
     <div class="input-group">
       <label class="input-group__label" for="versionInput">Version</label>
       <input
         id="versionInput"
         class="input"
         type="text"
-        [ngModel]="versionInput()"
-        (ngModelChange)="versionInput.set($event)"
+        [formField]="versionForm"
         placeholder="z.B. 22, 22.11, lts/*, node"
-        [disabled]="isLoading()"
+        [attr.aria-invalid]="versionField.touched() && versionField.invalid() ? 'true' : null"
+        [attr.aria-describedby]="
+          versionField.touched() && versionField.invalid() ? 'versionError' : 'versionHint'
+        "
       />
-      <span class="input-group__hint">Erlaubt: node, stable, lts/*, 22, 22.11, 22.11.0</span>
+      @if (versionField.touched() && versionField.invalid()) {
+        <span id="versionError" class="input-group__error" role="alert">
+          @for (error of versionField.errors(); track error.kind) {
+            {{ error.message }}
+          }
+        </span>
+      } @else {
+        <span id="versionHint" class="input-group__hint"
+          >Erlaubt: node, stable, lts/*, 22, 22.11, 22.11.0</span
+        >
+      }
     </div>
     <div class="action-buttons">
-      <button class="btn btn--primary" (click)="onInstall()" [disabled]="isLoading()">
+      <button
+        class="btn btn--primary"
+        (click)="onInstall()"
+        [disabled]="isLoading() || versionField.invalid()"
+      >
         @if (isLoading()) { Bitte warten ... } @else { Installieren }
       </button>
-      <button class="btn btn--secondary" (click)="onUse()" [disabled]="isLoading()">
+      <button
+        class="btn btn--secondary"
+        (click)="onUse()"
+        [disabled]="isLoading() || versionField.invalid()"
+      >
         Verwenden
       </button>
-      <button class="btn btn--secondary" (click)="onSetDefault()" [disabled]="isLoading()">
+      <button
+        class="btn btn--secondary"
+        (click)="onSetDefault()"
+        [disabled]="isLoading() || versionField.invalid()"
+      >
         Als Default setzen
       </button>
-      <button class="btn btn--danger" (click)="onUninstall()" [disabled]="isLoading()">
+      <button
+        class="btn btn--danger"
+        (click)="onUninstall()"
+        [disabled]="isLoading() || versionField.invalid()"
+      >
         Deinstallieren
       </button>
     </div>

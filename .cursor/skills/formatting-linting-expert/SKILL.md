@@ -116,12 +116,16 @@ if (!isValidVersionInput(body.version)) { ... }
 ```
 
 ### `@angular-eslint/prefer-standalone`
+In Angular 22 standalone is the default, so the redundant flag should be omitted.
 ```typescript
-// ❌ Error: component without standalone: true
-@Component({ selector: 'app-foo' })
+// ❌ Opting out of standalone (NgModule-based) is not allowed
+@Component({ selector: 'app-foo', standalone: false })
 
-// ✅ Fix
+// ❌ Redundant — standalone: true is already the default
 @Component({ selector: 'app-foo', standalone: true })
+
+// ✅ Fix: omit the flag entirely
+@Component({ selector: 'app-foo' })
 ```
 
 ## Add Scripts
