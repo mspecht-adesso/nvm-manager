@@ -72,6 +72,16 @@ describe('NvmApiService', () => {
     });
   });
 
+  describe('setStableVersion', () => {
+    it('sendet POST /api/versions/stable mit Version im Body', () => {
+      service.setStableVersion('22').subscribe();
+      const req = httpMock.expectOne('/api/versions/stable');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ version: '22' });
+      req.flush({ stdout: '', stderr: '' });
+    });
+  });
+
   describe('setAlias', () => {
     it('sendet POST /api/versions/aliases mit Name und Ziel im Body', () => {
       service.setAlias('myAlias', '22').subscribe();
@@ -95,6 +105,53 @@ describe('NvmApiService', () => {
       const req = httpMock.expectOne('/api/versions/aliases/my%20alias');
       expect(req.request.method).toBe('DELETE');
       req.flush({ stdout: '', stderr: '' });
+    });
+  });
+
+  describe('setLtsAlias', () => {
+    it('sendet POST /api/versions/aliases/lts mit Codename und Version im Body', () => {
+      service.setLtsAlias('iron', '20.18.0').subscribe();
+      const req = httpMock.expectOne('/api/versions/aliases/lts');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ codename: 'iron', version: '20.18.0' });
+      req.flush({ stdout: '', stderr: '' });
+    });
+  });
+
+  describe('deleteLtsAlias', () => {
+    it('sendet DELETE /api/versions/aliases/lts/:codename', () => {
+      service.deleteLtsAlias('iron').subscribe();
+      const req = httpMock.expectOne('/api/versions/aliases/lts/iron');
+      expect(req.request.method).toBe('DELETE');
+      req.flush({ stdout: '', stderr: '' });
+    });
+
+    it('URL-enkodiert den Codenamen', () => {
+      service.deleteLtsAlias('lts proposal').subscribe();
+      const req = httpMock.expectOne('/api/versions/aliases/lts/lts%20proposal');
+      expect(req.request.method).toBe('DELETE');
+      req.flush({ stdout: '', stderr: '' });
+    });
+  });
+
+  describe('updateNvm', () => {
+    it('sendet POST /api/nvm/update mit leerem Body', () => {
+      service.updateNvm().subscribe();
+      const req = httpMock.expectOne('/api/nvm/update');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({});
+      req.flush({ stdout: '', stderr: '' });
+    });
+  });
+
+  describe('openNvmDir', () => {
+    it('sendet POST /api/nvm/open-dir und liefert { ok: true }', async () => {
+      const promise = firstValueFrom(service.openNvmDir());
+      const req = httpMock.expectOne('/api/nvm/open-dir');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({});
+      req.flush({ ok: true });
+      expect(await promise).toEqual({ ok: true });
     });
   });
 
