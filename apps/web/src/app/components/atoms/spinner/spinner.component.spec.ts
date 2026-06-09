@@ -1,7 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { SpinnerComponent } from './spinner.component';
 
+/**
+ * Unit tests for {@link SpinnerComponent}.
+ *
+ * The spinner is a purely presentational atom, so the suite only verifies that
+ * it instantiates and renders its single `.spinner` element (the animation
+ * itself is CSS and not testable here).
+ */
 describe('SpinnerComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [SpinnerComponent],

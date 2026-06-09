@@ -24,13 +24,28 @@ const THEME_TOGGLE_JS = `
     const html = document.documentElement;
     const isDark = html.getAttribute('data-theme') === 'dark';
     const next = isDark ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
     localStorage.setItem('nvm-docs-theme', next);
     document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
   }
   document.addEventListener('DOMContentLoaded', function () {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
   });
 `;
 
@@ -184,6 +199,15 @@ const DIR_LABELS = {
   desc: 'Projektbeschreibung',
 };
 
+// Files whose HTML is maintained manually (styled with styles-docs.css / styles.css).
+// The build script skips converting these to avoid overwriting the hand-crafted versions.
+const SKIP_CONVERT = new Set([
+  'desc/API-now',
+  'desc/BACKEND-now',
+  'desc/FRONTEND-now',
+  'desc/README-now',
+]);
+
 function readFirstHeading(mdContent) {
   const match = mdContent.match(/^#\s+(.+)$/m);
   return match ? match[1].trim() : null;
@@ -191,6 +215,8 @@ function readFirstHeading(mdContent) {
 
 let converted = 0;
 const index = [];
+// Separately collect the -now entries for their own docs.html section.
+const nowEntries = [];
 
 for (const dir of DIRS) {
   const absDir = join(ROOT, dir);
@@ -198,20 +224,29 @@ for (const dir of DIRS) {
   const section = { dir, label: DIR_LABELS[dir] ?? dir, entries: [] };
 
   for (const file of files) {
-    const mdPath = join(absDir, file);
-    const htmlPath = join(absDir, basename(file, '.md') + '.html');
-
-    const markdown = readFileSync(mdPath, 'utf-8');
-    const body = marked(markdown);
     const stem = basename(file, '.md');
+    const skipKey = `${dir}/${stem}`;
+
+    const markdown = readFileSync(join(absDir, file), 'utf-8');
     const heading = readFirstHeading(markdown) ?? stem.replace(/[-_]/g, ' ');
+    const href = `${dir}/${stem}.html`;
+
+    if (SKIP_CONVERT.has(skipKey)) {
+      // Hand-crafted HTML – only register for the index, do not overwrite.
+      nowEntries.push({ href, label: heading });
+      console.log(`⏭  ${dir}/${stem}.html (manually maintained – skipped)`);
+      continue;
+    }
+
+    const htmlPath = join(absDir, `${stem}.html`);
+    const body = marked(markdown);
     const html = htmlTemplate(heading, body);
 
     writeFileSync(htmlPath, html, 'utf-8');
     console.log(`✓  ${dir}/${stem}.html`);
     converted++;
 
-    section.entries.push({ href: `${dir}/${stem}.html`, label: heading, stem });
+    section.entries.push({ href, label: heading, stem });
   }
 
   index.push(section);
@@ -224,9 +259,10 @@ const CARD_ICONS = {
   desc: '📐',
 };
 
-function indexPage(sections) {
-  const cards = sections
+function indexPage(sections, nowEntries) {
+  const regularCards = sections
     .map(({ dir, label, entries }) => {
+      if (!entries.length) return '';
       const icon = CARD_ICONS[dir] ?? '📄';
       const links = entries
         .map(
@@ -241,7 +277,21 @@ ${links}
         </ul>
       </section>`;
     })
+    .filter(Boolean)
     .join('\n\n');
+
+  const nowCard = nowEntries.length
+    ? `      <section class="card">
+        <h2>🧭 Aktueller Stand <span class="badge">-now</span></h2>
+        <ul>
+${nowEntries
+  .map(({ href, label }) => `        <li><a href="${href}">${label}</a></li>`)
+  .join('\n')}
+        </ul>
+      </section>`
+    : '';
+
+  const cards = [regularCards, nowCard].filter(Boolean).join('\n\n');
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -354,7 +404,7 @@ ${cards}
 </html>`;
 }
 
-const indexHtml = indexPage(index);
+const indexHtml = indexPage(index, nowEntries);
 writeFileSync(join(ROOT, 'docs.html'), indexHtml, 'utf-8');
 console.log(`✓  docs.html (Übersichtsseite)`);
 

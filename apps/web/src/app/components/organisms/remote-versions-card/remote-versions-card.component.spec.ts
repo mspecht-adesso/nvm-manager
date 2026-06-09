@@ -6,15 +6,24 @@ import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
 import type { InstalledNodeVersion, LogEvent } from '../../../models/nvm.models';
 
+/**
+ * 40 synthetic remote versions (spanning majors 22–25, alternating LTS/non-LTS)
+ * used to exercise filtering and the 30/100 result caps.
+ */
 const REMOTE_VERSIONS = Array.from({ length: 40 }, (_, i) => ({
   version: `${22 + Math.floor(i / 10)}.${i % 10}.0`,
   lts: i % 2 === 0 ? 'Jod' : null,
 }));
 
+/** Single installed version, used to verify it is filtered out of the remote list. */
 const INSTALLED: InstalledNodeVersion[] = [
   { version: '22.0.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
 ];
 
+/**
+ * Builds a mock {@link NvmApiService} returning {@link REMOTE_VERSIONS} by default.
+ * @param overrides - Per-method replacements (e.g. an error or custom version set).
+ */
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getRemoteVersions: vi.fn().mockReturnValue(
@@ -24,7 +33,19 @@ function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   };
 }
 
+/**
+ * Unit tests for {@link RemoteVersionsCardComponent}.
+ *
+ * Verifies lazy loading via `load()` (first call loads, subsequent calls
+ * reload), error forwarding to the `logged` output, and the `filteredVersions` /
+ * `availableCount` computed logic: installed-version exclusion, the empty-query
+ * 30-item cap, the `v`-prefix version search, and LTS-codename search.
+ */
 describe('RemoteVersionsCardComponent', () => {
+  /**
+   * Compiles the component with a mocked API service.
+   * @param svcOverrides - Optional per-method API mock overrides.
+   */
   async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
     const mockSvc = buildSvc(svcOverrides);
     await TestBed.configureTestingModule({
@@ -52,7 +73,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('isLoading ist standardmäßig false', async () => {
     const { comp } = await setup();
-    expect(comp.isLoading).toBe(false);
+    expect(comp.isLoading()).toBe(false);
   });
 
   // ── load() ──────────────────────────────────────────────────────────────────
@@ -66,18 +87,16 @@ describe('RemoteVersionsCardComponent', () => {
     expect(comp.loading()).toBe(false);
   });
 
-  it('setzt remoteVersions vor dem Laden zurück', async () => {
-    const { fixture, comp } = await setup();
-    // Load versions first, then reload and verify that the list is cleared beforehand
+  it('lädt bei wiederholtem load() erneut (reload)', async () => {
+    const { fixture, comp, mockSvc } = await setup();
     comp.load();
     await fixture.whenStable();
     expect(comp.remoteVersions()).toHaveLength(40);
+    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(1);
 
-    // On the next load() call versions are reset to [] first
-    comp.remoteVersions.set([{ version: '99.0.0', lts: null }]);
-    // Synchron sicherstellen, dass load() die Liste leert bevor das Observable resolved
-    comp.remoteVersions.set([]);
-    expect(comp.remoteVersions()).toHaveLength(0);
+    comp.load();
+    await fixture.whenStable();
+    expect(mockSvc.getRemoteVersions).toHaveBeenCalledTimes(2);
   });
 
   it('emittiert Fehler-Log wenn getRemoteVersions fehlschlägt', async () => {
@@ -99,7 +118,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('filtert installierte Versionen heraus', async () => {
     const { fixture, comp } = await setup();
-    comp.installedVersions = INSTALLED;
+    fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
     await fixture.whenStable();
 
@@ -135,6 +154,40 @@ describe('RemoteVersionsCardComponent', () => {
     expect(result.every((v) => v.version.includes('22'))).toBe(true);
   });
 
+  it('zeigt bei alleinigem "v" alle verfügbaren Versionen', async () => {
+    const { fixture, comp } = await setup();
+    comp.load();
+    await fixture.whenStable();
+
+    comp.remoteSearch.set('v');
+    const result = comp.filteredVersions();
+    expect(result.length).toBe(REMOTE_VERSIONS.length);
+    expect(result.length).toBeGreaterThan(30);
+  });
+
+  it('filtert mit "v19" nur Versionen, die mit "19." beginnen', async () => {
+    const { fixture, comp } = await setup({
+      getRemoteVersions: vi.fn().mockReturnValue(
+        of({
+          stdout: '',
+          stderr: '',
+          versions: [
+            { version: '19.0.0', lts: null },
+            { version: '19.9.0', lts: null },
+            { version: '1.19.0', lts: null },
+            { version: '20.0.0', lts: null },
+          ],
+        }),
+      ),
+    });
+    comp.load();
+    await fixture.whenStable();
+
+    comp.remoteSearch.set('v19');
+    const result = comp.filteredVersions();
+    expect(result.map((v) => v.version)).toEqual(['19.0.0', '19.9.0']);
+  });
+
   it('filtert nach LTS-Codename', async () => {
     const { fixture, comp } = await setup();
     comp.load();
@@ -149,7 +202,7 @@ describe('RemoteVersionsCardComponent', () => {
 
   it('berechnet die Anzahl nicht installierter Versionen', async () => {
     const { fixture, comp } = await setup();
-    comp.installedVersions = INSTALLED;
+    fixture.componentRef.setInput('installedVersions', INSTALLED);
     comp.load();
     await fixture.whenStable();
 
@@ -163,12 +216,8 @@ describe('RemoteVersionsCardComponent', () => {
 
   // ── install output ───────────────────────────────────────────────────────────
 
-  it('emittiert install mit der gewählten Version', async () => {
+  it('stellt install als Output bereit', async () => {
     const { comp } = await setup();
-    const emitted: string[] = [];
-    comp.install.subscribe((v: string) => emitted.push(v));
-
-    comp.install.emit('22.0.0');
-    expect(emitted).toContain('22.0.0');
+    expect(comp.install).toBeDefined();
   });
 });

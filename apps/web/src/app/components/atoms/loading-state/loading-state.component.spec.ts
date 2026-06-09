@@ -1,7 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { LoadingStateComponent } from './loading-state.component';
 
+/**
+ * Unit tests for {@link LoadingStateComponent}.
+ *
+ * Verifies that the component instantiates, renders its `.loading-state`
+ * wrapper, and displays the required `message` input next to the spinner.
+ */
 describe('LoadingStateComponent', () => {
+  /** Compiles the standalone component and returns the fixture + instance. */
   async function setup() {
     await TestBed.configureTestingModule({
       imports: [LoadingStateComponent],
@@ -17,8 +24,8 @@ describe('LoadingStateComponent', () => {
   });
 
   it('zeigt die übergebene Nachricht an', async () => {
-    const { fixture, comp } = await setup();
-    comp.message = 'Lade Daten ...';
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('message', 'Lade Daten ...');
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -26,8 +33,8 @@ describe('LoadingStateComponent', () => {
   });
 
   it('rendert den .loading-state Wrapper', async () => {
-    const { fixture, comp } = await setup();
-    comp.message = 'Test';
+    const { fixture } = await setup();
+    fixture.componentRef.setInput('message', 'Test');
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;

@@ -6,6 +6,11 @@
 
   @if (loading()) {
     <app-loading-state message="Lade Status ..." />
+  } @else if (statusError()) {
+    <div class="status-item status-item--error">
+      <span class="status-item__label">Fehler</span>
+      <span>{{ statusError() }}</span>
+    </div>
   } @else if (status()) {
     <div class="status-grid">
       <div class="status-item">

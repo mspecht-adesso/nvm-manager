@@ -2,6 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { DOCUMENT } from '@angular/common';
 import { ThemeService, type Theme } from './theme.service';
 
+/**
+ * Creates a minimal `Document` stub exposing only `documentElement.dataset`,
+ * which is all the service touches when applying the `data-theme` attribute.
+ */
 function makeDoc() {
   const dataset: Record<string, string> = {};
   return {
@@ -11,8 +15,20 @@ function makeDoc() {
   } as unknown as Document;
 }
 
+/**
+ * Unit tests for {@link ThemeService}.
+ *
+ * The browser APIs the service relies on are stubbed per test:
+ * - `localStorage` is backed by an in-memory record via `Storage.prototype` spies.
+ * - `matchMedia` is defined manually (jsdom lacks it) and its dark-mode result
+ *   is controlled through {@link matchMediaResult}.
+ *
+ * This lets the suite drive the full theme-resolution order and toggle/persist logic.
+ */
 describe('ThemeService', () => {
+  /** In-memory backing store standing in for `localStorage`. */
   let localStorageMock: Record<string, string>;
+  /** Controls what `matchMedia('(prefers-color-scheme: dark)')` reports. */
   let matchMediaResult: boolean;
 
   beforeEach(() => {
@@ -26,7 +42,7 @@ describe('ThemeService', () => {
       (key: string, value: string) => { localStorageMock[key] = value; },
     );
 
-    // matchMedia is not defined in jsdom by default
+    // matchMedia is not defined in jsdom by default, so define a controllable stub.
     Object.defineProperty(globalThis, 'matchMedia', {
       writable: true,
       configurable: true,
@@ -47,6 +63,13 @@ describe('ThemeService', () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * Instantiates the service with a stubbed DOCUMENT. The service resolves its
+   * initial theme in the constructor, so the localStorage/matchMedia stubs must
+   * be configured before calling this.
+   *
+   * @param docOverride - Optional custom Document stub.
+   */
   function setup(docOverride?: Partial<Document>) {
     const doc = makeDoc();
     TestBed.configureTestingModule({

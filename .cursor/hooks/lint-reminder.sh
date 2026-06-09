@@ -26,10 +26,18 @@ if echo "$file" | grep -q "apps/api/"; then
   exit 0
 fi
 
-# Angular files: frontend lint hints
-if echo "$file" | grep -q "apps/web/"; then
+# Angular TypeScript files: frontend lint hints
+if echo "$file" | grep -q "apps/web/" && echo "$file" | grep -qE "\.ts$"; then
   echo '{
-    "additional_context": "Angular TypeScript file changed. Lint hints: standalone: true on components (@angular-eslint/prefer-standalone), Signals instead of BehaviorSubject, @if/@for instead of *ngIf/*ngFor, no any types in HttpClient calls."
+    "additional_context": "Angular TypeScript file changed. Lint hints: standalone: true on components (@angular-eslint/prefer-standalone), Signals instead of BehaviorSubject, @if/@for instead of *ngIf/*ngFor, no any types in HttpClient calls. A11y: use LiveAnnouncer for dynamic announcements, cdkTrapFocus for modals, FocusMonitor to restore focus on close."
+  }'
+  exit 0
+fi
+
+# Angular HTML templates: a11y hints
+if echo "$file" | grep -q "apps/web/" && echo "$file" | grep -qE "\.html$"; then
+  echo '{
+    "additional_context": "Angular HTML template changed. A11y checklist: (1) Buttons in table rows need [attr.aria-label] with version context. (2) Decorative SVGs need aria-hidden=\"true\" focusable=\"false\". (3) Tables need scope=\"col\" on <th> and aria-label on <table>. (4) Active rows: [attr.aria-current]=\"v.active ? '\''true'\'' : null\". (5) Dynamic content (loading/results/errors) needs aria-live region. (6) Modals: role=\"dialog\" + aria-modal + cdkTrapFocus + Escape key handler. (7) Focus ring never removed without replacement."
   }'
   exit 0
 fi

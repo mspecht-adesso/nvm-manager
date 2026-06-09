@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nvm Manager – Benutzerhandbuch</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>nvm Manager – Benutzerhandbuch</h1>
+<blockquote>
+<p>Lokales Web-Tool zur Verwaltung von Node.js-Versionen via nvm</p>
+</blockquote>
+<hr>
+<h2>Inhaltsverzeichnis</h2>
+<ol>
+<li><a href="#was-ist-nvm-manager">Was ist nvm Manager?</a></li>
+<li><a href="#voraussetzungen">Voraussetzungen</a></li>
+<li><a href="#installation-und-start">Installation und Start</a></li>
+<li><a href="#benutzeroberfl%C3%A4che">Benutzeroberfläche</a></li>
+<li><a href="#funktionen-im-detail">Funktionen im Detail</a></li>
+<li><a href="#h%C3%A4ufige-fehler-und-l%C3%B6sungen">Häufige Fehler und Lösungen</a></li>
+<li><a href="#sicherheitshinweise">Sicherheitshinweise</a></li>
+<li><a href="#bekannte-einschr%C3%A4nkungen">Bekannte Einschränkungen</a></li>
+<li><a href="#dark-mode--light-mode">Dark Mode / Light Mode</a></li>
+</ol>
+<hr>
+<h2>Was ist nvm Manager?</h2>
+<p><strong>nvm Manager</strong> ist ein lokales Web-Tool für macOS und Linux. Es ermöglicht die
+Verwaltung von Node.js-Versionen über eine grafische Browser-Oberfläche, ohne
+dass Sie Terminalbefehle kennen müssen.</p>
+<p>Unter der Haube nutzt es <a href="https://github.com/nvm-sh/nvm">nvm (Node Version Manager)</a>,
+das auf Ihrem System installiert sein muss.</p>
+<hr>
+<h2>Voraussetzungen</h2>
+<table>
+<thead>
+<tr>
+<th>Voraussetzung</th>
+<th>Prüfbefehl</th>
+<th>Mindestversion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>macOS oder Linux</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td>nvm</td>
+<td><code>nvm --version</code></td>
+<td>beliebig</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td><code>node --version</code></td>
+<td>≥ 18</td>
+</tr>
+<tr>
+<td>npm</td>
+<td><code>npm --version</code></td>
+<td>≥ 9</td>
+</tr>
+</tbody></table>
+<p>Falls <code>nvm --version</code> einen Fehler zeigt, folgen Sie der
+<a href="https://github.com/nvm-sh/nvm#installing-and-updating">nvm-Installationsanleitung</a>.</p>
+<hr>
+<h2>Installation und Start</h2>
+<h3>Erstmalige Installation</h3>
+<pre><code class="language-bash"># Im Projektordner – installiert alle Abhängigkeiten (Root, API und Frontend)
+npm run install:all
+
+# Frontend und Backend gleichzeitig starten
+npm run dev
+</code></pre>
+<p>Öffnen Sie dann Ihren Browser:</p>
+<ul>
+<li><strong>Frontend:</strong> <a href="http://localhost:4200">http://localhost:4200</a></li>
+<li><strong>API (nur intern):</strong> <a href="http://127.0.0.1:3789">http://127.0.0.1:3789</a></li>
+</ul>
+<h3>Nur Backend starten</h3>
+<pre><code class="language-bash">npm run dev:api
+</code></pre>
+<h3>Nur Frontend starten</h3>
+<pre><code class="language-bash">npm run dev:web
+</code></pre>
+<hr>
+<h2>Benutzeroberfläche</h2>
+<p>Die Oberfläche gliedert sich in folgende Bereiche:</p>
+<pre><code>┌──────────────────────────────────────────┐
+│   nvm Manager    Aktiv: v22.x    ☾ / ☀  │  ← Header mit Versionsanzeige und Theme-Toggle
+├──────────────────────────────────────────┤
+│  Status                             │  ← API-Status, nvm-Version, NVM_DIR
+├─────────────────────────────────────┤
+│  Aktion                             │  ← Eingabefeld + Aktions-Buttons
+├─────────────────────────────────────┤
+│  Installierte Versionen             │  ← Tabelle mit Verwenden-Button pro Zeile
+├─────────────────────────────────────┤
+│  Aliases                            │  ← Aliases anzeigen, bearbeiten, anlegen
+├─────────────────────────────────────┤
+│  Verfügbare Versionen               │  ← Alle Remote-Versionen mit Suchfeld
+├─────────────────────────────────────┤
+│  Log                                │  ← Letzte Aktionen und Fehlermeldungen
+└─────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2>Funktionen im Detail</h2>
+<h3>Status prüfen</h3>
+<p>Die <strong>Status-Card</strong> zeigt beim Start automatisch:</p>
+<ul>
+<li><strong>API erreichbar</strong>: Grüner/roter Indikator</li>
+<li><strong>nvm-Version</strong>: z.B. <code>0.39.3</code>, daneben die neueste verfügbare Version (z.B. <code>Aktuell: 0.40.4</code>)</li>
+<li><strong>NVM_DIR</strong>: Pfad zur nvm-Installation (z.B. <code>/Users/name/.nvm</code>) – mit einem Ordner-Icon-Button (📁) zum Öffnen des Verzeichnisses im Finder (macOS) bzw. Dateimanager (Linux)</li>
+</ul>
+<p>Der Header zeigt zudem die aktuell aktive Node.js-Version als Badge an (z.B. <code>Aktiv: v22.11.0</code>) sowie den Theme-Toggle-Button (☾/☀).</p>
+<p>Falls die API nicht erreichbar ist, stellen Sie sicher dass das Backend läuft (<code>npm run dev:api</code>).</p>
+<h4>NVM_DIR im Dateimanager öffnen</h4>
+<p>Klicken Sie auf das Ordner-Symbol (📁) neben dem NVM_DIR-Pfad, um das Verzeichnis direkt im Finder (macOS) oder Ihrem Standard-Dateimanager (Linux) zu öffnen. So können Sie Alias-Dateien, installierte Versionen und weitere nvm-Konfigurationsdateien direkt einsehen.</p>
+<hr>
+<h3>nvm selbst aktualisieren</h3>
+<p>Wenn eine neuere nvm-Version verfügbar ist, erscheint in der <strong>Status-Card</strong> neben der installierten Version ein <strong>„Aktualisieren&quot;-Button</strong>.</p>
+<ol>
+<li>Klicken Sie auf <strong>Aktualisieren</strong> in der Zeile „nvm Version&quot;.</li>
+<li>Ein Modal öffnet sich und zeigt den Fortschritt an.</li>
+<li>Nach erfolgreichem Update schließt das Modal automatisch.</li>
+<li>Laden Sie die Seite neu, damit die aktualisierte nvm-Version im Status erscheint.</li>
+</ol>
+<blockquote>
+<p><strong>Hinweis:</strong> Das Update erfolgt via git (<code>git fetch &amp;&amp; git checkout &lt;version&gt;</code> im NVM_DIR).
+Eine aktive Internetverbindung und eine nvm-Installation via git (Standard) sind erforderlich.
+Der Vorgang dauert typischerweise wenige Sekunden.</p>
+</blockquote>
+<hr>
+<h3>Installierte Versionen anzeigen</h3>
+<p>Klicken Sie auf <strong>Aktualisieren</strong> in der Card „Installierte Versionen&quot;.</p>
+<p>Die Tabelle zeigt:</p>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+<th>Aktion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>v22.11.0 (Aktiv, Default)</td>
+<td>In Verwendung</td>
+<td>Verwenden · <del>Deinstallieren</del></td>
+</tr>
+<tr>
+<td>v20.5.0 (stable)</td>
+<td>Installiert</td>
+<td>Verwenden · Deinstallieren</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Aktiv</strong>: Die aktuell in Verwendung befindliche Version</li>
+<li><strong>Default</strong>: Wird in neuen Terminal-Fenstern automatisch genutzt</li>
+<li><strong>stable / unstable / iojs</strong>: Zeigt, welchem Alias diese Version zugeordnet ist</li>
+<li><strong>Verwenden</strong>: Aktiviert die jeweilige Version direkt aus der Tabelle</li>
+<li><strong>Deinstallieren</strong>: Entfernt die Version permanent (deaktiviert für die aktive Version)</li>
+</ul>
+<p>Unter der Tabelle wird zusätzlich die rohe nvm-Ausgabe als aufklappbares Element angezeigt.</p>
+<hr>
+<h3>Node-Version installieren</h3>
+<p><strong>Über das Aktionsfeld:</strong></p>
+<ol>
+<li>Geben Sie die gewünschte Version in das Eingabefeld ein.</li>
+<li>Klicken Sie auf <strong>Installieren</strong>.</li>
+<li>Der Button zeigt „Bitte warten …&quot; während der Installation.</li>
+<li>Nach Abschluss werden die installierten Versionen automatisch aktualisiert.</li>
+</ol>
+<p><strong>Über die Verfügbare-Versionen-Liste:</strong></p>
+<p>Klicken Sie in der Card „Verfügbare Versionen&quot; direkt auf <strong>Installieren</strong> neben der gewünschten Version.</p>
+<p><strong>Erlaubte Versionseingaben:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Eingabe</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>22</code></td>
+<td>Neueste Node 22.x.x</td>
+</tr>
+<tr>
+<td><code>22.11</code></td>
+<td>Neueste Node 22.11.x</td>
+</tr>
+<tr>
+<td><code>22.11.0</code></td>
+<td>Exakte Version</td>
+</tr>
+<tr>
+<td><code>node</code></td>
+<td>Neueste verfügbare Version</td>
+</tr>
+<tr>
+<td><code>stable</code></td>
+<td>Neueste stabile Version</td>
+</tr>
+<tr>
+<td><code>lts/*</code></td>
+<td>Neueste LTS-Version</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Die Installation kann mehrere Minuten dauern (Netzwerk-Download).</p>
+</blockquote>
+<hr>
+<h3>Version als aktiv setzen (<code>nvm use</code>)</h3>
+<p><strong>Über das Aktionsfeld:</strong></p>
+<ol>
+<li>Gewünschte Version eingeben.</li>
+<li><strong>Verwenden</strong> klicken.</li>
+</ol>
+<p><strong>Direkt aus der Versions-Tabelle:</strong></p>
+<p>Klicken Sie in der Zeile der gewünschten Version auf den <strong>Verwenden</strong>-Button (bei der bereits aktiven Version ist der Button deaktiviert).</p>
+<blockquote>
+<p><strong>Wichtiger Hinweis:</strong> <code>nvm use</code> gilt nur für die aktuelle Server-Session.
+Bereits geöffnete Terminal-Fenster sind <strong>nicht</strong> betroffen. Für neue Terminals
+verwenden Sie stattdessen <strong>Als Default setzen</strong> oder passen Sie den <code>default</code>-Alias an.</p>
+</blockquote>
+<hr>
+<h3>Default-Version setzen</h3>
+<ol>
+<li>Gewünschte Version eingeben.</li>
+<li><strong>Als Default setzen</strong> klicken.</li>
+</ol>
+<p>Die Default-Version wird automatisch in neuen Terminal-Fenstern verwendet.
+Äquivalent zu <code>nvm alias default &lt;version&gt;</code>.</p>
+<hr>
+<h3>Version deinstallieren</h3>
+<p><strong>Über das Aktionsfeld:</strong></p>
+<ol>
+<li>Zu deinstallierende Version eingeben.</li>
+<li><strong>Deinstallieren</strong> klicken.</li>
+</ol>
+<p><strong>Direkt aus der Versions-Tabelle:</strong></p>
+<p>Klicken Sie in der Zeile der gewünschten Version auf den roten <strong>Deinstallieren</strong>-Button.</p>
+<p>In beiden Fällen öffnet sich ein <strong>Fortschritts-Modal</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Anzeige</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>laufend</td>
+<td>Spinner + „Deinstallation läuft&quot;</td>
+</tr>
+<tr>
+<td>Erfolg</td>
+<td>Grünes Häkchen + „Deinstallation erfolgreich&quot; (automatisch geschlossen nach 3 s)</td>
+</tr>
+<tr>
+<td>Fehler</td>
+<td>Rotes X + Fehlermeldung + kontextbezogener Hinweis + aufklappbare technische Details</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Die <strong>aktive</strong> Version kann nicht deinstalliert werden – der Button ist deaktiviert. Setzen Sie vorher eine andere Version aktiv.</p>
+</blockquote>
+<hr>
+<h3>Aliases verwalten</h3>
+<p>nvm unterstützt benannte Aliases für Versionen (z.B. <code>default</code>, <code>my-project</code>). Die <strong>Aliases-Card</strong> ermöglicht die vollständige Verwaltung aller Aliases.</p>
+<h4>Aliases anzeigen</h4>
+<p>Die Tabelle zeigt alle vorhandenen Aliases mit:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Ziel</th>
+<th>Aufgelöst</th>
+<th>Aktion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>default</code></td>
+<td><code>lts/*</code></td>
+<td><code>v22.20.0</code></td>
+<td>Bearbeiten</td>
+</tr>
+<tr>
+<td><code>node</code></td>
+<td><code>stable</code></td>
+<td><code>v22.20.0</code></td>
+<td>Bearbeiten</td>
+</tr>
+<tr>
+<td><code>stable</code></td>
+<td><code>node</code></td>
+<td><code>v22.20.0</code></td>
+<td>Bearbeiten</td>
+</tr>
+<tr>
+<td><code>lts/iron</code></td>
+<td><code>v20.20.2</code></td>
+<td><code>v20.20.2</code></td>
+<td>Bearbeiten / Default / Stable / Löschen</td>
+</tr>
+<tr>
+<td><code>my-project</code></td>
+<td><code>v18.18.0</code></td>
+<td><code>v18.18.0</code></td>
+<td>Bearbeiten / Löschen</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Name</strong>: Der Alias-Name</li>
+<li><strong>Ziel</strong>: Die hinterlegte Versionsangabe (Dropdown beim Bearbeiten)</li>
+<li><strong>Aufgelöst</strong>: Die konkret zugeordnete Node.js-Version</li>
+</ul>
+<h4>Alias bearbeiten (alle Typen)</h4>
+<p>Klicken Sie auf <strong>Bearbeiten</strong>. In der Zielspalte öffnet sich ein <strong>Dropdown</strong> mit den installierten Node.js-Versionen. Wählen Sie die gewünschte Version aus und bestätigen Sie mit <strong>Speichern</strong>. Mit <strong>Abbrechen</strong> verwerfen Sie die Änderung.</p>
+<p>Nach dem Speichern wird die Alias-Liste <strong>und</strong> die Installierte-Versionen-Liste automatisch aktualisiert.</p>
+<h4>LTS-Aliases bearbeiten (<code>lts/iron</code>, <code>lts/krypton</code> usw.)</h4>
+<p>LTS-Aliases zeigen drei zusätzliche Aktionen:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Wirkung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Bearbeiten</strong></td>
+<td>Dropdown mit nur den passenden Major-Versionen (z.B. bei <code>lts/iron</code> nur 20.x-Versionen)</td>
+</tr>
+<tr>
+<td><strong>Default</strong></td>
+<td>Setzt <code>nvm alias default lts/&lt;codename&gt;</code> – Default verfolgt ab jetzt diese LTS-Linie</td>
+</tr>
+<tr>
+<td><strong>Stable</strong></td>
+<td>Setzt <code>nvm alias stable lts/&lt;codename&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Löschen</strong></td>
+<td>Entfernt den LTS-Alias dauerhaft</td>
+</tr>
+</tbody></table>
+<p>Das Dropdown beim LTS-Bearbeiten zeigt <strong>nur die zur LTS-Major-Version passenden</strong> installierten Versionen. Bei <code>lts/iron</code> (Node 20.x) erscheinen also nur 20.x-Versionen.</p>
+<h4>Alias löschen</h4>
+<p>Klicken Sie auf <strong>Löschen</strong> und bestätigen Sie die Sicherheitsabfrage. Gelöscht werden können alle Aliases <strong>außer</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Grund</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>default</code></td>
+<td>nvm-Kernalias, geschützt</td>
+</tr>
+<tr>
+<td><code>node</code></td>
+<td>nvm-Kernalias, geschützt</td>
+</tr>
+<tr>
+<td><code>stable</code></td>
+<td>nvm-Kernalias, geschützt</td>
+</tr>
+<tr>
+<td><code>unstable</code></td>
+<td>nvm-Kernalias, geschützt</td>
+</tr>
+<tr>
+<td><code>iojs</code></td>
+<td>nvm-Kernalias, geschützt</td>
+</tr>
+</tbody></table>
+<h4>Neuen Alias anlegen</h4>
+<p>Im Bereich „Neuen Alias anlegen&quot; am Ende der Aliases-Card:</p>
+<ol>
+<li><strong>Name</strong> eingeben (z.B. <code>my-project</code>)</li>
+<li><strong>Ziel</strong> eingeben (z.B. <code>18</code>, <code>lts/*</code>, <code>v22.11.0</code>)</li>
+<li><strong>Anlegen</strong> klicken (oder <code>Enter</code> im Zielfeld)</li>
+</ol>
+<hr>
+<h3>Verfügbare Versionen (Remote)</h3>
+<p>Klicken Sie auf <strong>Laden</strong> in der Card „Verfügbare Versionen&quot;.</p>
+<p>Dieser Vorgang kann einige Sekunden dauern (Netzwerkanfrage an nodejs.org).</p>
+<p><strong>Funktionen der Liste:</strong></p>
+<ul>
+<li><strong>Suchfeld</strong>: Filtert nach Versionsnummer oder LTS-Name (z.B. <code>22</code>, <code>20</code>, <code>lts</code>, <code>iron</code>)</li>
+<li><strong>Standardansicht</strong>: Zeigt die 30 neuesten nicht-installierten Versionen</li>
+<li><strong>Suchergebnisse</strong>: Zeigt bis zu 100 Treffer aus allen verfügbaren Versionen</li>
+<li><strong>Typ</strong>: LTS-Versionen sind mit einem Badge (<code>LTS: Iron</code>) markiert, Current-Versionen mit „Current&quot;</li>
+<li><strong>Installieren</strong>: Direkt-Button pro Zeile installiert die Version sofort</li>
+</ul>
+<p>Bereits installierte Versionen werden automatisch ausgeblendet.</p>
+<hr>
+<h2>Häufige Fehler und Lösungen</h2>
+<h3>„API nicht erreichbar&quot;</h3>
+<p><strong>Ursache:</strong> Das Backend läuft nicht.</p>
+<p><strong>Lösung:</strong></p>
+<pre><code class="language-bash">npm run dev:api
+# Warten bis „nvm manager api läuft auf http://127.0.0.1:3789&quot; erscheint
+</code></pre>
+<hr>
+<h3>„nvm: command not found&quot;</h3>
+<p><strong>Ursache:</strong> nvm ist nicht installiert oder <code>NVM_DIR</code> ist nicht korrekt gesetzt.</p>
+<p><strong>Lösung:</strong></p>
+<pre><code class="language-bash"># nvm-Installation prüfen
+ls ~/.nvm/nvm.sh
+
+# Falls vorhanden, NVM_DIR setzen
+export NVM_DIR=&quot;$HOME/.nvm&quot;
+</code></pre>
+<hr>
+<h3>„Ungültige Versionseingabe&quot;</h3>
+<p><strong>Ursache:</strong> Das Backend lehnt nicht unterstützte Versionseingaben ab.</p>
+<p><strong>Lösung:</strong> Nur erlaubte Formate verwenden (siehe Tabelle oben). Keine Sonderzeichen.</p>
+<hr>
+<h3>Installation hängt / kein Fortschritt</h3>
+<p><strong>Ursache:</strong> <code>nvm install</code> lädt die Version herunter – das kann bei langsamer Verbindung dauern.</p>
+<p><strong>Lösung:</strong> Warten Sie bis zu 3 Minuten. Das Backend hat ein Timeout von 3 Minuten.</p>
+<hr>
+<h3>Remote-Versionen laden schlägt fehl</h3>
+<p><strong>Ursache:</strong> Keine Internetverbindung oder nodejs.org nicht erreichbar.</p>
+<p><strong>Lösung:</strong> Internetverbindung prüfen. Der Befehl <code>nvm ls-remote</code> benötigt Netzwerkzugriff.</p>
+<hr>
+<h3>„Alias ist geschützt und kann nicht gelöscht werden&quot;</h3>
+<p><strong>Ursache:</strong> Die Aliases <code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code> und <code>iojs</code> sind nvm-Kern-Aliases und vor dem Löschen geschützt.</p>
+<p><strong>Lösung:</strong> Diese Aliases können weiterhin <strong>bearbeitet</strong> (Zielversion geändert), aber nicht gelöscht werden.</p>
+<hr>
+<h2>Sicherheitshinweise</h2>
+<ul>
+<li>Das Backend ist <strong>ausschließlich auf <code>127.0.0.1</code></strong> erreichbar – kein Zugriff von anderen Geräten im Netzwerk.</li>
+<li>Es werden <strong>nur fest definierte nvm-Befehle</strong> ausgeführt – keine freie Shell-Ausführung.</li>
+<li>Alle Versionseingaben und Alias-Namen werden streng validiert – Sonderzeichen werden abgelehnt.</li>
+<li>Die Kern-Aliases <code>default</code>, <code>node</code>, <code>stable</code>, <code>unstable</code>, <code>iojs</code> können nicht gelöscht werden (serverseitig erzwungen).</li>
+<li>Das Tool ist <strong>nicht für den Einsatz auf einem öffentlichen Server</strong> gedacht.</li>
+</ul>
+<hr>
+<h2>Bekannte Einschränkungen</h2>
+<h3><code>nvm use</code> betrifft nur die Backend-Session</h3>
+<p><code>nvm use</code> ändert die aktive Node-Version nur für den Backend-Prozess selbst.
+Bereits geöffnete Terminals oder andere Prozesse sind <strong>nicht</strong> betroffen.</p>
+<p><strong>Empfehlung:</strong> Für dauerhaften Effekt <strong>„Als Default setzen&quot;</strong> verwenden oder den <code>default</code>-Alias bearbeiten.</p>
+<h3>Kein automatisches Parsen aller nvm-Ausgaben</h3>
+<p>Die installierten Versionen werden direkt aus dem Dateisystem (<code>~/.nvm/versions/node/</code>)
+gelesen. Bei sehr ungewöhnlichen nvm-Konfigurationen kann die Liste unvollständig sein.</p>
+<h3>Keine <code>.nvmrc</code>-Unterstützung</h3>
+<p>Die Verwaltung von <code>.nvmrc</code>-Dateien pro Projekt ist für eine spätere Version geplant.</p>
+<hr>
+<hr>
+<h2>Dark Mode / Light Mode</h2>
+<p>nvm Manager unterstützt ein helles und ein dunkles Farbschema.</p>
+<h3>Theme wechseln</h3>
+<p>Klicken Sie im Header rechts oben auf den runden Toggle-Button:</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☾</td>
+<td>Aktuell heller Modus – Klick wechselt zu dunkel</td>
+</tr>
+<tr>
+<td>☀</td>
+<td>Aktuell dunkler Modus – Klick wechselt zu hell</td>
+</tr>
+</tbody></table>
+<h3>Automatische Erkennung</h3>
+<p>Beim allerersten Aufruf erkennt nvm Manager automatisch die Systemeinstellung Ihres Betriebssystems (<code>Einstellungen → Erscheinungsbild → Dunkel/Hell</code>) und übernimmt diese als Starteinstellung.</p>
+<h3>Gespeicherte Einstellung</h3>
+<p>Ihre Themewahl wird im Browser-Speicher (<code>localStorage</code>) gespeichert und beim nächsten Öffnen automatisch wiederhergestellt – ohne dass Sie erneut wechseln müssen.</p>
+<hr>
+<p><em>Stand: Juni 2026</em></p>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

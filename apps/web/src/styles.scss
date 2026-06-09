@@ -1,12 +1,4 @@
-// ── Static SCSS Variables (layout / spacing) ─────────────────
-$spacing-xs: 0.25rem;
-$spacing-sm: 0.5rem;
-$spacing-md: 1rem;
-$spacing-lg: 1.5rem;
-$spacing-xl: 2rem;
-
-$border-radius: 8px;
-$border-radius-sm: 4px;
+@use './styles/variables' as *;
 
 // ── CSS Custom Properties – Light Theme (default) ─────────────
 :root {
@@ -45,14 +37,10 @@ $border-radius-sm: 4px;
   --color-pre-text:   #e2e8f0;
 
   // Badges
-  --color-badge-active-bg:    #dbeafe;
-  --color-badge-active-text:  #1e40af;
   --color-badge-default-bg:   #dcfce7;
   --color-badge-default-text: #166534;
   --color-badge-lts-bg:       #f3e8ff;
   --color-badge-lts-text:     #6b21a8;
-  --color-badge-alias-bg:     #f1f5f9;
-  --color-badge-alias-text:   #475569;
 
   // Status card
   --color-status-ok-bg:       #dcfce7;
@@ -127,14 +115,10 @@ $border-radius-sm: 4px;
   --color-pre-bg:     #020617;
   --color-pre-text:   #e2e8f0;
 
-  --color-badge-active-bg:    #1e3a5f;
-  --color-badge-active-text:  #93c5fd;
   --color-badge-default-bg:   #14532d;
   --color-badge-default-text: #86efac;
   --color-badge-lts-bg:       #3b1f5c;
   --color-badge-lts-text:     #d8b4fe;
-  --color-badge-alias-bg:     #1e293b;
-  --color-badge-alias-text:   #94a3b8;
 
   --color-status-ok-bg:       #14532d;
   --color-status-ok-text:     #86efac;
@@ -323,10 +307,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   margin-left: $spacing-xs;
 
-  &--active  { background: var(--color-badge-active-bg);  color: var(--color-badge-active-text);  }
-  &--default { background: var(--color-badge-default-bg); color: var(--color-badge-default-text); }
-  &--lts     { background: var(--color-badge-lts-bg);     color: var(--color-badge-lts-text);     margin-left: 0; }
-  &--alias   { background: var(--color-badge-alias-bg);   color: var(--color-badge-alias-text);   }
+  // Status badges in the installed-versions list share one unified style
+  // (the default-version look) so the markers no longer differ per status.
+  &--active,
+  &--default,
+  &--alias { background: var(--color-badge-default-bg); color: var(--color-badge-default-text); }
+  &--lts   { background: var(--color-badge-lts-bg);     color: var(--color-badge-lts-text);     margin-left: 0; }
 }
 
 // ── Code ──────────────────────────────────────────────────────
@@ -419,17 +405,6 @@ h1, h2, h3, h4, h5, h6 {
 // ── Loading Spinner ───────────────────────────────────────────
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-.spinner {
-  display: block;
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
 }
 
 .loading-state {

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontend – Aktueller Stand (Lernunterlagen)</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <link rel="stylesheet" href="styles-docs.css">
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>Frontend – Aktueller Stand (Lernunterlagen)</h1>
+<blockquote>
+<p><strong>Stand:</strong> Version 0.8.0 · 2026-06-05
+<strong>Wichtig:</strong> Das Kerndokument <a href="FRONTEND.md">FRONTEND.md</a> beschreibt einen
+<em>früheren</em> Aufbau (State direkt in <code>app.ts</code>, klassische <code>@Input()</code>/<code>@Output()</code>).
+Seit der Angular-21-Modernisierung (ab 0.6.0) ist der Code <strong>deutlich anders</strong>.
+Dieses Dokument zeigt den <strong>Ist-Zustand</strong> – <strong>wie</strong> die App heute gebaut ist und
+<strong>warum</strong> die modernen Muster gewählt wurden.</p>
+</blockquote>
+<h2>Lernziele</h2>
+<p>Nach dem Durcharbeiten kannst du:</p>
+<ul>
+<li>erklären, <strong>warum</strong> der State aus <code>app.ts</code> in einen Service gewandert ist</li>
+<li>Signal Inputs/Outputs, OnPush und „zoneless&quot; als zusammenhängendes Modell verstehen</li>
+<li><code>rxResource()</code> und <code>linkedSignal()</code> einordnen und ihren Zweck begründen</li>
+<li>nachvollziehen, wie Fehler heute zentral behandelt werden</li>
+</ul>
+<h2>Voraussetzungen</h2>
+<ul>
+<li><a href="FRONTEND.md">FRONTEND.md</a> gelesen (für die Komponenten-Landkarte und Atomic Design)</li>
+<li>Grundverständnis von Angular Signals</li>
+</ul>
+<h2>Was sich gegenüber <a href="FRONTEND.md">FRONTEND.md</a> geändert hat (Überblick)</h2>
+<table>
+<thead>
+<tr>
+<th>Thema</th>
+<th>Früher (FRONTEND.md)</th>
+<th>Heute (Ist-Zustand)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>State</td>
+<td>Signals in <code>app.ts</code></td>
+<td>ausgelagert in <code>NvmStateService</code></td>
+</tr>
+<tr>
+<td>Inputs/Outputs</td>
+<td><code>@Input()</code> / <code>@Output()</code> + <code>EventEmitter</code></td>
+<td><code>input()</code> / <code>input.required()</code> / <code>output()</code></td>
+</tr>
+<tr>
+<td>Change Detection</td>
+<td>Default</td>
+<td><code>OnPush</code> auf allen Komponenten</td>
+</tr>
+<tr>
+<td>Reaktivität</td>
+<td>Zone.js implizit</td>
+<td><strong>zoneless</strong> (<code>provideZonelessChangeDetection()</code>)</td>
+</tr>
+<tr>
+<td>HTTP-Backend</td>
+<td>XHR (Standard)</td>
+<td><code>provideHttpClient(withFetch())</code></td>
+</tr>
+<tr>
+<td>GET-Daten</td>
+<td>manuelles <code>subscribe()</code> in <code>ngOnInit</code></td>
+<td><code>rxResource()</code></td>
+</tr>
+<tr>
+<td>Fehler</td>
+<td><code>handleError</code> im Service</td>
+<td><code>httpErrorInterceptor</code> + <code>GlobalErrorHandler</code></td>
+</tr>
+<tr>
+<td>Bestätigung</td>
+<td><code>window.confirm()</code></td>
+<td>Signal-gesteuertes Inline-Confirm</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>Konzept: Warum diese Modernisierung überhaupt?</strong>
+Das Projekt ist ein Lernprojekt für <em>aktuelles</em> Angular. Die alten Muster
+funktionieren zwar noch, aber die neuen (Signals, zoneless, <code>rxResource</code>) sind
+heute der empfohlene Weg: weniger Boilerplate, präzisere Aktualisierung, bessere
+Testbarkeit. Den Code auf diesen Stand zu heben <em>ist</em> das eigentliche Lernziel.</p>
+</blockquote>
+<h2><code>app.ts</code> heute – nur noch Layout</h2>
+<pre><code class="language-typescript">@Component({
+  selector: &#39;app-root&#39;,
+  standalone: true,
+  imports: [/* alle Cards */],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class App {
+  protected readonly state = inject(NvmStateService);
+}
+</code></pre>
+<p><strong>Wie:</strong> Die Root-Komponente enthält keinerlei State oder Aktionslogik mehr – sie
+injiziert nur den <code>NvmStateService</code> und reicht ihn ans Template. <strong>Warum:</strong> Vorher
+war <code>app.ts</code> eine „God Component&quot; mit ~295 Zeilen (Layout + State + Aktionen). Das
+verstieß gegen das <em>Single Responsibility Principle</em> und war schwer testbar – um
+<code>onInstall()</code> zu prüfen, musste die ganze Komponente mit DOM hochgefahren werden.</p>
+<h2><code>NvmStateService</code> – das Herz des State</h2>
+<p><strong>Datei:</strong> <code>apps/web/src/app/services/nvm-state.service.ts</code></p>
+<pre><code class="language-typescript">@Injectable({ providedIn: &#39;root&#39; })
+export class NvmStateService {
+  readonly log = signal&lt;LogEntry[]&gt;([]);
+  readonly isLoading = signal(false);
+  readonly installModal = signal&lt;InstallModalState&gt;(null);
+  readonly prefillVersion = signal(&#39;&#39;);
+  readonly aliasesRefreshTrigger = signal(0);
+
+  private readonly installedResource = rxResource({
+    stream: () =&gt; this.nvmApi.getInstalledVersions(),
+  });
+  readonly installedVersions = computed(() =&gt; /* aus Resource */);
+  readonly activeVersion = computed(() =&gt; this.installedVersions().find(v =&gt; v.active));
+
+  onInstall(v): void { /* … */ }
+  onUseFromList(v): void { /* … */ }
+  // onUse, onSetDefault, onUninstall, onNvmUpdate, closeInstallModal, onLogged
+}
+</code></pre>
+<p><strong>Warum ein Service statt Komponente?</strong> Ein Service ist eine reine TypeScript-Klasse
+ohne DOM. Er lässt sich isoliert testen (kein TestBed), und alle Komponenten teilen
+sich dieselbe Instanz (<code>providedIn: &#39;root&#39;</code> = Singleton).</p>
+<blockquote>
+<p>💡 <strong>Konzept: <code>rxResource()</code> – deklarativer Lade-Zustandsautomat</strong>
+Jeder GET-Aufruf hat drei Zustände: <em>laden, Erfolg, Fehler</em>. Statt diesen Automaten
+per Hand mit <code>subscribe()</code> zu bauen, kapselt <code>rxResource()</code> ihn: <code>value()</code>,
+<code>isLoading()</code>, <code>error()</code> sind Signals; <code>reload()</code> lädt neu. Die installierten
+Versionen werden so geladen; nach jeder Mutation genügt <code>loadInstalledVersions()</code>
+(= <code>reload()</code>).</p>
+</blockquote>
+<h2>Konfiguration heute (<code>app.config.ts</code>)</h2>
+<pre><code class="language-typescript">export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideZonelessChangeDetection(),
+    provideRouter(routes),                       // routes ist aktuell leer
+    provideHttpClient(withFetch(), withInterceptors([httpErrorInterceptor])),
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
+  ],
+};
+</code></pre>
+<p><strong>Wie Fehler heute fließen</strong> (zwei Schichten):</p>
+<ol>
+<li><code>httpErrorInterceptor</code> (<code>core/http-error.interceptor.ts</code>) fängt jede
+<code>HttpErrorResponse</code> ab und normalisiert sie zu einem einheitlichen <code>Error</code>.
+<strong>Warum:</strong> Ein Format für die ganze App, an genau einer Stelle gepflegt.</li>
+<li><code>GlobalErrorHandler</code> (<code>core/global-error-handler.ts</code>) ist das Sicherheitsnetz für
+alles Übrige (unbehandelte Exceptions, Template-Fehler) und loggt zentral.</li>
+</ol>
+<p><strong>Warum entfiel <code>handleError</code> im Service?</strong> Die fragile Methodenreferenz
+<code>catchError(this.handleError)</code> hatte ein <code>this</code>-Binding-Problem und ist mit dem
+Interceptor schlicht überflüssig. <code>NvmApiService</code> besteht heute nur noch aus
+schlanken, typisierten HTTP-Aufrufen.</p>
+<h2>Ausgewählte Komponenten – aktueller Stand</h2>
+<h3><code>action-card</code> – <code>linkedSignal()</code> statt <code>effect()</code></h3>
+<pre><code class="language-typescript">readonly prefillVersion = input(&#39;&#39;);
+readonly versionInput = linkedSignal&lt;string, string&gt;({
+  source: this.prefillVersion,
+  computation: (prefill, previous) =&gt; prefill || previous?.value || &#39;22&#39;,
+});
+</code></pre>
+<blockquote>
+<p>💡 <strong>Konzept: „abgeleitet, aber überschreibbar&quot;</strong>
+Das Eingabefeld soll sich automatisch füllen, wenn man in der Liste auf
+„Verwenden&quot; klickt (<code>prefillVersion</code>), aber manuelle Eingaben sollen erhalten
+bleiben. <code>linkedSignal()</code> (Angular 19+) ist genau dafür gebaut: Es liest eine
+Quelle, kann aber den vorherigen Wert (<code>previous?.value</code>) berücksichtigen.
+<strong>Warum nicht <code>effect()</code>?</strong> In einem Effekt in ein anderes Signal zu schreiben gilt
+als Anti-Pattern – Angular warnt ausdrücklich davor.</p>
+</blockquote>
+<h3><code>remote-versions-card</code> – lazy via <code>rxResource</code></h3>
+<pre><code class="language-typescript">private readonly shouldLoad = signal(false);
+private readonly remoteResource = rxResource({
+  params: () =&gt; (this.shouldLoad() ? true : undefined),
+  stream: () =&gt; this.nvmApi.getRemoteVersions(),
+});
+</code></pre>
+<p><strong>Wie:</strong> Die Resource bleibt <em>idle</em>, bis <code>load()</code> <code>shouldLoad</code> auf <code>true</code> setzt.
+<strong>Warum:</strong> <code>nvm ls-remote</code> macht eine Netzwerkabfrage (mehrere Sekunden). Beim
+App-Start würde das die wahrgenommene Geschwindigkeit verschlechtern. Die Suche
+filtert mit einem <code>computed</code>: ein führendes <code>v</code> bedeutet explizite Versionssuche
+per Präfix (<code>v19</code> → nur <code>19.x</code>).</p>
+<h3><code>install-modal</code> – Fokus &amp; Auto-Close per <code>effect()</code></h3>
+<pre><code class="language-typescript">constructor() {
+  effect((onCleanup) =&gt; {                 // Auto-Close bei Erfolg
+    if (this.state()?.phase === &#39;success&#39;) {
+      const t = setTimeout(() =&gt; this.close(), 3000);
+      onCleanup(() =&gt; clearTimeout(t));
+    }
+  });
+  effect(() =&gt; {                          // Fokus ins Modal beim Öffnen
+    if (this.state()) (this.closeButton()?.nativeElement ?? dialogEl).focus();
+  });
+}
+</code></pre>
+<p><strong>Wie:</strong> Zwei Effekte – einer schließt nach 3 s bei Erfolg (mit <code>onCleanup</code> gegen
+veraltete Timer), einer verwaltet den Fokus. <code>Escape</code> schließt das Modal, <strong>außer</strong>
+während <code>phase === &#39;running&#39;</code>. <strong>Warum:</strong> Barrierefreiheit – Tastatur- und
+Screenreader-Nutzer landen im Modal und kommen sauber wieder heraus; eine laufende
+Operation soll nicht versehentlich abgebrochen werden.</p>
+<h3>Modal-Aktionen heute</h3>
+<p>Der Typ <code>InstallModalAction</code> umfasst aktuell:
+<code>&#39;install&#39; | &#39;use&#39; | &#39;uninstall&#39; | &#39;nvm-update&#39; | &#39;default&#39; | &#39;alias&#39;</code>.</p>
+<p><strong>Warum <code>&#39;default&#39;</code> und <code>&#39;alias&#39;</code> ergänzt?</strong> Seit 0.8.0 wird <strong>jede</strong> Alias-Änderung
+(nicht nur das Setzen von <code>default</code>) über das Fortschritts-Modal kommuniziert –
+inklusive eigener Titel/Texte und kontextbezogener Fehlerhinweise.</p>
+<h2>Barrierefreiheit (Stand)</h2>
+<ul>
+<li><code>install-modal</code>: <code>role=&quot;dialog&quot;</code>, <code>aria-modal</code>, <code>aria-labelledby</code>, Fokus-Trap-Verhalten, Escape</li>
+<li><code>log-card</code>: <code>role=&quot;log&quot;</code> + <code>aria-live=&quot;polite&quot;</code></li>
+<li><code>aliases-card</code>: <code>role=&quot;alert&quot;</code> am Inline-Confirm (statt <code>window.confirm()</code>)</li>
+<li>ESLint erzwingt <code>templateAccessibility</code>-Regeln im Build</li>
+</ul>
+<h2>Verständnisfragen</h2>
+<ol>
+<li>Warum wurde der State aus <code>app.ts</code> in einen Service verschoben?</li>
+<li>Was leistet <code>rxResource()</code>, das manuelles <code>subscribe()</code> nicht von allein bietet?</li>
+<li>Warum ist <code>linkedSignal()</code> hier besser als <code>effect()</code>?</li>
+<li>Welche zwei Schichten behandeln heute Fehler, und was macht jede?</li>
+<li>Warum lädt <code>remote-versions-card</code> seine Daten erst auf Klick?</li>
+</ol>
+<h2>Übungsaufgaben</h2>
+<ol>
+<li><strong>Datenfluss verfolgen:</strong> Klicke „Installieren&quot; und verfolge den Weg
+<code>action-card</code> → <code>NvmStateService.onInstall</code> → <code>NvmApiService</code> → Backend.</li>
+<li><strong>Service testen (Konzept):</strong> Öffne <code>nvm-state.service.spec.ts</code> und finde heraus,
+wie die Logik <em>ohne</em> DOM getestet wird.</li>
+<li><strong>Doku abgleichen:</strong> Suche in <a href="FRONTEND.md">FRONTEND.md</a> eine Stelle, die nicht
+mehr dem Code entspricht, und notiere die heutige Lösung.</li>
+</ol>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

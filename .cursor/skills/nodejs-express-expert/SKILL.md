@@ -150,6 +150,12 @@ export function isValidVersionInput(v: unknown): v is string {
 }
 ```
 
+## Dependency Hygiene
+
+- Pin all versions with caret ranges (`"^x.y.z"`), never `"latest"`. Derive the version from `npm list --depth=0`.
+- Export only what is actually imported elsewhere in the same package. Types built inline in route handlers (e.g. `res.json({ ok: true, nvmVersion })`) do not need a corresponding exported type.
+- Run `npx knip` after changes to catch unused exports and unused devDependencies early.
+
 ## tsconfig.json for API
 
 ```json

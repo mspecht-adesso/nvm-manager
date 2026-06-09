@@ -21,6 +21,15 @@ Oder manuell:
 npm install
 npm --prefix apps/api install
 npm --prefix apps/web install
+npm --prefix apps/e2e install
+```
+
+Beim Installieren der E2E-Abhängigkeiten lädt ein `postinstall`-Hook automatisch den
+benötigten Chromium-Browser für Playwright herunter. Manuell nachholen lässt sich das
+jederzeit mit:
+
+```bash
+npm run install:browsers
 ```
 
 ## Start
@@ -33,7 +42,7 @@ Startet Frontend und Backend parallel:
 
 | App      | URL                          |
 |----------|------------------------------|
-| Frontend | http://localhost:4200        |
+| Frontend | http://localhost:4201        |
 | API      | http://127.0.0.1:3789        |
 
 ### Einzeln starten
@@ -64,13 +73,43 @@ npm run dev:web   # nur Angular Frontend
 `nvm use` gilt nur für die **Shell-Session des Backend-Prozesses** und verändert nicht bereits geöffnete Terminals.  
 Für neue Terminals sollte die **Default-Version** gesetzt werden (`nvm alias default`).
 
+## Tests
+
+```bash
+npm test            # Unit-Tests (API + Web)
+npm run test:api    # nur Express-API (Vitest)
+npm run test:web    # nur Angular-Frontend
+npm run test:e2e    # Klick-E2E-Tests (Playwright, Chromium, headless)
+```
+
+Die E2E-Tests mocken die `/api/**`-Schicht und führen **keine** echten nvm-Operationen aus.
+Der benötigte Chromium-Browser wird über `npm run install:all` (bzw. `npm run install:browsers`)
+bereitgestellt.
+
+### E2E-Tests im Browser optisch nachvollziehen
+
+```bash
+npm run test:e2e:headed   # Chromium sichtbar, verlangsamt (SlowMo) – live mitschauen
+npm run test:e2e:ui       # Playwright UI-Modus: Watch, Time-Travel, einzelne Tests
+npm run test:e2e:report   # HTML-Report des letzten Laufs (inkl. Video & Trace) öffnen
+```
+
+- **`test:e2e:headed`** öffnet ein echtes Chromium-Fenster und führt jeden Klick verlangsamt
+  aus (`PW_SLOWMO=400` ms), sodass die Flows mit dem Auge verfolgbar sind. Tempo anpassbar,
+  z. B. `PW_SLOWMO=800 npm run test:e2e:headed`.
+- **`test:e2e:ui`** ist die komfortabelste Variante: Tests einzeln starten, jeden Schritt im
+  DOM-Snapshot zurückspulen und bei Änderungen automatisch neu ausführen.
+- Im Headed-Modus werden **Video + Trace** je Test aufgezeichnet; `test:e2e:report` öffnet den
+  Report zum Nachspielen. (Im normalen `test:e2e`-Lauf nur bei Fehlern – schlank für CI.)
+
 ## Projektstruktur
 
 ```
 nvm-manager/
 ├── apps/
 │   ├── web/          # Angular 21 Frontend (Standalone, Signals)
-│   └── api/          # Express Backend (TypeScript, tsx)
+│   ├── api/          # Express Backend (TypeScript, tsx)
+│   └── e2e/          # Playwright Klick-E2E-Tests (Chromium)
 ├── package.json      # Root Scripts (concurrently)
 └── README.md
 ```

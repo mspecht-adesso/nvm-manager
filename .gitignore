@@ -2,11 +2,17 @@
 node_modules/
 apps/api/node_modules/
 apps/web/node_modules/
+apps/e2e/node_modules/
 
 # Build outputs
 apps/api/dist/
 apps/web/dist/
 apps/web/.angular/
+
+# E2E (Playwright) artifacts
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+apps/e2e/blob-report/
 
 # Logs
 *.log
@@ -28,6 +34,6 @@ Thumbs.db
 blog/
 
 # Generated HTML docs (built via npm run docs:build)
-docs.html
-docs/*.html
-desc/*.html
+# docs.html
+# docs/*.html
+# desc/*.html

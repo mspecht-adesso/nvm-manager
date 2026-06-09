@@ -1,0 +1,117 @@
+---
+description: Performance guidelines for Angular frontend and Node.js/Express backend in nvm-manager
+globs: apps/web/**/*.ts,apps/web/**/*.html,apps/api/**/*.ts
+alwaysApply: false
+---
+
+# Performance Guidelines
+
+## Angular Frontend
+
+### Change Detection – Always OnPush
+
+Every component must declare `ChangeDetectionStrategy.OnPush`. Signals + OnPush = zero wasted re-renders:
+
+```typescript
+// ✅ CORRECT
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  ...
+})
+
+// ❌ WRONG – default strategy re-renders on every event
+@Component({ /* no changeDetection */ })
+```
+
+### @for – Track by stable identity
+
+Never use `track $index` unless items truly have no stable key:
+
+```html
+<!-- ✅ Stable track key -->
+@for (v of versions(); track v.version) { ... }
+
+<!-- ❌ Forces full DOM rebuild on any array change -->
+@for (v of versions(); track $index) { ... }
+```
+
+### No Function Calls in Templates
+
+Function calls run on every change-detection cycle. Use `computed()` or pipes instead:
+
+```typescript
+// ❌ Recalculates every cycle
+{{ formatLabel(v.version) }}
+
+// ✅ Computed only when dependency changes
+readonly versionLabel = computed(() => formatLabel(this.version()));
+```
+
+### Lazy Loading
+
+All routes beyond the root shell must use `loadComponent()`:
+
+```typescript
+// ✅
+{ path: 'settings', loadComponent: () => import('./settings/settings.component').then(m => m.SettingsComponent) }
+
+// ❌
+{ path: 'settings', component: SettingsComponent }
+```
+
+### rxResource() for HTTP Resources
+
+Prefer `rxResource()` over manual `ngOnInit` + subscribe for data that maps 1:1 to an HTTP call:
+
+```typescript
+readonly versions = rxResource({
+  loader: () => this.nvmApi.getInstalledVersions()
+});
+// versions.value() / versions.isLoading() / versions.error() available as signals
+```
+
+---
+
+## Node.js Backend
+
+### Never Block the Event Loop
+
+```typescript
+// ❌ Blocks the event loop
+const data = fs.readFileSync(path);
+
+// ✅ Non-blocking
+const data = await fs.promises.readFile(path);
+```
+
+All I/O inside request handlers: `fs.promises.*`, `execFileAsync` (promisified), never synchronous variants.
+
+### execFile – Not exec
+
+`execFile` avoids spawning a shell for the outer command, reducing overhead and attack surface:
+
+```typescript
+// ✅ execFile – no extra shell
+import { execFile } from 'node:child_process';
+execFile('bash', ['-c', nvmCommand], options, callback);
+
+// ❌ exec – spawns shell twice
+import { exec } from 'node:child_process';
+exec(nvmCommand, callback);
+```
+
+### MaxBuffer for ls-remote
+
+`nvm ls-remote --lts` outputs ~500 KB. Set `maxBuffer` accordingly:
+
+```typescript
+const options = { maxBuffer: 10 * 1024 * 1024 }; // 10 MB
+```
+
+### Timeout for Long Operations
+
+Install/uninstall can take minutes. Default `execFile` timeout (undefined = infinite) is too permissive:
+
+```typescript
+const options = { timeout: 180_000 }; // 3 minutes
+```

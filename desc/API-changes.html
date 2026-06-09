@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API – Änderungen im Rahmen der Refactoring-Reviews</title>
+  <script>
+  (function () {
+    const stored = localStorage.getItem('nvm-docs-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+  <style>
+
+  :root {
+    --bg:        #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border:    #d0d7de;
+    --border-h:  #e6edf3;
+    --text:      #24292f;
+    --text-muted:#57606a;
+    --link:      #0969da;
+    --pre-bg:    #f6f8fa;
+    --stripe:    #f6f8fa;
+    --header-bg: #24292f;
+    --header-fg: #e6edf3;
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d1117;
+    --bg-subtle: #161b22;
+    --border:    #30363d;
+    --border-h:  #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --link:      #58a6ff;
+    --pre-bg:    #161b22;
+    --stripe:    #161b22;
+    --header-bg: #161b22;
+    --header-fg: #e6edf3;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    margin: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #theme-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1.25rem;
+    z-index: 100;
+    cursor: pointer;
+    background: var(--bg-subtle);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3em 0.85em;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  #theme-btn:hover { opacity: 0.8; }
+
+
+  body { padding: 2rem 1rem; }
+
+  .content { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--border-h); padding-bottom: 0.4em; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-h); padding-bottom: 0.3em; }
+  h3 { font-size: 1.2rem; }
+
+  p { margin: 0.8em 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
+  th, td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: var(--stripe); }
+
+  ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+  li { margin: 0.25em 0; }
+
+  hr { border: none; border-top: 1px solid var(--border-h); margin: 2em 0; }
+
+  img { max-width: 100%; border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+  <button id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="content">
+<h1>API – Änderungen im Rahmen der Refactoring-Reviews</h1>
+<blockquote>
+<p>Dokumentiert alle Änderungen am API-Vertrag und an der API-Konsumierung,
+die im Rahmen der Reviews sonnet-findings-01.md und sonnet-findings-02.md
+sowie der vorbereitenden Changelog-Schritte umgesetzt wurden.</p>
+</blockquote>
+<hr>
+<h2>Überblick</h2>
+<p>Aus den Review-Runden entstanden keine neuen REST-Endpunkte – die API-Oberfläche
+blieb stabil. Die wesentlichen Änderungen betreffen die <strong>Art und Weise, wie die
+API konsumiert</strong> wird (Frontend-seitig) und wie <strong>Fehler durch die Schichten
+fließen</strong> (Interceptor-Muster). Hinzu kommen API-Erweiterungen aus dem Changelog,
+die Grundlage für neue Frontend-Features waren.</p>
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Art der Änderung</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fehler-Normalisierung</td>
+<td><code>HttpErrorResponse</code> → <code>Error</code> via Interceptor</td>
+</tr>
+<tr>
+<td>GET-Endpunkte</td>
+<td>Konsumierung via <code>rxResource()</code> statt manuellem <code>subscribe()</code></td>
+</tr>
+<tr>
+<td><code>GET /api/status</code></td>
+<td>Neues optionales Feld <code>nvmLatestVersion</code></td>
+</tr>
+<tr>
+<td><code>POST /api/nvm/update</code></td>
+<td>Neuer Endpunkt: nvm selbst aktualisieren</td>
+</tr>
+<tr>
+<td><code>POST /api/nvm/open-dir</code></td>
+<td>Neuer Endpunkt: NVM_DIR öffnen</td>
+</tr>
+<tr>
+<td>LTS-Aliases</td>
+<td>Zwei neue Endpunkte für Dateisystem-basiertes LTS-Alias-Management</td>
+</tr>
+<tr>
+<td><code>POST /api/versions/stable</code></td>
+<td>Neuer Endpunkt: <code>stable</code>-Alias setzen</td>
+</tr>
+<tr>
+<td><code>POST /api/versions/use</code></td>
+<td>Jetzt persistent (schreibt <code>default</code>-Alias)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Fehler-Normalisierung: Einheitliches Fehlerformat</h2>
+<h3>Problem vor dem Refactoring</h3>
+<p>Vor dem Interceptor (sonnet-findings-02.md, Schritt 4) gab es keine garantierte
+Einheitlichkeit: Jede <code>NvmApiService</code>-Methode wandelte <code>HttpErrorResponse</code> lokal
+um. Das führte zu inkonsistentem Fehlerformat im Rest der Anwendung.</p>
+<h3>Eingeführter <code>httpErrorInterceptor</code></h3>
+<pre><code class="language-typescript">// apps/web/src/app/core/http-error.interceptor.ts
+export const httpErrorInterceptor: HttpInterceptorFn = (req, next) =&gt;
+  next(req).pipe(
+    catchError((err: HttpErrorResponse) =&gt; {
+      const message = err.error?.error ?? err.message;
+      return throwError(() =&gt; new Error(message));
+    })
+  );
+</code></pre>
+<p><strong>Verarbeitungsreihenfolge:</strong></p>
+<pre><code>HTTP Response (4xx/5xx)
+        ↓
+HttpErrorResponse (Angular)
+        ↓
+httpErrorInterceptor
+        ↓
+Error({ message: api_body.error ?? transport_message })
+        ↓
+rxResource.error() / catchError in Service
+        ↓
+Anzeige im Log-Panel / Template
+</code></pre>
+<p>Das Backend-Fehlerformat <code>{ &quot;error&quot;: &quot;Fehlermeldung&quot; }</code> wird durch den
+Interceptor direkt extrahiert. Die Applikation arbeitet mit einfachen
+<code>Error</code>-Objekten, nie mit <code>HttpErrorResponse</code>.</p>
+<hr>
+<h2>GET-Endpunkte: Von <code>subscribe()</code> zu <code>rxResource()</code></h2>
+<h3>Betroffen</h3>
+<table>
+<thead>
+<tr>
+<th>Endpunkt</th>
+<th>Konsumiert von</th>
+<th>Vorher</th>
+<th>Nachher</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /api/status</code></td>
+<td><code>StatusCardComponent</code></td>
+<td>manuelles <code>subscribe()</code></td>
+<td><code>rxResource()</code></td>
+</tr>
+<tr>
+<td><code>GET /api/versions/available</code></td>
+<td><code>RemoteVersionsCardComponent</code></td>
+<td>manuelles <code>subscribe()</code></td>
+<td><code>rxResource()</code></td>
+</tr>
+<tr>
+<td><code>GET /api/versions/installed</code></td>
+<td><code>NvmStateService</code></td>
+<td>manuelles <code>subscribe()</code></td>
+<td><code>rxResource()</code></td>
+</tr>
+<tr>
+<td><code>GET /api/versions/aliases</code></td>
+<td><code>AliasesCardComponent</code></td>
+<td>manuelles <code>subscribe()</code></td>
+<td><code>rxResource()</code></td>
+</tr>
+</tbody></table>
+<h3>Warum diese Trennung?</h3>
+<p><code>rxResource()</code> eignet sich für <strong>idempotente Leseoperationen</strong> (GET), die:</p>
+<ul>
+<li>einen klar definierten Lade-/Fehler-/Erfolgszustand haben</li>
+<li>reaktiv neu geladen werden müssen (z.B. nach Mutationen)</li>
+<li>deklarativ im Template nutzbar sein sollen (<code>resource.isLoading()</code>, <code>resource.value()</code>)</li>
+</ul>
+<p><strong>Mutationen</strong> (<code>POST /api/versions/install</code>, <code>DELETE</code>, etc.) bleiben
+<strong>imperativ</strong>: Sie haben Seiteneffekte, sind nicht idempotent und ihr Ergebnis
+ist die Auslösung eines Reloads, keine Darstellung eigener Daten.</p>
+<h3><code>rxResource()</code> statt <code>httpResource()</code></h3>
+<p>Angular 21 bietet <code>httpResource()</code> (stabil) und <code>rxResource()</code> (experimental).
+Wir nutzen <code>rxResource()</code>, weil:</p>
+<ul>
+<li><code>NvmApiService</code> als Service-Schicht erhalten bleiben soll</li>
+<li>Zentrale Error-Normalisierung via Interceptor erhalten bleiben soll</li>
+<li><code>httpResource()</code> direkt URL-Parameter erwartet, nicht Observable-Loader</li>
+</ul>
+<pre><code class="language-typescript">// Implementierungsbeispiel (nvm-state.service.ts)
+private readonly installedResource = rxResource({
+  loader: () =&gt; this.api.getInstalledVersions()
+});
+
+readonly installedVersions = computed(
+  () =&gt; this.installedResource.hasValue()
+    ? this.installedResource.value()!.versions
+    : []
+);
+
+// Nach einer Mutation:
+this.installedResource.reload();
+</code></pre>
+<hr>
+<h2>Neue API-Endpunkte (Changelog-Kontext)</h2>
+<p>Diese Endpunkte wurden im Rahmen des Feature-Developments eingeführt und
+durch die Refactoring-Reviews dann korrekt in <code>rxResource()</code> bzw. imperative
+Calls eingeordnet.</p>
+<h3><code>GET /api/status</code> – Erweiterung</h3>
+<pre><code class="language-json">// Vorher
+{
+  &quot;nvmAvailable&quot;: true,
+  &quot;nvmVersion&quot;: &quot;0.39.7&quot;,
+  &quot;nodeVersion&quot;: &quot;v22.3.0&quot;
+}
+
+// Nachher (nvmLatestVersion optional)
+{
+  &quot;nvmAvailable&quot;: true,
+  &quot;nvmVersion&quot;: &quot;0.39.7&quot;,
+  &quot;nodeVersion&quot;: &quot;v22.3.0&quot;,
+  &quot;nvmLatestVersion&quot;: &quot;v0.40.1&quot;
+}
+</code></pre>
+<p><code>nvmLatestVersion</code> wird nur geliefert, wenn die GitHub-Releases-API erreichbar
+ist (5 s Timeout). Das Frontend zeigt bei Unterschied einen „Aktualisieren&quot;-Button.</p>
+<hr>
+<h3><code>POST /api/nvm/update</code> – neu</h3>
+<p>Löst ein nvm-Update via <code>git fetch --tags &amp;&amp; git checkout &lt;version&gt;</code> im
+<code>NVM_DIR</code> aus. Nutzt SSE-Streaming (gleiche Mechanik wie <code>POST /api/versions/install</code>).</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-json">{ &quot;targetVersion&quot;: &quot;v0.40.1&quot; }
+</code></pre>
+<p><strong>Response:</strong> SSE-Stream mit <code>progress</code>-Events, abschließend <code>complete</code> oder <code>error</code>.</p>
+<hr>
+<h3><code>POST /api/nvm/open-dir</code> – neu</h3>
+<p>Öffnet <code>NVM_DIR</code> im Dateimanager (<code>open</code> auf macOS, <code>xdg-open</code> auf Linux).
+Kein User-Input – der Pfad kommt aus der Server-Konfiguration.</p>
+<p><strong>Request:</strong> kein Body erforderlich</p>
+<p><strong>Response (200):</strong></p>
+<pre><code class="language-json">{ &quot;opened&quot;: true }
+</code></pre>
+<p><strong>Sicherheitshinweis:</strong> Kein User-Input bedeutet kein Injection-Risiko.
+Der Pfad ist serverseitig fest.</p>
+<hr>
+<h3><code>POST /api/versions/aliases/lts</code> und <code>DELETE /api/versions/aliases/lts/:codename</code> – neu</h3>
+<p>nvm unterstützt <code>nvm alias lts/&lt;codename&gt;</code> nicht nativ. Die neuen Endpunkte
+schreiben/löschen Alias-Dateien direkt im Dateisystem (<code>~/.nvm/alias/lts/</code>).</p>
+<p><strong>POST Request:</strong></p>
+<pre><code class="language-json">{ &quot;codename&quot;: &quot;iron&quot;, &quot;version&quot;: &quot;20.12.2&quot; }
+</code></pre>
+<p><strong>Validierung:</strong> <code>isValidLtsCodename</code> – Whitelist-Regex <code>^[a-z]+$</code>.</p>
+<hr>
+<h3><code>POST /api/versions/stable</code> – neu</h3>
+<p>Setzt den <code>stable</code>-Alias auf eine beliebige Version oder LTS-Linie.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-json">{ &quot;version&quot;: &quot;22.3.0&quot; }
+</code></pre>
+<hr>
+<h3><code>POST /api/versions/use</code> – Verhalten geändert</h3>
+<p>Vorher: Temporäres <code>nvm use X</code> (nur in der Child-Prozess-Session wirksam).
+Nachher: Permanent via <code>nvm alias default X</code>, sodass auch zukünftige Shells die
+gewählte Version verwenden.</p>
+<hr>
+<h2>Eingabevalidierung: Whitelist-Strategie</h2>
+<p>Alle Endpunkte, die Versions- oder Alias-Namen entgegennehmen, validieren
+diese <strong>vor</strong> der Shell-Übergabe:</p>
+<table>
+<thead>
+<tr>
+<th>Funktion</th>
+<th>Regex / Logik</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>isValidVersionInput</code></td>
+<td><code>/^(\d+\.\d+\.\d+|lts\/[a-z]+|[a-z]+|\d+)$/</code></td>
+</tr>
+<tr>
+<td><code>isValidAliasName</code></td>
+<td><code>/^[\w.\-/]+$/</code></td>
+</tr>
+<tr>
+<td><code>isValidAliasTarget</code></td>
+<td>Wie <code>isValidVersionInput</code></td>
+</tr>
+<tr>
+<td><code>isValidLtsCodename</code></td>
+<td><code>/^[a-z]+$/</code></td>
+</tr>
+</tbody></table>
+<p>Bei Verletzung: HTTP 400 <code>{ &quot;error&quot;: &quot;Invalid ...&quot; }</code> — keine Shell-Ausführung.</p>
+<hr>
+<h2>Auswirkungen der Refactorings auf den API-Vertrag</h2>
+<table>
+<thead>
+<tr>
+<th>Aspekt</th>
+<th>Vor den Reviews</th>
+<th>Nach den Reviews</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fehlerformat (Frontend)</td>
+<td><code>HttpErrorResponse</code> oder <code>Error</code></td>
+<td>immer <code>Error</code></td>
+</tr>
+<tr>
+<td>Ladestate (GET)</td>
+<td>Signal <code>loading = signal(false)</code></td>
+<td><code>resource.isLoading()</code></td>
+</tr>
+<tr>
+<td>Fehlerstate (GET)</td>
+<td>Signal <code>error = signal(null)</code></td>
+<td><code>resource.error()</code></td>
+</tr>
+<tr>
+<td>Reload nach Mutation</td>
+<td>manuelle Methode <code>loadXyz()</code></td>
+<td><code>resource.reload()</code></td>
+</tr>
+<tr>
+<td>Service-Methoden</td>
+<td>HTTP-Call + <code>catchError</code></td>
+<td>reiner HTTP-Call</td>
+</tr>
+</tbody></table>
+
+  </div>
+  <script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      html.setAttribute('data-theme', 'dark');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+    localStorage.setItem('nvm-docs-theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.getElementById('theme-btn').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'nvm-docs-theme') return;
+    const isDark = e.newValue === 'dark';
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  });
+</script>
+</body>
+</html>

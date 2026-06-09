@@ -4,8 +4,9 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AliasesCardComponent } from './aliases-card.component';
 import { NvmApiService } from '../../../services/nvm-api.service';
 import { of, throwError } from 'rxjs';
-import type { NvmAlias, LogEvent } from '../../../models/nvm.models';
+import type { NvmAlias, LogEvent, InstallModalState } from '../../../models/nvm.models';
 
+/** The built-in `default` alias (editable, not deletable). */
 const ALIAS_DEFAULT: NvmAlias = {
   name: 'default',
   target: 'lts/*',
@@ -13,6 +14,7 @@ const ALIAS_DEFAULT: NvmAlias = {
   editable: true,
   deletable: false,
 };
+/** A user-defined alias (editable and deletable). */
 const ALIAS_CUSTOM: NvmAlias = {
   name: 'my-project',
   target: 'v18.18.0',
@@ -20,26 +22,49 @@ const ALIAS_CUSTOM: NvmAlias = {
   editable: true,
   deletable: true,
 };
-const ALIAS_BUILTIN: NvmAlias = {
-  name: 'node',
-  target: 'stable',
-  resolved: 'v22.11.0',
-  editable: false,
+/** An LTS codename alias (`lts/iron`), used for the LTS-edit path. */
+const ALIAS_LTS: NvmAlias = {
+  name: 'lts/iron',
+  target: 'v20.18.0',
+  resolved: 'v20.18.0',
+  editable: true,
   deletable: false,
 };
-
+/** Default aliases payload returned by the mocked `getAliases`. */
 const ALIASES_RESPONSE = { stdout: '', stderr: '', aliases: [ALIAS_DEFAULT, ALIAS_CUSTOM] };
 
+/**
+ * Builds a mock {@link NvmApiService} where all alias operations succeed by
+ * default. Tests override specific methods (e.g. `setAlias`) with `throwError`
+ * to exercise the error paths.
+ *
+ * @param overrides - Per-method replacements.
+ */
 function buildSvc(overrides: Partial<InstanceType<typeof NvmApiService>> = {}) {
   return {
     getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
     setAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
+    setLtsAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     deleteAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
+    deleteLtsAlias: vi.fn().mockReturnValue(of({ stdout: '', stderr: '' })),
     ...overrides,
   };
 }
 
+/**
+ * Unit tests for {@link AliasesCardComponent}.
+ *
+ * Covers the auto-loading alias list (and `refreshTrigger`-driven reloads),
+ * the inline edit flows for regular and LTS aliases, alias creation, and the
+ * two-step delete confirmation. For each mutating action the suite asserts both
+ * the API call and the emitted side effects: `logged`, `aliasChanged`, and the
+ * `modalStateChange` progression (`running → success` or `→ error`).
+ */
 describe('AliasesCardComponent', () => {
+  /**
+   * Compiles the component with a mocked API service.
+   * @param svcOverrides - Optional per-method API mock overrides.
+   */
   async function setup(svcOverrides?: Partial<InstanceType<typeof NvmApiService>>) {
     const mockSvc = buildSvc(svcOverrides);
     await TestBed.configureTestingModule({
@@ -98,23 +123,23 @@ describe('AliasesCardComponent', () => {
   // ── refreshTrigger ──────────────────────────────────────────────────────────
 
   it('löst kein erneutes Laden aus wenn refreshTrigger = 0', async () => {
-    const { fixture, comp, mockSvc } = await setup();
+    const { fixture, mockSvc } = await setup();
     fixture.detectChanges();
     await fixture.whenStable();
 
     vi.clearAllMocks();
-    comp.refreshTrigger = 0;
+    fixture.componentRef.setInput('refreshTrigger', 0);
 
     expect(mockSvc.getAliases).not.toHaveBeenCalled();
   });
 
   it('lädt neu wenn refreshTrigger > 0 gesetzt wird', async () => {
-    const { fixture, comp, mockSvc } = await setup();
+    const { fixture, mockSvc } = await setup();
     fixture.detectChanges();
     await fixture.whenStable();
 
     vi.clearAllMocks();
-    comp.refreshTrigger = 1;
+    fixture.componentRef.setInput('refreshTrigger', 1);
     await fixture.whenStable();
 
     expect(mockSvc.getAliases).toHaveBeenCalledOnce();
@@ -123,15 +148,14 @@ describe('AliasesCardComponent', () => {
   // ── startEdit / cancelEdit ──────────────────────────────────────────────────
 
   it('setzt editingAlias und editAliasTarget beim Bearbeiten', async () => {
-    const { comp } = await setup();
-    // Set installed versions so that startEdit pre-selects the resolved version
-    comp.installedVersions = [
+    const { fixture, comp } = await setup();
+    fixture.componentRef.setInput('installedVersions', [
       { version: '22.11.0', active: true, default: true, system: false, stable: false, unstable: false, iojs: false },
-    ];
+    ]);
     comp.startEdit(ALIAS_DEFAULT);
 
     expect(comp.editingAlias()).toBe('default');
-    expect(comp.editAliasTarget).toBe('22.11.0');
+    expect(comp.editAliasTarget()).toBe('22.11.0');
   });
 
   it('setzt editingAlias zurück beim Abbrechen', async () => {
@@ -140,7 +164,7 @@ describe('AliasesCardComponent', () => {
     comp.cancelEdit();
 
     expect(comp.editingAlias()).toBeNull();
-    expect(comp.editAliasTarget).toBe('');
+    expect(comp.editAliasTarget()).toBe('');
   });
 
   // ── saveAlias ───────────────────────────────────────────────────────────────
@@ -152,7 +176,7 @@ describe('AliasesCardComponent', () => {
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20';
+    comp.editAliasTarget.set('20');
     comp.saveAlias('default');
     await fixture.whenStable();
 
@@ -164,10 +188,89 @@ describe('AliasesCardComponent', () => {
   it('bricht saveAlias ab wenn Ziel leer ist', async () => {
     const { comp, mockSvc } = await setup();
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '   ';
+    comp.editAliasTarget.set('   ');
     comp.saveAlias('default');
 
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
+  });
+
+  it('zeigt das Modal (running → success) beim Speichern des default-Alias', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_DEFAULT);
+    comp.editAliasTarget.set('20.5.0');
+    comp.saveAlias('default');
+    await fixture.whenStable();
+
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({ action: 'default', phase: 'running', version: '20.5.0' });
+    expect(modalStates[1]).toEqual({ action: 'default', phase: 'success', version: '20.5.0' });
+  });
+
+  it('zeigt das Modal mit phase: error wenn das Speichern des default-Alias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_DEFAULT);
+    comp.editAliasTarget.set('20.5.0');
+    comp.saveAlias('default');
+    await fixture.whenStable();
+
+    expect(modalStates[0]?.phase).toBe('running');
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
+  });
+
+  it('zeigt das Modal (running → success) beim Speichern eines beliebigen Alias', async () => {
+    const { fixture, comp } = await setup();
+    fixture.detectChanges();
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_CUSTOM);
+    comp.editAliasTarget.set('18.18.0');
+    comp.saveAlias('my-project');
+    await fixture.whenStable();
+
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({
+      action: 'alias',
+      phase: 'running',
+      version: '18.18.0',
+      alias: 'my-project',
+    });
+    expect(modalStates[1]).toEqual({
+      action: 'alias',
+      phase: 'success',
+      version: '18.18.0',
+      alias: 'my-project',
+    });
+  });
+
+  it('zeigt das Modal mit phase: error wenn das Speichern eines Alias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startEdit(ALIAS_CUSTOM);
+    comp.editAliasTarget.set('18.18.0');
+    comp.saveAlias('my-project');
+    await fixture.whenStable();
+
+    expect(modalStates[0]?.phase).toBe('running');
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.action).toBe('alias');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
   });
 
   it('emittiert Fehler-Log wenn saveAlias fehlschlägt', async () => {
@@ -179,11 +282,60 @@ describe('AliasesCardComponent', () => {
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.startEdit(ALIAS_DEFAULT);
-    comp.editAliasTarget = '20';
+    comp.editAliasTarget.set('20');
     comp.saveAlias('default');
     await fixture.whenStable();
 
     expect(logged[0].type).toBe('error');
+  });
+
+  // ── saveLtsAlias ────────────────────────────────────────────────────────────
+
+  it('speichert LTS-Alias und zeigt das Modal (running → success)', async () => {
+    const { fixture, comp, mockSvc } = await setup();
+    fixture.componentRef.setInput('installedVersions', [
+      { version: '20.18.0', active: false, default: false, system: false, stable: false, unstable: false, iojs: false },
+    ]);
+    fixture.detectChanges();
+    const logged: LogEvent[] = [];
+    const modalStates: InstallModalState[] = [];
+    comp.logged.subscribe((e: LogEvent) => logged.push(e));
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startLtsEdit(ALIAS_LTS);
+    comp.ltsEditVersion.set('20.18.0');
+    comp.saveLtsAlias(ALIAS_LTS);
+    await fixture.whenStable();
+
+    expect(mockSvc.setLtsAlias).toHaveBeenCalledWith('iron', '20.18.0');
+    expect(logged[0].type).toBe('success');
+    expect(comp.editingLtsAlias()).toBeNull();
+    expect(modalStates).toHaveLength(2);
+    expect(modalStates[0]).toEqual({
+      action: 'alias',
+      phase: 'running',
+      version: '20.18.0',
+      alias: 'lts/iron',
+    });
+    expect(modalStates[1]?.phase).toBe('success');
+  });
+
+  it('zeigt das Modal mit phase: error wenn saveLtsAlias fehlschlägt', async () => {
+    const { fixture, comp } = await setup({
+      getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
+      setLtsAlias: vi.fn().mockReturnValue(throwError(() => new Error('Boom'))),
+    });
+    const modalStates: InstallModalState[] = [];
+    comp.modalStateChange.subscribe((s: InstallModalState) => modalStates.push(s));
+
+    comp.startLtsEdit(ALIAS_LTS);
+    comp.ltsEditVersion.set('20.18.0');
+    comp.saveLtsAlias(ALIAS_LTS);
+    await fixture.whenStable();
+
+    expect(modalStates[1]?.phase).toBe('error');
+    expect(modalStates[1]?.action).toBe('alias');
+    expect(modalStates[1]?.errorMessage).toBe('Boom');
   });
 
   // ── createAlias ─────────────────────────────────────────────────────────────
@@ -194,27 +346,27 @@ describe('AliasesCardComponent', () => {
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
-    comp.newAliasName = 'new-alias';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('new-alias');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     await fixture.whenStable();
 
     expect(mockSvc.setAlias).toHaveBeenCalledWith('new-alias', '18');
     expect(logged[0].type).toBe('success');
-    expect(comp.newAliasName).toBe('');
-    expect(comp.newAliasTarget).toBe('');
+    expect(comp.newAliasName()).toBe('');
+    expect(comp.newAliasTarget()).toBe('');
   });
 
   it('bricht createAlias ab wenn Name oder Ziel leer ist', async () => {
     const { comp, mockSvc } = await setup();
 
-    comp.newAliasName = '';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
 
-    comp.newAliasName = 'alias';
-    comp.newAliasTarget = '';
+    comp.newAliasName.set('alias');
+    comp.newAliasTarget.set('');
     comp.createAlias();
     expect(mockSvc.setAlias).not.toHaveBeenCalled();
   });
@@ -227,43 +379,47 @@ describe('AliasesCardComponent', () => {
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
-    comp.newAliasName = 'new-alias';
-    comp.newAliasTarget = '18';
+    comp.newAliasName.set('new-alias');
+    comp.newAliasTarget.set('18');
     comp.createAlias();
     await fixture.whenStable();
 
     expect(logged[0].type).toBe('error');
   });
 
-  // ── deleteAlias ─────────────────────────────────────────────────────────────
+  // ── deleteAlias / Inline-Confirm ────────────────────────────────────────────
 
-  it('löscht Alias wenn Benutzer bestätigt', async () => {
-    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+  it('setzt confirmPendingAlias nach deleteAlias', async () => {
+    const { comp } = await setup();
+    comp.deleteAlias('my-project');
+    expect(comp.confirmPendingAlias()).toBe('my-project');
+  });
+
+  it('löscht Alias nach confirmDelete', async () => {
     const { fixture, comp, mockSvc } = await setup();
     fixture.detectChanges();
     const logged: LogEvent[] = [];
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.deleteAlias('my-project');
+    comp.confirmDelete();
     await fixture.whenStable();
 
     expect(mockSvc.deleteAlias).toHaveBeenCalledWith('my-project');
     expect(logged[0].type).toBe('success');
-    vi.unstubAllGlobals();
+    expect(comp.confirmPendingAlias()).toBeNull();
   });
 
-  it('bricht Löschen ab wenn Benutzer ablehnt', async () => {
-    vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
+  it('bricht Löschen ab nach cancelDelete', async () => {
     const { comp, mockSvc } = await setup();
-
     comp.deleteAlias('my-project');
+    comp.cancelDelete();
 
     expect(mockSvc.deleteAlias).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
+    expect(comp.confirmPendingAlias()).toBeNull();
   });
 
   it('emittiert Fehler-Log wenn deleteAlias fehlschlägt', async () => {
-    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
     const { fixture, comp } = await setup({
       getAliases: vi.fn().mockReturnValue(of(ALIASES_RESPONSE)),
       deleteAlias: vi.fn().mockReturnValue(throwError(() => new Error('Fehler'))),
@@ -272,9 +428,9 @@ describe('AliasesCardComponent', () => {
     comp.logged.subscribe((e: LogEvent) => logged.push(e));
 
     comp.deleteAlias('my-project');
+    comp.confirmDelete();
     await fixture.whenStable();
 
     expect(logged[0].type).toBe('error');
-    vi.unstubAllGlobals();
   });
 });

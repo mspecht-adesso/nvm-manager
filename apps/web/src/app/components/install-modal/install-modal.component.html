@@ -1,101 +1,133 @@
-@if (state) {
-  <div class="backdrop" [class.backdrop--no-dismiss]="state.phase === 'running'">
-    <div class="modal" role="dialog" aria-modal="true">
+@if (state(); as s) {
+  <div class="backdrop" [class.backdrop--no-dismiss]="s.phase === 'running'">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" #dialog>
 
-      @if (state.phase === 'running') {
+      @if (s.phase === 'running') {
         <div class="modal__icon">
           <span class="spinner"></span>
         </div>
-        @if (state.action === 'install') {
-          <h2 class="modal__title">Installation läuft</h2>
+        @if (s.action === 'install') {
+          <h2 class="modal__title" id="modal-title">Installation läuft</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> wird installiert.<br>
+            Node <code class="ver">v{{ s.version }}</code> wird installiert.<br>
             Dies kann einige Minuten dauern – bitte warten.
           </p>
-        } @else if (state.action === 'uninstall') {
-          <h2 class="modal__title">Deinstallation läuft</h2>
+        } @else if (s.action === 'uninstall') {
+          <h2 class="modal__title" id="modal-title">Deinstallation läuft</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> wird deinstalliert.<br>
+            Node <code class="ver">v{{ s.version }}</code> wird deinstalliert.<br>
             Bitte warten …
           </p>
-        } @else if (state.action === 'nvm-update') {
-          <h2 class="modal__title">nvm wird aktualisiert</h2>
+        } @else if (s.action === 'nvm-update') {
+          <h2 class="modal__title" id="modal-title">nvm wird aktualisiert</h2>
           <p class="modal__body">
-            nvm wird auf Version <code class="ver">{{ state.version }}</code> aktualisiert.<br>
+            nvm wird auf Version <code class="ver">{{ s.version }}</code> aktualisiert.<br>
             Dies kann einen Moment dauern – bitte warten.
           </p>
-        } @else {
-          <h2 class="modal__title">Version wird aktiviert</h2>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title" id="modal-title">Default wird gesetzt</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> wird aktiviert.<br>
+            Node <code class="ver">v{{ s.version }}</code> wird als Default gesetzt.<br>
+            Bitte warten …
+          </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias wird gesetzt</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> wird auf <code class="ver">v{{ s.version }}</code> gesetzt.<br>
+            Bitte warten …
+          </p>
+        } @else {
+          <h2 class="modal__title" id="modal-title">Version wird aktiviert</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> wird aktiviert.<br>
             Bitte warten …
           </p>
         }
       }
 
-      @if (state.phase === 'success') {
+      @if (s.phase === 'success') {
         <div class="modal__icon modal__icon--success">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        @if (state.action === 'install') {
-          <h2 class="modal__title">Installation erfolgreich</h2>
+        @if (s.action === 'install') {
+          <h2 class="modal__title" id="modal-title">Installation erfolgreich</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich installiert.
+            Node <code class="ver">v{{ s.version }}</code> wurde erfolgreich installiert.
           </p>
-        } @else if (state.action === 'uninstall') {
-          <h2 class="modal__title">Deinstallation erfolgreich</h2>
+        } @else if (s.action === 'uninstall') {
+          <h2 class="modal__title" id="modal-title">Deinstallation erfolgreich</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> wurde erfolgreich deinstalliert.
+            Node <code class="ver">v{{ s.version }}</code> wurde erfolgreich deinstalliert.
           </p>
-        } @else if (state.action === 'nvm-update') {
-          <h2 class="modal__title">nvm erfolgreich aktualisiert</h2>
+        } @else if (s.action === 'nvm-update') {
+          <h2 class="modal__title" id="modal-title">nvm erfolgreich aktualisiert</h2>
           <p class="modal__body">
-            nvm wurde erfolgreich auf Version <code class="ver">{{ state.version }}</code> aktualisiert.
+            nvm wurde erfolgreich auf Version <code class="ver">{{ s.version }}</code> aktualisiert.
+          </p>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title" id="modal-title">Default gesetzt</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> ist jetzt die Default-Version.
+          </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias gesetzt</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> zeigt jetzt auf <code class="ver">v{{ s.version }}</code>.
           </p>
         } @else {
-          <h2 class="modal__title">Version aktiviert</h2>
+          <h2 class="modal__title" id="modal-title">Version aktiviert</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> ist jetzt die aktive Version.
+            Node <code class="ver">v{{ s.version }}</code> ist jetzt die aktive Version.
           </p>
         }
         <p class="modal__hint">Dieses Fenster schließt automatisch …</p>
       }
 
-      @if (state.phase === 'error') {
+      @if (s.phase === 'error') {
         <div class="modal__icon modal__icon--error">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </div>
-        @if (state.action === 'install') {
-          <h2 class="modal__title">Installation fehlgeschlagen</h2>
+        @if (s.action === 'install') {
+          <h2 class="modal__title" id="modal-title">Installation fehlgeschlagen</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> konnte nicht installiert werden.
+            Node <code class="ver">v{{ s.version }}</code> konnte nicht installiert werden.
           </p>
-        } @else if (state.action === 'uninstall') {
-          <h2 class="modal__title">Deinstallation fehlgeschlagen</h2>
+        } @else if (s.action === 'uninstall') {
+          <h2 class="modal__title" id="modal-title">Deinstallation fehlgeschlagen</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> konnte nicht deinstalliert werden.
+            Node <code class="ver">v{{ s.version }}</code> konnte nicht deinstalliert werden.
           </p>
-        } @else if (state.action === 'nvm-update') {
-          <h2 class="modal__title">nvm-Aktualisierung fehlgeschlagen</h2>
+        } @else if (s.action === 'nvm-update') {
+          <h2 class="modal__title" id="modal-title">nvm-Aktualisierung fehlgeschlagen</h2>
           <p class="modal__body">
-            nvm konnte nicht auf Version <code class="ver">{{ state.version }}</code> aktualisiert werden.
+            nvm konnte nicht auf Version <code class="ver">{{ s.version }}</code> aktualisiert werden.
+          </p>
+        } @else if (s.action === 'default') {
+          <h2 class="modal__title" id="modal-title">Default setzen fehlgeschlagen</h2>
+          <p class="modal__body">
+            Node <code class="ver">v{{ s.version }}</code> konnte nicht als Default gesetzt werden.
+          </p>
+        } @else if (s.action === 'alias') {
+          <h2 class="modal__title" id="modal-title">Alias setzen fehlgeschlagen</h2>
+          <p class="modal__body">
+            Alias <code class="ver">{{ s.alias }}</code> konnte nicht gesetzt werden.
           </p>
         } @else {
-          <h2 class="modal__title">Aktivierung fehlgeschlagen</h2>
+          <h2 class="modal__title" id="modal-title">Aktivierung fehlgeschlagen</h2>
           <p class="modal__body">
-            Node <code class="ver">v{{ state.version }}</code> konnte nicht aktiviert werden.
+            Node <code class="ver">v{{ s.version }}</code> konnte nicht aktiviert werden.
           </p>
         }
         <div class="modal__instructions">
-          <strong>Hinweis:</strong> {{ getErrorInstructions(state.action, state.errorMessage) }}
+          <strong>Hinweis:</strong> {{ getErrorInstructions(s.action, s.errorMessage) }}
         </div>
-        @if (state.errorMessage) {
+        @if (s.errorMessage) {
           <details class="modal__details">
             <summary>Technische Details</summary>
-            <pre class="modal__error-pre">{{ state.errorMessage }}</pre>
+            <pre class="modal__error-pre">{{ s.errorMessage }}</pre>
           </details>
         }
-        <button class="modal__close-btn" (click)="close()">Schließen</button>
+        <button class="modal__close-btn" (click)="close()" #closeButton>Schließen</button>
       }
 
     </div>

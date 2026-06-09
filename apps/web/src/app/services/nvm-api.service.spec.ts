@@ -1,22 +1,35 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { NvmApiService } from './nvm-api.service';
+import { httpErrorInterceptor } from '../core/http-error.interceptor';
 import { firstValueFrom } from 'rxjs';
 
+/**
+ * Unit tests for {@link NvmApiService}.
+ *
+ * Verifies that each method targets the correct URL, HTTP verb, and request
+ * body, using `HttpTestingController` to intercept and flush responses. The real
+ * {@link httpErrorInterceptor} is included so the error-normalisation tests
+ * exercise the production error path end-to-end.
+ */
 describe('NvmApiService', () => {
   let service: NvmApiService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(NvmApiService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
+  // Ensure every test consumed exactly the requests it expected.
   afterEach(() => httpMock.verify());
 
   describe('getStatus', () => {
@@ -138,7 +151,7 @@ describe('NvmApiService', () => {
     });
   });
 
-  describe('handleError', () => {
+  describe('Fehlerbehandlung (httpErrorInterceptor)', () => {
     it('extrahiert error-Eigenschaft aus der Fehlerantwort', async () => {
       const promise = firstValueFrom(service.getStatus());
       httpMock.expectOne('/api/status').flush(
